@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="com.google.android.gms:play-services-tagmanager-license-11.8.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.android/build-cache/3025654cf2a7c3b1c09f4ffeeb40c2513b96def0/output/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.android/build-cache/3025654cf2a7c3b1c09f4ffeeb40c2513b96def0/output/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
