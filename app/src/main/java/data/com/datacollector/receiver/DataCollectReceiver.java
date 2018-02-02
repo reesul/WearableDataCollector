@@ -49,7 +49,6 @@ public class DataCollectReceiver extends BroadcastReceiver {
         if(action!=null) {
             if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
                 Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED");
-                uploadDataBLE(context);
                 uploadData(context);
             }
         }
@@ -63,7 +62,4 @@ public class DataCollectReceiver extends BroadcastReceiver {
         NetworkIO.uploadData(context.getApplicationContext());
     }
 
-    private void uploadDataBLE(Context context) {
-        NetworkIO.uploadDataBLE(context.getApplicationContext());
-    }
 }

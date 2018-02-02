@@ -498,6 +498,7 @@ public class FileUtil {
         Log.d(TAG,"Begin zipping folder: " + sourcePath);
 
         File sourceFile = new File(sourcePath);
+
         try {
             //first get stream to handle IO between file and new zipped file
 

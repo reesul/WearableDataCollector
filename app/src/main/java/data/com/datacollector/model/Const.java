@@ -14,7 +14,7 @@ import static java.security.AccessController.getContext;
 public class Const {
     //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold
     public static final float EPSILON_GYRO = 3.0f;
-    /* Used by Accelerometer data save procedure to ensure sensor data is above a threshold (in g = ~9.8 m/s^2)
+    /* Used by Accelerometer data save procedure to ensure sensor data is above a threshold (in g = ~9.8 m/s^2)*/
     public static final float EPSILON_ACC = 1.4f;
 
     //File names

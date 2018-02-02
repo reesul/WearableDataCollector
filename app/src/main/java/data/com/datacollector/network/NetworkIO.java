@@ -126,15 +126,16 @@ public class NetworkIO {
             return;
         }
         //final String bleZipPath  = FileUtil.zipFolder(context, FileUtil.BLE_DIR);
-        File fileBLE = new File(destPath);
+        final File zipFile = new File(destPath);
 
-        RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), fileBLE);
-        MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", fileBLE.getName(), filePart);
+        RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), zipFile);
+        MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", zipFile.getName(), filePart);
 
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         int timeVal = 1;
-        //connection will timeout after one minute
+
+        //Build the connection client; times out after 1 minute
         OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).writeTimeout(timeVal, TimeUnit.MINUTES)
                 .readTimeout(timeVal, TimeUnit.MINUTES).connectTimeout(timeVal, TimeUnit.MINUTES).build();
 
@@ -154,73 +155,7 @@ public class NetworkIO {
                 fileUploadInProgress = false;
                 String PathToDir = FileUtil.getCollectedDataDir(context.getApplicationContext(), FileUtil.BASE_DIR).getPath();
                 clearFilesContent(PathToDir);
-                //clearFilesContentBLE(context, PathToDir);
-                lastUploadResult = true;
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.d(TAG, "uploadData:: failure: "+t.toString());
-                fileUploadInProgress = false;
-                lastUploadResult = false;
-            }
-        });
-
-
-
-    }
-
-    public static void uploadDataBLE(final Context context) {
-        Log.d(TAG, "uploadDataBLE::\n\n");
-        fileUploadInProgress = true;
-
-        //final File dir = new File(context.getApplicationContext().getFilesDir() + "/DC/");
-        //dir.mkdirs();
-
-        //zip contents of folder holding all BLE files, returns the path to the file
-        final File dir = FileUtil.getCollectedDataDir(context, FileUtil.BASE_DIR);
-        if(!dir.exists())
-            dir.mkdirs();
-
-        String sourcePath = dir.getPath();
-        String destPath = sourcePath + "/DC.zip";
-
-        //attempt to zip the files at the sourcePath (includes all subdirectories and files)
-        if(!FileUtil.zipFileAtPath(sourcePath, destPath)) {
-            //if we fail, do not attempt to upload a file, and log an error
-            Log.e(TAG, "uploadDataBLE:: Zipping folder failed");
-            lastUploadResult = false;
-            fileUploadInProgress = false;
-            return;
-        }
-        //final String bleZipPath  = FileUtil.zipFolder(context, FileUtil.BLE_DIR);
-        File fileBLE = new File(destPath);
-
-        RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), fileBLE);
-        MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", fileBLE.getName(), filePart);
-
-        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        int timeVal = 1;
-        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).writeTimeout(timeVal, TimeUnit.MINUTES)
-                .readTimeout(timeVal, TimeUnit.MINUTES).connectTimeout(timeVal, TimeUnit.MINUTES).build();
-
-        Retrofit.Builder builder = new Retrofit.Builder()
-                .baseUrl(BASE_SERVER_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create());
-
-        Retrofit retrofit = builder.build();
-
-        UserClient service = retrofit.create(UserClient.class);
-        Call<ResponseBody> call = service.uploadBLEfile(fileMultiPartBody);
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Log.d(TAG, "uploadData:: successful:: "+response.toString());
-                fileUploadInProgress = false;
-                String PathToBLEDir = FileUtil.getCollectedDataDir(context.getApplicationContext(), FileUtil.BASE_DIR).getPath();
-                clearFilesContentBLE(context, PathToBLEDir);
+                zipFile.delete();
                 lastUploadResult = true;
             }
 
@@ -235,28 +170,6 @@ public class NetworkIO {
 
     }
 
-    /**
-     * Called after data is successfully uploaded to the server. The method clears the COntent from all the sensor files.
-     * @param context
-     */
-    private static void clearFilesContent(Context context){
-        Log.d(TAG, "clearFilesContent");
-        final File dir = new File(context.getApplicationContext().getFilesDir() + "/DC/");
-        dir.mkdirs();
-        final File file1 = FileUtil.getAccelerometerFile(context);
-        final File file2 = FileUtil.getGyroScopeFile(context);
-        final File file3 = FileUtil.getBLEFile(context);
-        final File file4 = FileUtil.getPPGFile(context);
-
-        boolean fileBleExists = file1.exists();
-        try {
-            if(!fileBleExists) {
-                file1.getParentFile().mkdirs();
-                file1.createNewFile();
-            }
-        }catch(Exception e){}
-        FileUtil.clearFilesContent(new File[]{file1, file2, file3, file4});
-    }
 
     private static void clearFilesContent(String path) {
         Log.d(TAG, "clearFilesContent:: at " + path);
@@ -268,8 +181,6 @@ public class NetworkIO {
         }
         //if the file is a directory, then we also need to delete the files under it
         if(file.isDirectory()) {
-
-
 
 
             File[] fileList = file.listFiles();
@@ -288,49 +199,6 @@ public class NetworkIO {
 
     }
 
-    /*
-    @parameter path: path of the file to be removed;
 
-    function is used to delete files at the path provided
-    */
-    private static void clearFilesContentBLE(Context context, String path) {
-        Log.d(TAG, "clearFilesContent:: at " + path);
-        final File file = new File(path);
-
-
-        //if the file is a directory, then we also need to delete the files under it
-        if(file.isDirectory()) {
-            File[] fileList = file.listFiles();
-
-            //if folder contains a date other than today in its path, delete this folder and its contained files
-            if(!file.getAbsolutePath().contains(Util.getDateForDir())) {
-
-            }
-
-            for (File subfile : fileList) {
-                //remove all files within directory recursively; also remove subfolders in the process
-
-                //however if the file is from today, do not clear it
-                //if(subfile.getAbsolutePath().contains(Util.getDateForDir()))
-                //    continue;
-                clearFilesContentBLE(context, subfile.getPath());
-            }
-            file.delete();  //then delete the directory
-        }
-        else
-            file.delete();
-
-        /* @deprecated, file structure changed
-        final File file = FileUtil.getBLEFile(context);
-
-        boolean fileBleExists = file.exists();
-        try {
-            if(!fileBleExists) {
-                file.getParentFile().mkdirs();
-                file.createNewFile();
-            }
-        }catch(Exception e){}
-        FileUtil.clearFileContentBLE(file);*/
-    }
 
 }
