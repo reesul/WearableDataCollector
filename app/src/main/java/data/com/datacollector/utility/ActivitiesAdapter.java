@@ -13,6 +13,7 @@ import android.widget.Toast;
 import data.com.datacollector.R;
 
 /**
+ * Adapter for the ActivitiesList recycler view
  * Created by ROGER on 2/5/2018.
  */
 
