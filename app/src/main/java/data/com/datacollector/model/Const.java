@@ -2,6 +2,10 @@ package data.com.datacollector.model;
 
 import android.os.Build;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import static android.provider.Settings.Secure.ANDROID_ID;
 import static java.security.AccessController.getContext;
 
@@ -16,6 +20,14 @@ public class Const {
     public static final float EPSILON_GYRO = 3.0f;
     /* Used by Accelerometer data save procedure to ensure sensor data is above a threshold (in g = ~9.8 m/s^2)*/
     public static final float EPSILON_ACC = 1.4f;
+
+    //Activities configuration
+    public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
+    public static final String DEFAULT_ACTIVITIES_LIST[] = {"Activity 1", "Activity 2",
+            "Activity 3", "Activity 4", "Activity 5","Activity 6", "Activity 7","Activity 8",
+            "Activity 9","Activity 10"}; //The default list of activities if not obtained from a server
+
+
 
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";

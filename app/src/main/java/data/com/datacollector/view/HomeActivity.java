@@ -16,9 +16,11 @@ import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
 
 import data.com.datacollector.R;
+import data.com.datacollector.model.ActivitiesList;
 import data.com.datacollector.model.Const;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
+import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.FileUtil;
 
 /**
@@ -27,11 +29,16 @@ import data.com.datacollector.utility.FileUtil;
 public class HomeActivity extends Activity   {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
-    private WearableRecyclerView labelList;
+    private WearableRecyclerView recActivitiesList;
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
+
+    private ActivitiesList activities;
+    private ActivitiesAdapter adapterList;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,12 +71,15 @@ public class HomeActivity extends Activity   {
 
 
         //initialize the list that holds all of the labels
-        labelList =  findViewById((R.id.recycler_launcher_view));
-        labelList.setLayoutManager(new WearableLinearLayoutManager((this)));
-      // labelList.setAdapter();
+        recActivitiesList =  findViewById((R.id.recycler_activities));
+        //recActivitiesList.setCircularScrollingGestureEnabled(true); Consider if this might be easier for the user
+        recActivitiesList.setLayoutManager(new WearableLinearLayoutManager((this)));
 
+        activities = new ActivitiesList();
 
-
+        String list[] = activities.getList();
+        adapterList = new ActivitiesAdapter(list);
+        recActivitiesList.setAdapter(adapterList);
 
     }
 
