@@ -33,6 +33,7 @@ public class NetworkIO {
     public static boolean fileUploadInProgress = false;
 
     public static boolean lastUploadResult = true;
+    public static boolean isTransfer;
 
     /**
      * To be called by an initiator who wants to upload data saved in memory to the server
@@ -114,6 +115,9 @@ public class NetworkIO {
         if(!dir.exists())
             dir.mkdirs();
 
+        /*  Old version of file transfer, zips all relevant files under master directory and sends
+                //If there is too much data, watch runs out of memory and app crashes
+                //new implementation is to zip files by date, so n days of data makes for n .zip files and n uploads
         String sourcePath = dir.getPath();
         String destPath = sourcePath + "/DC.zip";
 
@@ -127,6 +131,8 @@ public class NetworkIO {
         }
         //final String bleZipPath  = FileUtil.zipFolder(context, FileUtil.BLE_DIR);
         final File zipFile = new File(destPath);
+        long fileLen = zipFile.length()/1024; //file size in KB
+        Log.d(TAG, "Zipped file is " + fileLen + " KB");
 
         RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), zipFile);
         MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", zipFile.getName(), filePart);
@@ -147,7 +153,7 @@ public class NetworkIO {
         Retrofit retrofit = builder.build();
 
         UserClient service = retrofit.create(UserClient.class);
-        Call<ResponseBody> call = service.uploadBLEfile(fileMultiPartBody);
+        Call<ResponseBody> call = service.uploadfile(fileMultiPartBody);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -167,8 +173,75 @@ public class NetworkIO {
             }
         });
 
+*/
+        /******Trying to send files one "day" at a time*******/
+        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        int timeVal = 1;
+
+        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).writeTimeout(timeVal, TimeUnit.MINUTES)
+                .readTimeout(timeVal, TimeUnit.MINUTES).connectTimeout(timeVal, TimeUnit.MINUTES).build();
+
+        Retrofit.Builder builder = new Retrofit.Builder()
+                .baseUrl(BASE_SERVER_URL)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create());
+
+        Retrofit retrofit = builder.build();
+        UserClient service = retrofit.create(UserClient.class);
+
+        File[] dateDirs = dir.listFiles();
+        String sourcePath = dir.getPath();
+        isTransfer = false;
+        for(final File date : dateDirs) {
+            //while(isTransfer);	//wait for previous transfer to complete
+            //uploaded zip file includes device id (Serial's last 8 digits) and the date (assumed to be the last part of the filepath)
+            String destPath = date.getPath() + "/DC_" + DEVICE_ID + "_" + FileUtil.getLastPathComponent(date.getPath()) + ".zip";
+
+            Log.d(TAG, "uploadData:: upload from " + date.getPath());
+
+            if(!FileUtil.zipFileAtPath(date.getPath(), destPath)) {
+                //if we fail, do not attempt to upload a file, and log an error
+                Log.e(TAG, "uploadDataBLE:: Zipping folder failed");
+                return;
+            }
+            //get the file we just zipped
+            final File zipFile = new File(destPath);
+
+            RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), zipFile);
+            MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", zipFile.getName(), filePart);
+
+            isTransfer = true;
+
+            Call<ResponseBody> call = service.uploadfile(fileMultiPartBody);
+            call.enqueue(new Callback<ResponseBody>() {
+                             @Override
+                             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                 Log.d(TAG, "uploadData:: successful:: "+response.toString());
+                                 fileUploadInProgress = false;
+                                 String PathToDir = date.getPath();
+
+                                 if(!PathToDir.contains(Util.getDateForDir())) {
+                                 clearFilesContent(PathToDir);
+                                 }
+                                 zipFile.delete();
+                                 lastUploadResult = true;
+                                 isTransfer = false;
+        }
+
+        @Override
+        public void onFailure(Call<ResponseBody> call, Throwable t) {
+            Log.d(TAG, "uploadData:: failure: "+t.toString());
+            fileUploadInProgress = false;
+            lastUploadResult = false;
+            zipFile.delete();
+        }
+    });
+
+
 
     }
+}
 
 
     private static void clearFilesContent(String path) {

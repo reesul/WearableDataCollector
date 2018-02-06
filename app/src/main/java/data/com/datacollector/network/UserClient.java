@@ -17,6 +17,7 @@ import retrofit2.http.Path;
 
 public interface UserClient {
 
+    /*
     @Multipart
     @POST("uploadfiles")
     Call<ResponseBody> uploadfiles(
@@ -25,10 +26,17 @@ public interface UserClient {
             @Part MultipartBody.Part file3,
             @Part MultipartBody.Part file4
     );
+    */
 
     @Multipart
     @POST("uploadfiles")
     Call<ResponseBody> uploadBLEfile(
             @Part MultipartBody.Part fileBLE
+    );
+
+    @Multipart
+    @POST("uploadfiles")
+    Call<ResponseBody> uploadfile(
+            @Part MultipartBody.Part file
     );
 }

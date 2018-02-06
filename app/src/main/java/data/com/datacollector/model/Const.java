@@ -47,14 +47,15 @@ public class Const {
      *  and Acceleremoter and Heart Rate sensors throw a lot of data withing a sec when sensor detects corr. action.
      *  This limit would ensure at the same time limited data is being stored.
      *  Value in milliseconds*/
-    public static final long SENSOR_DATA_MIN_INTERVAL = 200;
+    public static final long SENSOR_DATA_MIN_INTERVAL = 100; //10Hz
     /* Conversion from nanoseconds to milliseconds (SensorEvents have timestamp in ns that is used for downsampling) */
     public static final long NANOS_TO_MILLIS = 1000000;
     /* Min interval between sensor (Acc, Gyro, and heart rate) samples that are saved in ns*/
     public static final long SENSOR_DATA_MIN_INTERVAL_NANOS = SENSOR_DATA_MIN_INTERVAL*NANOS_TO_MILLIS;
     /* These are the maximum number of Data entries that will be entertained while saving data after each minute.*/
-    public static final int MAX_PER_MIN_SENSOR_DATA_ALLOWED = 500;
-
+    public static final long MAX_PER_MIN_SENSOR_DATA_ALLOWED = ALARM_SENSOR_DATA_SAVE_INTERVAL/SENSOR_DATA_MIN_INTERVAL * 2;
+    /* Sensor event latency in microseconds: events are kept in a FIFO queue to save battery  */
+    public static final int SENSOR_QUEUE_LATENCY = 5000000;
 
     //BLE Scan constants
     /* Time after which BLE Scan would stop itself after being started*/

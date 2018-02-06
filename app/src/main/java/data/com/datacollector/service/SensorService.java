@@ -26,6 +26,7 @@ import static data.com.datacollector.model.Const.EPSILON_GYRO;
 import static data.com.datacollector.model.Const.EPSILON_ACC;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL;
+import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
 
 /**
  * Service to enable SensorManager's sensor data collection
@@ -99,17 +100,17 @@ public class SensorService extends Service implements SensorEventListener{
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL, 2000000 );
+                SensorManager.SENSOR_DELAY_NORMAL, SENSOR_QUEUE_LATENCY );
 
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_NORMAL, 2000000);
+                SensorManager.SENSOR_DELAY_NORMAL, SENSOR_QUEUE_LATENCY);
 
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE),
-                SensorManager.SENSOR_DELAY_NORMAL, 2000000);
+                SensorManager.SENSOR_DELAY_NORMAL, SENSOR_QUEUE_LATENCY);
 
 
         /* //This is for raw PPG data on Polar watches, not implemented

@@ -107,13 +107,13 @@ public class FileUtil {
                 if(!accFileAlreadyExists) {
                     fos.write(DEVICE_ID.getBytes());
                 }
-                //fos.write("\r\n".getBytes()); TODO see if this fixes empty lines when saving between deep sleep
+                fos.write("\r\n".getBytes());
 
                 for (int i = 0; i < tempAccelList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     SensorData sensorData = tempAccelList.get(i);
 
                     fos.write((sensorData.getTimestamp() + "   " + sensorData.getX() + "   " + sensorData.getY() + "   " + sensorData.getZ()).getBytes());
-                   // if (i != tempAccelList.size() - 1) TODO see if this fixes empty lines when saving between deep sleep
+                    if (i != tempAccelList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
                 fos.close();
@@ -167,8 +167,6 @@ public class FileUtil {
         }
 
         List<BTDevice> tempBleList = new ArrayList<>(btDeviceList); //copy the current BLE device list
-        //final File dir = new File(context.getFilesDir() + "/DC/" + ); getBLEFile() should handle this; TODO test this idea
-        //dir.mkdirs();
         final File fileBle = getBLEFile(context);
 
         Log.d(TAG, "saveBLEDataToFile::  absolute path: fileBle: "+fileBle.getAbsolutePath());
@@ -188,7 +186,7 @@ public class FileUtil {
                 BufferedReader br = new BufferedReader(new FileReader(fileBle));
                 if(br.readLine() == null)
                     fileBle.delete();
-            } catch (Exception e) { Log.e(TAG, "savePPGToFile:: Error",e); }
+            } catch (Exception e) { Log.e(TAG, "saveBLEToFile:: Error",e); }
         }
         else {
 
@@ -363,10 +361,6 @@ public class FileUtil {
     public static File getAccelerometerFile(Context context){
         final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
-        //2 old versions for file names
-        //final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/PPG/" + Util.getDateForDir()+"/");
-        //final File fileAccel = new File(dir, Build.SERIAL.substring(6) + "_" + FILE_NAME_ACCELEROMETER);+
-
         final File fileAccel = new File(dir, FILE_NAME_ACCELEROMETER);
         if(!fileAccel.exists()) {
             try {
@@ -386,10 +380,6 @@ public class FileUtil {
      */
     public static File getGyroScopeFile(Context context){
         final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
-
-        //2 old versions for file names
-        //final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/GYRO/" + Util.getDateForDir() + "/");
-        //final File fileGyro = new File(dir, Build.SERIAL.substring(6) + "_" + FILE_NAME_GYROSCOPE);
 
         final File fileGyro = new File(dir, FILE_NAME_GYROSCOPE);
         if(!fileGyro.exists()) {
@@ -413,7 +403,6 @@ public class FileUtil {
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ble_data.txt
         final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
         final File fileBLE = new File(dir, FILE_NAME_BLE);
-        //final File fileBLE = new File(dir, Util.getTimeForFileName(System.currentTimeMillis())+ "_" + FILE_NAME_BLE);
 
         if(!fileBLE.exists()) {
             try {
@@ -434,10 +423,6 @@ public class FileUtil {
     public static File getPPGFile(Context context){
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ppg_data.txt
         final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
-
-        //2 old versions for file names
-        //final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/PPG/" + Util.getDateForDir()+ "/");
-        //final File filePPG = new File(dir, Build.SERIAL.substring(6) + "_" + FILE_NAME_PPG);
 
         final File filePPG = new File(dir, FILE_NAME_PPG);
         if(!filePPG.exists()) {
@@ -467,14 +452,13 @@ public class FileUtil {
         switch(folderID) {
             case BLE_DIR:
                 return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/BLE/");
-      /*    TODO: enable once BLE is working so we collect other data too
             case ACC_DIR:
                 return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/ACC/");
             case GYRO_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/GYRO/"););
+                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/GYRO/");
             case PPG_DIR:
                 return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/PPG/");
-        */
+
             default:
                 //in this case just return the default folder (one level up);
                 return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/");
@@ -495,7 +479,7 @@ public class FileUtil {
     public static boolean zipFileAtPath(String sourcePath, String toLocation) {
         final int BUFFER = 2048;
 
-        Log.d(TAG,"Begin zipping folder: " + sourcePath);
+        Log.d(TAG,"zipFileAtPath:: Begin zipping folder: " + sourcePath);
 
         File sourceFile = new File(sourcePath);
 
