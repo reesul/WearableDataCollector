@@ -36,6 +36,7 @@ import static data.com.datacollector.model.Const.FILE_NAME_ACCELEROMETER;
 import static data.com.datacollector.model.Const.FILE_NAME_BLE;
 import static data.com.datacollector.model.Const.FILE_NAME_GYROSCOPE;
 import static data.com.datacollector.model.Const.FILE_NAME_PPG;
+import static data.com.datacollector.model.Const.FILE_NAME_ACTIVITY_TAG;
 import static data.com.datacollector.model.Const.MAX_PER_MIN_SENSOR_DATA_ALLOWED;
 
 /**
@@ -50,6 +51,7 @@ public class FileUtil {
     private static boolean accFileAlreadyExists;
     private static boolean gyroFileAlreadyExists;
     private static boolean ppgFileAlreadyExists;
+    private static boolean actTagFileAlreadyExists;
     /**
      * called by SensorService to store data of Accelerometer and Gyroscope Sensors to File in device memory
      * @param context : context of the caller
@@ -282,6 +284,49 @@ public class FileUtil {
     }
 
     /**
+     * Stores the tag selected by the user from the recycler view
+     * @param timeStamp The time stamp created when the user touches the tag
+     * @param activityTag The tag corresponding to the user touch
+     */
+    public static synchronized void saveActTagDataToFile(Context context, String timeStamp, String activityTag) throws IOException{
+        if(NetworkIO.fileUploadInProgress){
+            //TODO: Think how to solve this issue. If this fails to upload, the activity will not hold the tag for so long
+            //maybe it would be required to create a service or something that will wait until it is possible to write and then write the tag
+            //to file. For now this tag is lost.
+            Log.d(TAG, "saveActTagDataToFile:: fileUploadInProgress, will save data in the next call");
+
+            //TODO: Handle with Exception
+            return;
+        }
+
+        final File fileActTag = getActTagFile(context);
+
+        Log.d(TAG, "saveActTacDataToFile::  absolute path: fileActTag: "+fileActTag.getAbsolutePath());
+
+        boolean fileActTagExists = fileActTag.exists();
+        try {
+            if(!fileActTagExists) {
+                fileActTag.getParentFile().mkdirs();
+                fileActTag.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(fileActTag, true);
+
+            if(!actTagFileAlreadyExists) {
+                fos.write(DEVICE_ID.getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            fos.write((timeStamp + "  " + activityTag).getBytes());
+            fos.close();
+            Log.d(TAG, "saveActTacDataToFile:: Activity tag data saved successfully");
+        } catch (IOException e) {
+            throw e;
+        }
+
+    }
+    /**
      * Clears data from one file
      * @param file: file from which data is to be cleared
      */
@@ -449,6 +494,27 @@ public class FileUtil {
         }
         else ppgFileAlreadyExists = true;
         return filePPG;
+    }
+
+    /**
+     * creates if not already created, and sends to the caller activity tag file
+     * @param context
+     * @return
+     */
+    public static File getActTagFile(Context context){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
+        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File fileActTag = new File(dir, FILE_NAME_ACTIVITY_TAG);
+
+        if(!fileActTag.exists()) {
+            try {
+                fileActTag.getParentFile().mkdirs();
+                fileActTag.createNewFile();
+                actTagFileAlreadyExists = false;
+            }catch(IOException e){}
+        }
+        else actTagFileAlreadyExists = true;
+        return fileActTag;
     }
 
 

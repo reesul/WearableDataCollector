@@ -6,9 +6,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.LevelListDrawable;
 import android.os.Bundle;
-//import android.support.wearable.view.BoxInsetLayout;
 import android.support.wear.widget.WearableLinearLayoutManager;
 import android.util.Log;
 import android.view.View;
@@ -21,7 +19,6 @@ import data.com.datacollector.model.Const;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
-import data.com.datacollector.utility.FileUtil;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
@@ -75,10 +72,11 @@ public class HomeActivity extends Activity   {
         //recActivitiesList.setCircularScrollingGestureEnabled(true); Consider if this might be easier for the user
         recActivitiesList.setLayoutManager(new WearableLinearLayoutManager((this)));
 
+        //Get activites list
         activities = new ActivitiesList();
 
-        String list[] = activities.getList();
-        adapterList = new ActivitiesAdapter(list);
+        //Set up recycler view adapter with the obtained list
+        adapterList = new ActivitiesAdapter(activities.getListText(), activities.getListTag());
         recActivitiesList.setAdapter(adapterList);
 
     }

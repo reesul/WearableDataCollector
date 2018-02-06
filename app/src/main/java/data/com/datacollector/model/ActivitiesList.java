@@ -20,7 +20,7 @@ public class ActivitiesList {
     public ActivitiesList(){
     }
 
-    public String[] getList(){
+    public String[] getListText(){
         if (Const.ACTIVITIES_LIST_SOURCE == ActivitiesSource.REMOTE){
             /*
                 TODO: Create code for access to remote activity list. Might need asynchronous management
@@ -28,7 +28,18 @@ public class ActivitiesList {
             */
         }
         //The default list will always be shown in case the before options fail to load
-        return Const.DEFAULT_ACTIVITIES_LIST;
+        return Const.DEFAULT_ACTIVITIES_LIST_TEXT;
+    }
+
+    public String[] getListTag(){
+        if (Const.ACTIVITIES_LIST_SOURCE == ActivitiesSource.REMOTE){
+            /*
+                TODO: Create code for access to remote activity list. Might need asynchronous management
+                return remoteList;
+            */
+        }
+        //The default list will always be shown in case the before options fail to load
+        return Const.DEFAULT_ACTIVITIES_LIST_TAG;
     }
 
 }

@@ -23,10 +23,11 @@ public class Const {
 
     //Activities configuration
     public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
-    public static final String DEFAULT_ACTIVITIES_LIST[] = {"Activity 1", "Activity 2",
+    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Activity 1", "Activity 2",
             "Activity 3", "Activity 4", "Activity 5","Activity 6", "Activity 7","Activity 8",
             "Activity 9","Activity 10"}; //The default list of activities if not obtained from a server
-
+    public static final String DEFAULT_ACTIVITIES_LIST_TAG[] = {"ACT1", "ACT2", "ACT3", "ACT4", "ACT5", "ACT6",
+            "ACT7", "ACT8", "ACT9", "ACT10",};
 
 
     //File names
@@ -34,6 +35,7 @@ public class Const {
     public static final String FILE_NAME_GYROSCOPE = "gyroscope_data.txt";
     public static final String FILE_NAME_BLE = "ble_data.txt";
     public static final String FILE_NAME_PPG = "ppg_data.txt";
+    public static final String FILE_NAME_ACTIVITY_TAG = "activityTag_data.txt";
 
     /* Take the last 8 digits of the device's serial number as a unique identifier  */
     public static final String DEVICE_ID = (Build.SERIAL).substring(Build.SERIAL.length() - 8);
