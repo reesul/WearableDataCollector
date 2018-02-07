@@ -176,7 +176,7 @@ public class NetworkIO {
 */
         /******Trying to send files one "day" at a time*******/
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
         int timeVal = 1;
 
         OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).writeTimeout(timeVal, TimeUnit.MINUTES)
@@ -194,8 +194,18 @@ public class NetworkIO {
         String sourcePath = dir.getPath();
         isTransfer = false;
         for(final File date : dateDirs) {
+            /*the current day's file will have incomplete information, so do this only for previous days
+            TODO comment out this condition if today's data is desired!!!
+            */
+            if(date.getPath().contains(Util.getDateForDir())) {
+                Log.d(TAG, "skipping current day's data; most likely incomplete");
+                continue;
+            }
+
             //while(isTransfer);	//wait for previous transfer to complete
             //uploaded zip file includes device id (Serial's last 8 digits) and the date (assumed to be the last part of the filepath)
+
+
             String destPath = date.getPath() + "/DC_" + DEVICE_ID + "_" + FileUtil.getLastPathComponent(date.getPath()) + ".zip";
 
             Log.d(TAG, "uploadData:: upload from " + date.getPath());
@@ -215,27 +225,26 @@ public class NetworkIO {
 
             Call<ResponseBody> call = service.uploadfile(fileMultiPartBody);
             call.enqueue(new Callback<ResponseBody>() {
-                             @Override
-                             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                                 Log.d(TAG, "uploadData:: successful:: "+response.toString());
-                                 fileUploadInProgress = false;
-                                 String PathToDir = date.getPath();
+                 @Override
+                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                     Log.d(TAG, "uploadData:: successful:: "+response.toString());
+                     fileUploadInProgress = false;
+                     String PathToDir = date.getPath();
 
-                                 if(!PathToDir.contains(Util.getDateForDir())) {
-                                 clearFilesContent(PathToDir);
-                                 }
-                                 zipFile.delete();
-                                 lastUploadResult = true;
-                                 isTransfer = false;
-        }
+                     if(!PathToDir.contains(Util.getDateForDir())) {
+                         clearFilesContent(PathToDir);
+                     }
+                     zipFile.delete();
+                     lastUploadResult = true;
+                     isTransfer = false;
+                 }
 
-        @Override
-        public void onFailure(Call<ResponseBody> call, Throwable t) {
-            Log.d(TAG, "uploadData:: failure: "+t.toString());
-            fileUploadInProgress = false;
-            lastUploadResult = false;
-            zipFile.delete();
-        }
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    Log.d(TAG, "uploadData:: failure: "+t.toString());
+                    fileUploadInProgress = false;
+                    lastUploadResult = false;
+                }
     });
 
 
