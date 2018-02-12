@@ -1,7 +1,6 @@
 package data.com.datacollector.utility;
 
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -21,7 +20,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -36,6 +34,7 @@ import static data.com.datacollector.model.Const.FILE_NAME_ACCELEROMETER;
 import static data.com.datacollector.model.Const.FILE_NAME_BLE;
 import static data.com.datacollector.model.Const.FILE_NAME_GYROSCOPE;
 import static data.com.datacollector.model.Const.FILE_NAME_PPG;
+import static data.com.datacollector.model.Const.FILE_NAME_ACTIVITY_TAG;
 import static data.com.datacollector.model.Const.MAX_PER_MIN_SENSOR_DATA_ALLOWED;
 
 /**
@@ -50,6 +49,7 @@ public class FileUtil {
     private static boolean accFileAlreadyExists;
     private static boolean gyroFileAlreadyExists;
     private static boolean ppgFileAlreadyExists;
+    private static boolean actTagFileAlreadyExists;
     /**
      * called by SensorService to store data of Accelerometer and Gyroscope Sensors to File in device memory
      * @param context : context of the caller
@@ -112,7 +112,7 @@ public class FileUtil {
                 for (int i = 0; i < tempAccelList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     SensorData sensorData = tempAccelList.get(i);
 
-                    fos.write((sensorData.getTimestamp() + "   " + sensorData.getX() + "   " + sensorData.getY() + "   " + sensorData.getZ()).getBytes());
+                    fos.write((sensorData.getTimestamp() + "," + sensorData.getX() + "," + sensorData.getY() + "," + sensorData.getZ()).getBytes());
                     if (i != tempAccelList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
@@ -143,7 +143,7 @@ public class FileUtil {
                 for (int i = 0; i < tempGyroList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     SensorData sensorData = tempGyroList.get(i);
 
-                    fos.write((sensorData.getTimestamp() + "   " + sensorData.getX() + "   " + sensorData.getY() + "   " + sensorData.getZ()).getBytes());
+                    fos.write((sensorData.getTimestamp() + "," + sensorData.getX() + "," + sensorData.getY() + "," + sensorData.getZ()).getBytes());
                     if (i != tempGyroList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
@@ -267,7 +267,7 @@ public class FileUtil {
                 for (int i = 0; i < tempPPGList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     PPGData ppgData = tempPPGList.get(i);
 
-                    fos.write((ppgData.getTimestamp() + "  " + ppgData.getHeartRate()).getBytes());
+                    fos.write((ppgData.getTimestamp() + "," + ppgData.getHeartRate()).getBytes());
                     if (i != tempPPGList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
@@ -279,6 +279,49 @@ public class FileUtil {
         }
     }
 
+    /**
+     * Stores the tag selected by the user from the recycler view
+     * @param timeStamp The time stamp created when the user touches the tag
+     * @param activityTag The tag corresponding to the user touch
+     */
+    public static synchronized void saveActTagDataToFile(Context context, String timeStamp, String activityTag) throws IOException{
+        if(NetworkIO.fileUploadInProgress){
+            //TODO: Think how to solve this issue. If this fails to upload, the activity will not hold the tag for so long
+            //maybe it would be required to create a service or something that will wait until it is possible to write and then write the tag
+            //to file. For now this tag is lost.
+            Log.d(TAG, "saveActTagDataToFile:: fileUploadInProgress, will save data in the next call");
+
+            //TODO: Handle with Exception
+            return;
+        }
+
+        final File fileActTag = getActTagFile(context);
+
+        Log.d(TAG, "saveActTacDataToFile::  absolute path: fileActTag: "+fileActTag.getAbsolutePath());
+
+        boolean fileActTagExists = fileActTag.exists();
+        try {
+            if(!fileActTagExists) {
+                fileActTag.getParentFile().mkdirs();
+                fileActTag.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(fileActTag, true);
+
+            if(!actTagFileAlreadyExists) {
+                fos.write(DEVICE_ID.getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            fos.write((timeStamp + "," + activityTag).getBytes());
+            fos.close();
+            Log.d(TAG, "saveActTacDataToFile:: Activity tag data saved successfully");
+        } catch (IOException e) {
+            throw e;
+        }
+
+    }
     /**
      * Clears data from one file
      * @param file: file from which data is to be cleared
@@ -436,6 +479,27 @@ public class FileUtil {
         return filePPG;
     }
 
+    /**
+     * creates if not already created, and sends to the caller activity tag file
+     * @param context
+     * @return
+     */
+    public static File getActTagFile(Context context){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
+        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File fileActTag = new File(dir, FILE_NAME_ACTIVITY_TAG);
+
+        if(!fileActTag.exists()) {
+            try {
+                fileActTag.getParentFile().mkdirs();
+                fileActTag.createNewFile();
+                actTagFileAlreadyExists = false;
+            }catch(IOException e){}
+        }
+        else actTagFileAlreadyExists = true;
+        return fileActTag;
+    }
+
 
     public static final int BLE_DIR = 0;
     public static final int ACC_DIR = 1;
@@ -468,7 +532,7 @@ public class FileUtil {
 
 
 
-/*
+/*      todo: when large amount of data is compressed, it can cause the app to crash due to memory constraints
  *
  * Zips a file at a location and places the resulting zip file at the toLocation
  * Example: zipFileAtPath("downloads/myfolder", "downloads/myFolder.zip");
@@ -483,6 +547,8 @@ public class FileUtil {
 
         File sourceFile = new File(sourcePath);
 
+
+
         try {
             //first get stream to handle IO between file and new zipped file
 
@@ -491,7 +557,7 @@ public class FileUtil {
             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
                     dest));
             if (sourceFile.isDirectory()) {
-
+                Log.d(TAG, "zipFileAtPath:: directory has size " + fileSize(sourceFile) + " bytes");
                 zipSubFolder(out, sourceFile, sourceFile.getParent().length());
             } else {
                 byte data[] = new byte[BUFFER];
@@ -512,7 +578,7 @@ public class FileUtil {
             return false;
         }
 
-        Log.i(TAG, "zipFileAtPath:: Destination Path"  + toLocation);
+        Log.d(TAG, "zipFileAtPath:: Done with destination path"  + toLocation);
         return true;
     }
 
@@ -571,6 +637,30 @@ public class FileUtil {
         return lastPathComponent;
     }
 
+    /*
+        Returns the size of the directory or file in bytes as a long
+     */
+    public static long fileSize(File file) {
+
+        if (file.exists()) {
+            long result = 0;
+            if (file.isDirectory()) {
+                File[] fileList = file.listFiles();
+                for (int i = 0; i < fileList.length; i++) {
+                    // Recursive call if it's a directory
+                    if (fileList[i].isDirectory()) {
+                        result += fileSize(fileList[i]);
+                    } else {
+                        // Sum the file size in bytes
+                        result += fileList[i].length();
+                    }
+                }
+            }
+            else result = file.length();
+            return result; // return the file size
+        }
+        return 0;
+    }
 
 
 }

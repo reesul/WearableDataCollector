@@ -49,7 +49,12 @@ public class DataCollectReceiver extends BroadcastReceiver {
         if(action!=null) {
             if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
                 Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED");
-                uploadData(context);
+
+
+                Thread uploadThread = new Thread(new uploadRunnable(context));
+                uploadThread.start();
+
+                //uploadData(context);
             }
         }
     }
@@ -60,6 +65,14 @@ public class DataCollectReceiver extends BroadcastReceiver {
      */
     private void uploadData(Context context){
         NetworkIO.uploadData(context.getApplicationContext());
+    }
+
+    private class uploadRunnable implements Runnable {
+        Context currentContext;
+        uploadRunnable(Context context) {currentContext = context;}
+        public void run() {
+            uploadData(currentContext);
+        }
     }
 
 }

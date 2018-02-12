@@ -28,11 +28,7 @@ public interface UserClient {
     );
     */
 
-    @Multipart
-    @POST("uploadfiles")
-    Call<ResponseBody> uploadBLEfile(
-            @Part MultipartBody.Part fileBLE
-    );
+
 
     @Multipart
     @POST("uploadfiles")
