@@ -120,22 +120,22 @@ public class BTDevice implements Serializable {
 
 
         for (int i = 1; i < timeStamp.size(); i++) {
-            builder.append(", ").append(timeStamp.get(i));
+            builder.append(";").append(timeStamp.get(i));
         }
 
-        builder.append("} mac:{").append(mac)
-                .append("} name:{").append(name)
-                .append("} rssi:{").append(rssi.get(0));
+        builder.append("},mac:{").append(mac)
+                .append("},name:{").append(name)
+                .append("},rssi:{").append(rssi.get(0));
 
         for (int i = 1; i < rssi.size(); i++) {
-            builder.append(", ").append(rssi.get(i));
+            builder.append(";").append(rssi.get(i));
         }
 
         //if more than 1 scan of single device, add period and number of scans to string
         //if(accessCount>1) {s += " period:{" + minPeriod + "} scans:{" + accessCount+"}";
         //}
         //keep all on same line, and contain data within braces
-        builder.append(/*"\r\n" + */  "} raw_data:{").append(Util.scanBytesToHexStr(rawScanRecord, false)).append("}");
+        builder.append(/*"\r\n" + */  "},raw_data:{").append(Util.scanBytesToHexStr(rawScanRecord, false)).append("}");
 
         return builder.toString();
 

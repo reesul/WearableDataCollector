@@ -1,7 +1,6 @@
 package data.com.datacollector.utility;
 
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -21,7 +20,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -114,7 +112,7 @@ public class FileUtil {
                 for (int i = 0; i < tempAccelList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     SensorData sensorData = tempAccelList.get(i);
 
-                    fos.write((sensorData.getTimestamp() + "   " + sensorData.getX() + "   " + sensorData.getY() + "   " + sensorData.getZ()).getBytes());
+                    fos.write((sensorData.getTimestamp() + "," + sensorData.getX() + "," + sensorData.getY() + "," + sensorData.getZ()).getBytes());
                     if (i != tempAccelList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
@@ -145,7 +143,7 @@ public class FileUtil {
                 for (int i = 0; i < tempGyroList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     SensorData sensorData = tempGyroList.get(i);
 
-                    fos.write((sensorData.getTimestamp() + "   " + sensorData.getX() + "   " + sensorData.getY() + "   " + sensorData.getZ()).getBytes());
+                    fos.write((sensorData.getTimestamp() + "," + sensorData.getX() + "," + sensorData.getY() + "," + sensorData.getZ()).getBytes());
                     if (i != tempGyroList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
@@ -269,7 +267,7 @@ public class FileUtil {
                 for (int i = 0; i < tempPPGList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
                     PPGData ppgData = tempPPGList.get(i);
 
-                    fos.write((ppgData.getTimestamp() + "  " + ppgData.getHeartRate()).getBytes());
+                    fos.write((ppgData.getTimestamp() + "," + ppgData.getHeartRate()).getBytes());
                     if (i != tempPPGList.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
@@ -316,7 +314,7 @@ public class FileUtil {
                 fos.write(DEVICE_ID.getBytes());
             }
             fos.write("\r\n".getBytes());
-            fos.write((timeStamp + "  " + activityTag).getBytes());
+            fos.write((timeStamp + "," + activityTag).getBytes());
             fos.close();
             Log.d(TAG, "saveActTacDataToFile:: Activity tag data saved successfully");
         } catch (IOException e) {
@@ -534,7 +532,7 @@ public class FileUtil {
 
 
 
-/*
+/*      todo: when large amount of data is compressed, it can cause the app to crash due to memory constraints
  *
  * Zips a file at a location and places the resulting zip file at the toLocation
  * Example: zipFileAtPath("downloads/myfolder", "downloads/myFolder.zip");
@@ -549,6 +547,8 @@ public class FileUtil {
 
         File sourceFile = new File(sourcePath);
 
+
+
         try {
             //first get stream to handle IO between file and new zipped file
 
@@ -557,7 +557,7 @@ public class FileUtil {
             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
                     dest));
             if (sourceFile.isDirectory()) {
-
+                Log.d(TAG, "zipFileAtPath:: directory has size " + fileSize(sourceFile) + " bytes");
                 zipSubFolder(out, sourceFile, sourceFile.getParent().length());
             } else {
                 byte data[] = new byte[BUFFER];
@@ -578,7 +578,7 @@ public class FileUtil {
             return false;
         }
 
-        Log.i(TAG, "zipFileAtPath:: Destination Path"  + toLocation);
+        Log.d(TAG, "zipFileAtPath:: Done with destination path"  + toLocation);
         return true;
     }
 
@@ -637,6 +637,30 @@ public class FileUtil {
         return lastPathComponent;
     }
 
+    /*
+        Returns the size of the directory or file in bytes as a long
+     */
+    public static long fileSize(File file) {
+
+        if (file.exists()) {
+            long result = 0;
+            if (file.isDirectory()) {
+                File[] fileList = file.listFiles();
+                for (int i = 0; i < fileList.length; i++) {
+                    // Recursive call if it's a directory
+                    if (fileList[i].isDirectory()) {
+                        result += fileSize(fileList[i]);
+                    } else {
+                        // Sum the file size in bytes
+                        result += fileList[i].length();
+                    }
+                }
+            }
+            else result = file.length();
+            return result; // return the file size
+        }
+        return 0;
+    }
 
 
 }

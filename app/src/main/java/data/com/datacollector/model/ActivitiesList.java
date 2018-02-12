@@ -1,6 +1,6 @@
 package data.com.datacollector.model;
 
-import java.util.List;
+import data.com.datacollector.utility.Util;
 
 /**
  * Model class for the management of the list of activities. Created in case future development
@@ -28,7 +28,7 @@ public class ActivitiesList {
             */
         }
         //The default list will always be shown in case the before options fail to load
-        return Const.DEFAULT_ACTIVITIES_LIST_TEXT;
+        return Const.CUSTOM_ACTIVITIES_LIST;
     }
 
     public String[] getListTag(){
@@ -39,7 +39,7 @@ public class ActivitiesList {
             */
         }
         //The default list will always be shown in case the before options fail to load
-        return Const.DEFAULT_ACTIVITIES_LIST_TAG;
+        return Util.removeSpaces(Const.CUSTOM_ACTIVITIES_LIST);
     }
 
 }

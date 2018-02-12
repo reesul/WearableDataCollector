@@ -77,8 +77,20 @@ public class Util {
         return builder.toString();
     }
 
+    /*
+    Remove spaces from arrays in a list
+        Use case is saving activity labels to file without white space
+     */
+    public static String[] removeSpaces(String[] array) {
+        String[] newArray = new String[array.length];
 
+        for(int i = 0; i < array.length; i++) {
+            newArray[i] = array[i].replace(" ", "");
 
+        }
+
+        return newArray;
+    }
 
 
 }
