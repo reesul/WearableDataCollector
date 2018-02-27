@@ -189,7 +189,7 @@ public class SensorService extends Service implements SensorEventListener{
      */
     private void savePPGData(float heartRate){
         Log.d(TAG, "savePPGData:: heart rate: "+heartRate);
-        PPGData ppgData = new PPGData(heartRate, Util.getTime(System.currentTimeMillis()));
+        PPGData ppgData = new PPGData(heartRate, Util.getTimeMillis(System.currentTimeMillis()));
         listPPGData.add(ppgData);
     }
 
@@ -257,7 +257,7 @@ public class SensorService extends Service implements SensorEventListener{
      */
     private void saveAccelerometerData(float acc_x, float acc_y, float acc_z){
         //Log.v(TAG, "saveAccelerometerData:: acc_x: "+acc_x+" acc_y: "+acc_y+" acc_z: "+acc_z);
-        SensorData sensorData = new SensorData(acc_x, acc_y, acc_z, Util.getTime(System.currentTimeMillis()));
+        SensorData sensorData = new SensorData(acc_x, acc_y, acc_z, Util.getTimeMillis(System.currentTimeMillis()));
         listAccelData.add(sensorData);
     }
 
@@ -269,7 +269,7 @@ public class SensorService extends Service implements SensorEventListener{
      */
     private void saveGyroData(float axis_x, float axis_y, float axis_z){
         //Log.v(TAG, "saveGyroData:: axis_x: "+axis_x+" axis_y: "+axis_y+" axis_z: "+axis_z);
-        SensorData sensorData = new SensorData(axis_x, axis_y, axis_z, Util.getTime(System.currentTimeMillis()));
+        SensorData sensorData = new SensorData(axis_x, axis_y, axis_z, Util.getTimeMillis(System.currentTimeMillis()));
         listGyroData.add(sensorData);
     }
 
