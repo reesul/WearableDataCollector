@@ -127,66 +127,7 @@ public class NetworkIO {
         if (!dir.exists())
             dir.mkdirs();
 
-        /*  Old version of file transfer, zips all relevant files under master directory and sends
-                //If there is too much data, watch runs out of memory and app crashes
-                //new implementation is to zip files by date, so n days of data makes for n .zip files and n uploads
-        String sourcePath = dir.getPath();
-        String destPath = sourcePath + "/DC.zip";
-
-        //attempt to zip the files at the sourcePath (includes all subdirectories and files)
-        if(!FileUtil.zipFileAtPath(sourcePath, destPath)) {
-            //if we fail, do not attempt to upload a file, and log an error
-            Log.e(TAG, "uploadDataBLE:: Zipping folder failed");
-            lastUploadResult = false;
-            fileUploadInProgress = false;
-            return;
-        }
-        //final String bleZipPath  = FileUtil.zipFolder(context, FileUtil.BLE_DIR);
-        final File zipFile = new File(destPath);
-        long fileLen = zipFile.length()/1024; //file size in KB
-        Log.d(TAG, "Zipped file is " + fileLen + " KB");
-
-        RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), zipFile);
-        MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", zipFile.getName(), filePart);
-
-        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        int timeVal = 1;
-
-        //Build the connection client; times out after 1 minute
-        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).writeTimeout(timeVal, TimeUnit.MINUTES)
-                .readTimeout(timeVal, TimeUnit.MINUTES).connectTimeout(timeVal, TimeUnit.MINUTES).build();
-
-        Retrofit.Builder builder = new Retrofit.Builder()
-                .baseUrl(BASE_SERVER_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create());
-
-        Retrofit retrofit = builder.build();
-
-        UserClient service = retrofit.create(UserClient.class);
-        Call<ResponseBody> call = service.uploadfile(fileMultiPartBody);
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Log.d(TAG, "uploadData:: successful:: "+response.toString());
-                fileUploadInProgress = false;
-                String PathToDir = FileUtil.getCollectedDataDir(context.getApplicationContext(), FileUtil.BASE_DIR).getPath();
-                clearFilesContent(PathToDir);
-                zipFile.delete();
-                lastUploadResult = true;
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.d(TAG, "uploadData:: failure: "+t.toString());
-                fileUploadInProgress = false;
-                lastUploadResult = false;
-            }
-        });
-
-*/
-        /******Trying to send files one "day" at a time*******/
+        
 
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
@@ -210,7 +151,6 @@ public class NetworkIO {
                 .setType(MultipartBody.FORM);
 
         File[] dateDirs = dir.listFiles();
-        isTransfer = false;
 
         for (final File date : dateDirs) {
             /*the current day's file will have incomplete information, so do this only for previous days
@@ -256,7 +196,6 @@ public class NetworkIO {
                     }
                     zipFile.delete();
                     lastUploadResult = true;
-                    isTransfer = false;
                 }
 
                 @Override
@@ -264,49 +203,9 @@ public class NetworkIO {
                     Log.d(TAG, "uploadData:: failure: " + t.toString());
                     fileUploadInProgress = false;
                     lastUploadResult = false;
-                    isTransfer = false;
                 }
             });
-          /*
-        }
 
-        RequestBody requestBody = multipartBodyBuild.build();
-
-        Request request = new Request.Builder()
-                .url(BASE_SERVER_URL)
-                .post(requestBody)
-                .build();
-
-        //Call<ResponseBody> call =
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                fileUploadInProgress = false;
-                lastUploadResult = false;
-                isTransfer = false;
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) {
-
-                Log.d(TAG, "uploadData:: onResponse:: "+response.toString());
-                if(response.isSuccessful()) {
-                    fileUploadInProgress = false;
-                    String PathToDir = dir.getPath();
-
-                    if (!PathToDir.contains(Util.getDateForDir())) {
-                        clearFilesContent(PathToDir);
-                    }
-                    //zipFile.delete();
-                    lastUploadResult = true;
-                }
-                isTransfer = false;
-
-            }
-
-
-        });*/
 
         }
     }
