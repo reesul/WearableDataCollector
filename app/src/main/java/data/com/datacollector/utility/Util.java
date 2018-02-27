@@ -29,6 +29,13 @@ public class Util {
         return dateFormatted;
     }
 
+    public static String getTimeMillis(long time) {
+        Date date = new Date(time);
+        DateFormat formatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
+        String dateFormatted = formatter.format(date);
+        return dateFormatted;
+    }
+
     public static long getMillisFromDate(String timeStamp) {
         String expectedPattern = "MM/dd/yy HH:mm:ss";
         SimpleDateFormat format = new SimpleDateFormat(expectedPattern);

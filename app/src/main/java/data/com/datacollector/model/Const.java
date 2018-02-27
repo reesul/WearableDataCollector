@@ -2,9 +2,12 @@ package data.com.datacollector.model;
 
 import android.os.Build;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-
-
+import static android.provider.Settings.Secure.ANDROID_ID;
+import static java.security.AccessController.getContext;
 
 /**
  * class for storing constants to be used across the codebase.
@@ -20,9 +23,9 @@ public class Const {
 
     //Activities configuration
     public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
-    public static final String CUSTOM_ACTIVITIES_LIST[] = {"Home", "Work In Lab", "Work In Office",
+    public static final String CUSTOM_ACTIVITIES_LIST[] = {"Home", "Work In Lab", "Schoolwork",
             "Lab Seminar", "Class", "Lab Course", "Eating", "Break","Phone Call",
-            "Traveling", "Restroom", "Gym", "Meeting"}; //The default list of activities if not obtained from a server
+            "Traveling", "Restroom", "Gym", "Outdoor Exercise", "Meeting"}; //The default list of activities if not obtained from a server
     public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Activity 1", "Activity 2",
             "Activity 3", "Activity 4", "Activity 5","Activity 6", "Activity 7","Activity 8",
             "Activity 9","Activity 10"}; //The default list of activities if not obtained from a server
