@@ -127,7 +127,7 @@ public class NetworkIO {
         if (!dir.exists())
             dir.mkdirs();
 
-        
+
 
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
@@ -161,7 +161,10 @@ public class NetworkIO {
                 continue;
             }
     */
-
+            if(!date.isDirectory()) {
+                date.delete();
+                continue;
+            }
 
             //uploaded zip file includes device id (Serial's last 8 digits) and the date (assumed to be the last part of the filepath)
             String destPath = date.getPath() + "/DC_" + DEVICE_ID + "_" + FileUtil.getLastPathComponent(date.getPath()) + ".zip";
