@@ -161,6 +161,7 @@ public class NetworkIO {
                 continue;
             }
     */
+            //Only folders should be in this directory (1 per day of data), delete anything else
             if(!date.isDirectory()) {
                 date.delete();
                 continue;
