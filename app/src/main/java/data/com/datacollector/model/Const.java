@@ -49,7 +49,7 @@ public class Const {
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */
     //TODO set up an online server so this can remain static, or even use url
-    public static final String SERVER_ADDRESS  = "192.168.1.100";//"192.168.1.104";
+    public static final String SERVER_ADDRESS  = "192.168.1.102";//"192.168.1.104";
     public static final String SERVER_PORT = "9000";
     //This address may need to change based on where the server is setup (use command "ifconfig" in terminal to find current IP/inet address)
     public static final String BASE_SERVER_URL = "http://" + SERVER_ADDRESS + ":" + SERVER_PORT + "/file/";
@@ -62,8 +62,9 @@ public class Const {
 
 
     //Sensor data collection constants
+
     /** Min, Interval between two data collection. Esp. Gyro
-     *  and Acceleremoter and Heart Rate sensors throw a lot of data withing a sec when sensor detects corr. action.
+     *  and Acceleremoter and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
      *  This limit would ensure at the same time limited data is being stored.
      *  Value in milliseconds*/
     public static final long SENSOR_DATA_MIN_INTERVAL = 50; //20Hz

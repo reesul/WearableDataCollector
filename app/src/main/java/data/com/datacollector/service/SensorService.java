@@ -14,6 +14,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
+import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
 import data.com.datacollector.receiver.DataCollectReceiver;
@@ -97,20 +98,21 @@ public class SensorService extends Service implements SensorEventListener{
     private void registerListeners(){
 
         //!!!Sensor delay can also be expressed as an int in microseconds, and can use an extra int to give max queue time
+        //sampling period is considered a suggestion, and must be in microseconds
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL, SENSOR_QUEUE_LATENCY );
+                (int)Const.SENSOR_DATA_MIN_INTERVAL*1000, SENSOR_QUEUE_LATENCY );
 
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_NORMAL, SENSOR_QUEUE_LATENCY);
+                (int)Const.SENSOR_DATA_MIN_INTERVAL*1000, SENSOR_QUEUE_LATENCY);
 
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE),
-                SensorManager.SENSOR_DELAY_NORMAL, SENSOR_QUEUE_LATENCY);
+                (int)Const.SENSOR_DATA_MIN_INTERVAL*1000, SENSOR_QUEUE_LATENCY);
 
 
         /* //This is for raw PPG data on Polar watches, not implemented
