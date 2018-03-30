@@ -151,6 +151,7 @@ public class NetworkIO {
                 .setType(MultipartBody.FORM);
 
         File[] dateDirs = dir.listFiles();
+        Log.d(TAG, "Number of files to send: "+dateDirs.length);
 
         for (final File date : dateDirs) {
             /*the current day's file will have incomplete information, so do this only for previous days

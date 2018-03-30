@@ -40,6 +40,7 @@ captures/
 .idea/gradle.xml
 .idea/dictionaries
 .idea/libraries
+#these are persisting, may be file path format
 .idea\workspace.xml
 .idea\tasks.xml
 .idea\gradle.xml

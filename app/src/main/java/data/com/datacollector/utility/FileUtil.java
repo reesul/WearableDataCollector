@@ -272,7 +272,7 @@ public class FileUtil {
                         fos.write("\r\n".getBytes());
                 }
                 fos.close();
-                Log.d(TAG, "savePPGDataToFile:: BLE data saved successfully");
+                Log.d(TAG, "savePPGDataToFile:: PPG data saved successfully");
             } catch (IOException e) {
                 e.printStackTrace();
             }
