@@ -1,6 +1,10 @@
 package data.com.datacollector.utility;
 
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 import java.io.File;
 import java.text.DateFormat;
@@ -10,6 +14,8 @@ import java.util.Date;
 
 import data.com.datacollector.model.Const;
 
+import static android.content.Context.SENSOR_SERVICE;
+
 /**
  * For General Utility. It will have all the genral utility functions to facilitate
  * all modules across the application to use the utility functions.
@@ -18,6 +24,7 @@ import data.com.datacollector.model.Const;
 
 public class Util {
     private static final String TAG = "DC_Util";
+
 
     /**
      * return time in format MM/dd/yy HH:mm:ss
@@ -98,6 +105,7 @@ public class Util {
 
         return newArray;
     }
+
 
 
 }
