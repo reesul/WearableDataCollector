@@ -107,7 +107,7 @@ public class SensorService extends Service implements SensorEventListener{
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                (int)Const.SENSOR_DATA_MIN_INTERVAL*1000, SENSOR_QUEUE_LATENCY);
+                (int)Const.SENSOR_DATA_MIN_INTERVAL*1000, SENSOR_QUEUE_LATENCY); 
 
 
         sensorManager.registerListener(this,
@@ -179,8 +179,8 @@ public class SensorService extends Service implements SensorEventListener{
             return;
         }
         lastUpdatePPG = event.timestamp;
-
-        savePPGData(event.values[0]);
+        long timestamp = Util.getStartTime() + event.timestamp/Const.NANOS_TO_MILLIS;
+        savePPGData(event.values[0], timestamp);
 
 
     }
@@ -189,9 +189,11 @@ public class SensorService extends Service implements SensorEventListener{
      * saves PPG data to local List object.
      * @param heartRate
      */
-    private void savePPGData(float heartRate){
+    private void savePPGData(float heartRate, long timestamp){
         Log.d(TAG, "savePPGData:: heart rate: "+heartRate);
-        PPGData ppgData = new PPGData(heartRate, Util.getTimeMillis(System.currentTimeMillis()));
+
+        //PPGData ppgData = new PPGData(heartRate, Util.getTimeMillis(System.currentTimeMillis()));
+        PPGData ppgData = new PPGData(heartRate, Util.getTimeMillis(timestamp));
         listPPGData.add(ppgData);
     }
 
@@ -219,7 +221,8 @@ public class SensorService extends Service implements SensorEventListener{
 
         //if(gyroscopeRotationVelocity > EPSILON){
             lastUpdateGyro = event.timestamp;
-            saveGyroData(axis_x, axis_y, axis_z);
+            long timestamp = Util.getStartTime() + event.timestamp/Const.NANOS_TO_MILLIS;
+            saveGyroData(axis_x, axis_y, axis_z, timestamp);
         //}
     }
 
@@ -247,7 +250,9 @@ public class SensorService extends Service implements SensorEventListener{
         //if (accelationSquareRoot >= EPSILON_ACC){
 
             lastUpdateAccel = event.timestamp;
-            saveAccelerometerData(x, y, z);
+            //get current timestamp in millis, timeStart is a base to start from
+            long timestamp = Util.getStartTime() + event.timestamp/Const.NANOS_TO_MILLIS;
+            saveAccelerometerData(x, y, z, timestamp);
         //}
     }
 
@@ -257,9 +262,10 @@ public class SensorService extends Service implements SensorEventListener{
      * @param acc_y
      * @param acc_z
      */
-    private void saveAccelerometerData(float acc_x, float acc_y, float acc_z){
+    private void saveAccelerometerData(float acc_x, float acc_y, float acc_z, long timestamp){
         //Log.v(TAG, "saveAccelerometerData:: acc_x: "+acc_x+" acc_y: "+acc_y+" acc_z: "+acc_z);
-        SensorData sensorData = new SensorData(acc_x, acc_y, acc_z, Util.getTimeMillis(System.currentTimeMillis()));
+        //SensorData sensorData = new SensorData(acc_x, acc_y, acc_z, Util.getTimeMillis(System.currentTimeMillis()));
+        SensorData sensorData = new SensorData(acc_x, acc_y, acc_z, Util.getTimeMillis(timestamp));
         listAccelData.add(sensorData);
     }
 
@@ -269,9 +275,10 @@ public class SensorService extends Service implements SensorEventListener{
      * @param axis_y
      * @param axis_z
      */
-    private void saveGyroData(float axis_x, float axis_y, float axis_z){
+    private void saveGyroData(float axis_x, float axis_y, float axis_z, long timestamp){
         //Log.v(TAG, "saveGyroData:: axis_x: "+axis_x+" axis_y: "+axis_y+" axis_z: "+axis_z);
-        SensorData sensorData = new SensorData(axis_x, axis_y, axis_z, Util.getTimeMillis(System.currentTimeMillis()));
+        //SensorData sensorData = new SensorData(axis_x, axis_y, axis_z, Util.getTimeMillis(System.currentTimeMillis()));
+        SensorData sensorData = new SensorData(axis_x, axis_y, axis_z, Util.getTimeMillis(timestamp));
         listGyroData.add(sensorData);
     }
 

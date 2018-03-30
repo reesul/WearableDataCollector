@@ -319,6 +319,7 @@ public class LeBLEService extends Service {
 
     //sets an alarm that goes off every few seconds
     private void setRepeatingAlarm(){
+        Log.d(TAG, "setRepeatingAlarm");
         Intent intent = new Intent(this, DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
 

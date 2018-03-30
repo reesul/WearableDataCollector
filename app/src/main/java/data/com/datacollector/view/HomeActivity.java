@@ -19,6 +19,7 @@ import data.com.datacollector.model.Const;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
+import data.com.datacollector.utility.Util;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
@@ -46,6 +47,7 @@ public class HomeActivity extends Activity   {
         requestPermission();
 
         //startBgService();
+        Util.initTimeStamps(this);
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
     }
@@ -74,6 +76,7 @@ public class HomeActivity extends Activity   {
 
         //Get activites list
         activities = new ActivitiesList();
+
 
         //Set up recycler view adapter with the obtained list
         adapterList = new ActivitiesAdapter(activities.getListText(), activities.getListTag());
