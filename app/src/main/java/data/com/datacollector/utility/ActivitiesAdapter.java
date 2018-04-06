@@ -20,8 +20,7 @@ import data.com.datacollector.model.Const;
  */
 
 public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAdapter.ViewHolder>{
-    private String[] activitiesText;
-    private String[] activitiesTag;
+    private String[] activitiesList;
     private final String TAG = "DC_ActivitiesAdapter";
 
     // Provide a reference to the views for each data item
@@ -35,9 +34,8 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
     }
 
     //Constructor with only a list of strings
-    public ActivitiesAdapter(String[] activitiesText, String[] activitiesTags) {
-        this.activitiesText = activitiesText;
-        this.activitiesTag = activitiesTags;
+    public ActivitiesAdapter(String[] activitiesList) {
+        this.activitiesList = activitiesList;
     }
 
     // Create new views (invoked by the layout manager)
@@ -65,7 +63,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
     public void onBindViewHolder(final ViewHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        holder.mTextView.setText(activitiesText[position]);
+        holder.mTextView.setText(activitiesList[position]);
         final int listItemPosition = position;
 
         holder.mTextView.setOnClickListener(new View.OnClickListener() {
@@ -73,15 +71,14 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
             TextView txtView = holder.mTextView;
             @Override
             public void onClick(View v) {
-                Log.d(TAG,"Saving activity tag: " + activitiesTag[listItemPosition]
-                        + " - text: " + activitiesText[listItemPosition]);
+                Log.d(TAG,"Saving activity: " + activitiesList[listItemPosition]);
                 try {
-                    FileUtil.saveActTagDataToFile(txtView.getContext(),
+                    FileUtil.saveActivityDataToFile(txtView.getContext(),
                             Util.getTime(System.currentTimeMillis()),
-                            activitiesTag[listItemPosition]);
-                    Toast.makeText(txtView.getContext(), activitiesText[listItemPosition] + " Saved", Toast.LENGTH_SHORT).show();
+                            activitiesList[listItemPosition]);
+                    Toast.makeText(txtView.getContext(), activitiesList[listItemPosition] + " Saved", Toast.LENGTH_SHORT).show();
                 }catch (IOException e){
-                    Log.e(TAG,"Error while saving activites tag: " + e.getMessage());
+                    Log.e(TAG,"Error while saving activity: " + e.getMessage());
                     Toast.makeText(txtView.getContext(), "Error, try again later", Toast.LENGTH_SHORT).show();
                 }
 
@@ -93,6 +90,6 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
     // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
-        return activitiesText.length;
+        return activitiesList.length;
     }
 }

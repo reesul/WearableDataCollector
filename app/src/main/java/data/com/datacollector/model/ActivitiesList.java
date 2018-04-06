@@ -1,6 +1,6 @@
 package data.com.datacollector.model;
 
-import data.com.datacollector.utility.Util;
+import java.util.List;
 
 /**
  * Model class for the management of the list of activities. Created in case future development
@@ -20,26 +20,16 @@ public class ActivitiesList {
     public ActivitiesList(){
     }
 
-    public String[] getListText(){
+    public String[] getList(){
         if (Const.ACTIVITIES_LIST_SOURCE == ActivitiesSource.REMOTE){
             /*
+                //Future feature: Get activities list from a REST api. Not required so far
                 TODO: Create code for access to remote activity list. Might need asynchronous management
                 return remoteList;
             */
         }
         //The default list will always be shown in case the before options fail to load
-        return Const.CUSTOM_ACTIVITIES_LIST;
-    }
-
-    public String[] getListTag(){
-        if (Const.ACTIVITIES_LIST_SOURCE == ActivitiesSource.REMOTE){
-            /*
-                TODO: Create code for access to remote activity list. Might need asynchronous management
-                return remoteList;
-            */
-        }
-        //The default list will always be shown in case the before options fail to load
-        return Util.removeSpaces(Const.CUSTOM_ACTIVITIES_LIST);
+        return Const.DEFAULT_ACTIVITIES_LIST_TEXT;
     }
 
 }

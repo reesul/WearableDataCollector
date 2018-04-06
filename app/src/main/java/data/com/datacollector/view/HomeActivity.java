@@ -82,7 +82,7 @@ public class HomeActivity extends Activity   {
         //Get activites list
         activities = new ActivitiesList();
         //Set up recycler view adapter with the obtained list
-        adapterList = new ActivitiesAdapter(activities.getListText(), activities.getListTag());
+        adapterList = new ActivitiesAdapter(activities.getList());
         recActivitiesList.setAdapter(adapterList);
 
     }
