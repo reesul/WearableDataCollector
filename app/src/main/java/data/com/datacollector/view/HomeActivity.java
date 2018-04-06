@@ -19,6 +19,7 @@ import data.com.datacollector.model.Const;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
+import data.com.datacollector.utility.CustomizedExceptionHandler;
 import data.com.datacollector.utility.Util;
 
 /**
@@ -41,6 +42,11 @@ public class HomeActivity extends Activity   {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //Custom uncaugh exception handling
+        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
+        //Finish custom
+
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
         initView();
