@@ -32,12 +32,15 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 return;
             }
 
-
             //TODO reenable sensor service once BLE works
+
+            //This intents are not restarting the service iself but its a way to communicate to the
+            //service something. In our case, we ask the service to save the data. We handle in the
+            //onStart method what the service should do depending on the extra values from the intent
+            //if not save_data, then we start our processes using the working tree
             Intent serviceIntent = new Intent(context, SensorService.class);
             serviceIntent.putExtra("save_data", true);
             context.startService(serviceIntent);
-
 
             Intent leBleServiceIntent = new Intent(context, LeBLEService.class);
             leBleServiceIntent.putExtra("save_data", true);
