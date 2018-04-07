@@ -51,6 +51,8 @@ public class BluetoothFileTransfer {
 
         File[] dateDirs = dir.listFiles();
 
+        //We assume that if the folder stills here meaning that it has not been deleted, then, we assume
+        //it has not yet been transferred because we remove the folders right after the transfer is complete
         for (final File date : dateDirs) {
 
             //Only folders should be in this directory (1 per day of data), delete anything else
@@ -94,7 +96,9 @@ public class BluetoothFileTransfer {
                         send(file);
                         Log.d(TAG, "uploadData:: successful:: Now Removing the data");
                         String PathToDir = date.getPath();
+                        Log.i(TAG, "sendData: pathtodir: " + PathToDir);
 
+                        //We prevent from removing today's folder so we keep collecting data
                         if (!PathToDir.contains(Util.getDateForDir())) {
                             clearFilesContent(PathToDir);
                         }
@@ -170,6 +174,9 @@ public class BluetoothFileTransfer {
         } catch(IOException e) {
             Log.e(TAG,"Error connecting socket" + e.getMessage());
             try {
+                //TODO: Since even this fallback may fall, set up an alarm that will attempt to send the files again ONLY if stills connected\
+                //we could broadcast a message to our receiver and make him launch this again
+
                 Log.e(TAG,"Trying fallback");
                 //Solution: https://stackoverflow.com/questions/18657427/ioexception-read-failed-socket-might-closed-bluetooth-on-android-4-3?rq=1
                 btSocket =(BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(device,1);
@@ -209,7 +216,8 @@ public class BluetoothFileTransfer {
         FileUtil.fileUploadInProgress = false;
     }
 
-    private static void clearFilesContent(String path) {
+    private void clearFilesContent(String path) {
+        Log.i(TAG, "clearFilesContent: removing files in: " + path);
         final File file = new File(path);
 
         //if folder contains a today's date, do not delete its' files
