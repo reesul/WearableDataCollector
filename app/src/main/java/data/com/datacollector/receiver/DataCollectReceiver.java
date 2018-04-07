@@ -5,11 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import data.com.datacollector.network.BluetoothFileTransfer;
 import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
+import static data.com.datacollector.model.Const.TM_HTTP;
+import static data.com.datacollector.model.Const.TM_BT;
+import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
 
 /**
  * BroadcastReceiver of the applciation.
@@ -53,9 +57,19 @@ public class DataCollectReceiver extends BroadcastReceiver {
             if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
                 Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED");
 
+                if(SELECTED_TRANSFER_METHOD == TM_HTTP){
+                    Log.d(TAG, "onReceive:: sending files through HTTP");
+                    //Uploads the data to the HTTP server
+                    Thread uploadThread = new Thread(new uploadRunnable(context));
+                    uploadThread.start();
+                }
 
-                Thread uploadThread = new Thread(new uploadRunnable(context));
-                uploadThread.start();
+                if(SELECTED_TRANSFER_METHOD == TM_BT){
+                    Log.d(TAG, "onReceive:: sending files through Bluetooth");
+                    //Uploads the data to the Bluetooth Server
+                    Thread uploadBTThread = new Thread(new uploadBTRunnable(context));
+                    uploadBTThread.start();
+                }
 
                 //uploadData(context);
             }
@@ -70,11 +84,28 @@ public class DataCollectReceiver extends BroadcastReceiver {
         NetworkIO.uploadData(context.getApplicationContext());
     }
 
+    /**
+     * call Bluetooth class to upload data
+     * @param context : context of the caller.
+     */
+    private void uploadBTData(Context context){
+        BluetoothFileTransfer btio = new BluetoothFileTransfer();
+        btio.sendData(context.getApplicationContext());
+    }
+
     private class uploadRunnable implements Runnable {
         Context currentContext;
         uploadRunnable(Context context) {currentContext = context;}
         public void run() {
             uploadData(currentContext);
+        }
+    }
+
+    private class uploadBTRunnable implements Runnable {
+        Context currentContext;
+        uploadBTRunnable(Context context) {currentContext = context;}
+        public void run() {
+            uploadBTData(currentContext);
         }
     }
 

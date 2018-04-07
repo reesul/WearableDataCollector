@@ -27,17 +27,13 @@ import java.util.List;
 import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
-import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
-import static data.com.datacollector.model.Const.EPSILON_GYRO;
-import static data.com.datacollector.model.Const.EPSILON_ACC;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
-import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
 
 /**
@@ -128,7 +124,7 @@ public class SensorService extends Service implements SensorEventListener{
             if (intent.getBooleanExtra("save_data", false)) {
                 //The service is still running, we only save data
                 Log.d(TAG, "onStartCommand: intent with save_data");
-                if (!NetworkIO.lastUploadResult)
+                if (!FileUtil.lastUploadResult)
                     Log.d(TAG, "last attempt to upload data failed");
                 saveDataToFile();
             }else{
