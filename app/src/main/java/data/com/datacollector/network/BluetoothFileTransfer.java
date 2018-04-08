@@ -41,8 +41,7 @@ public class BluetoothFileTransfer {
     }
 
     public void sendData(final Context context){
-        FileUtil.fileUploadInProgress = true; //TODO: Verify if I should I the own Bluetooth one. Change in every portion of the code. Only one HTTP or BT should be running one at a time.
-        //TODO: Create a lock if necessary
+
 
         //zip contents of folder holding all BLE files, returns the path to the file
         final File dir = FileUtil.getCollectedDataDir(context, FileUtil.BASE_DIR);
@@ -54,6 +53,7 @@ public class BluetoothFileTransfer {
         //We assume that if the folder stills here meaning that it has not been deleted, then, we assume
         //it has not yet been transferred because we remove the folders right after the transfer is complete
         for (final File date : dateDirs) {
+            FileUtil.fileUploadInProgress = true;
 
             //Only folders should be in this directory (1 per day of data), delete anything else
             if(!date.isDirectory()) {
@@ -95,14 +95,17 @@ public class BluetoothFileTransfer {
                         openSocket(BTServerAddress);
                         send(file);
                         Log.d(TAG, "uploadData:: successful:: Now Removing the data");
+
                         String PathToDir = date.getPath();
-                        Log.i(TAG, "sendData: pathtodir: " + PathToDir);
 
                         //We prevent from removing today's folder so we keep collecting data
                         if (!PathToDir.contains(Util.getDateForDir())) {
                             clearFilesContent(PathToDir);
                         }
                         file.delete();
+
+                        FileUtil.lastUploadResult = true;
+                        FileUtil.fileUploadInProgress = false;
 
                     }
                 } catch (IOException e){
@@ -113,7 +116,12 @@ public class BluetoothFileTransfer {
                     if(btSocket != null) {
                         //Prevents sockets from remaining open
                         try {
-                            btSocket.close();
+                            Log.d(TAG, "sendData: Closing the socket on fallback");
+                            // We just make sure we are not trying to close an already closed socket
+                            // which has been observed to cause segmentation fault errors
+                            if(btSocket.isConnected()){
+                                btSocket.close();
+                            }
                         } catch (IOException e1) {
                             Log.e(TAG,"There was an error trying to close the socket after IOException " + e1.getMessage());
                             e1.printStackTrace();
@@ -195,25 +203,31 @@ public class BluetoothFileTransfer {
      * Sends the data after a successful BT connection
      */
     private void send(File file) throws IOException, InterruptedException{
-        Log.d(TAG,"Preparing file to send");
+        Log.d(TAG,"send: Preparing file to send");
 
         long length = file.length();
         byte[] bytes = new byte[DEFAULT_BUFFER_SIZE];
         InputStream in = new FileInputStream(file);
         int count;
-        Log.d(TAG, "Sending file");
+        Log.d(TAG, "send: Sending file");
         while ((count = in.read(bytes)) > 0) {
             out.write(bytes, 0, count);
         }
 
-        Log.d(TAG, "Waiting a second before closing the socket");
+        Log.d(TAG, "send: Waiting a second before closing the socket");
+
+        //TODO: Change this sleep for something more robust
         Thread.sleep(1000);
-        Log.d(TAG,"Closing the socket");
-        out.close();
+
         in.close();
-        btSocket.close();
-        FileUtil.lastUploadResult = true;
-        FileUtil.fileUploadInProgress = false;
+
+        /*To avoid a possible segmentation fault that is somethimes caused by closiing a socket twice
+        * we fisrt verify the connection is open before clossing it.*/
+        if(btSocket.isConnected()){
+            out.flush();
+            out.close();
+        }
+        //btSocket.close() This might cause problems since closing the outputstream also closes the socket
     }
 
     private void clearFilesContent(String path) {

@@ -72,6 +72,11 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 }
 
                 //uploadData(context);
+            }else if (action.equals(Intent.ACTION_POWER_DISCONNECTED)){
+                Log.d(TAG, "onReceive:: ACTION_POWER_DISCONNECTED");
+                //TODO: Properly close any possible data sending thread
+                //Sometimes, the watch can be connected multiple times in a few seconds creating multiple threads and possible
+                //causing conflicts
             }
         }
     }
