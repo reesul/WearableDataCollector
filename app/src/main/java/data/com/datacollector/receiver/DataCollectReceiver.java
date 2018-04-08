@@ -23,6 +23,7 @@ import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
 
 public class DataCollectReceiver extends BroadcastReceiver {
     private final String TAG = "DC_Receiver";
+    public static Thread uploadBTThread = null;
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
@@ -66,9 +67,17 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
                 if(SELECTED_TRANSFER_METHOD == TM_BT){
                     Log.d(TAG, "onReceive:: sending files through Bluetooth");
-                    //Uploads the data to the Bluetooth Server
-                    Thread uploadBTThread = new Thread(new uploadBTRunnable(context));
-                    uploadBTThread.start();
+                    if(DataCollectReceiver.uploadBTThread == null) {
+                        Log.d(TAG, "onReceive: Creating the thread");
+                        DataCollectReceiver.uploadBTThread = new Thread(new uploadBTRunnable(context));
+                    }
+                    if(!DataCollectReceiver.uploadBTThread.isAlive()){
+                        Log.d(TAG, "onReceive: Is not alive, starting the thread");
+                        //Uploads the data to the Bluetooth Server
+                        DataCollectReceiver.uploadBTThread.start();
+                    }else{
+                        Log.d(TAG, "onReceive: It was alive, do nothing");
+                    }
                 }
 
                 //uploadData(context);
