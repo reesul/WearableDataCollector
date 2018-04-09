@@ -11,16 +11,6 @@ import android.os.Process;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import data.com.datacollector.model.PPGData;
-import data.com.datacollector.model.SensorData;
 import data.com.datacollector.utility.FileUtil;
 
 /**
@@ -28,17 +18,33 @@ import data.com.datacollector.utility.FileUtil;
  * in order to properly save their data. When creating a new service that will run forever collecting
  * their data, they extend this class and add their connection protocol with the external sensor and
  * use the provided methods to save the data into files
+ *
+ * IMPORTANT NOTE FOR USAGE:
+ * 1.- Any service that extends this class must be registered in the Manifest
+ * 2.- Any service that extends this class must be added to the REGISTERED_SENSOR_SERVICES constant
+ * 3.- Any service that extends this class must have an attribute
+ *                  public static boolean isServiceRunning = false;
+ *     It must be properly handled to indicate the status of the service. It should be set to true
+ *     inside the mainCode method and should be set to false in the onDestroy method
+ * 4.- Any service that extends this class must implement the interface ServiceStatusInterface and
+ *     return the attribute isServiceRunning in the method implementation
+ *
  */
 public abstract class BaseExternalSensorService extends Service {
 
-    //Hols the sensor information (Timestamp, value, etc) Anything defined by the model that the user
+    //Holds the sensor information (Timestamp, value, etc) Anything defined by the model that the user
     //defines
     public Object sensorModel = null;
-    public final String TAG = "BaseExternalSensorServ";
+    public String TAG = "BaseExternalSensorServ";
 
     //Service worker thread variables based on android guidelines
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
+
+    // We do not implement this in the parent class since causes conflicts when multiple classes
+    // extend this class since the value is changed globaly for the parend. Therefore, if one of the
+    // children changes the state, the others' attribute is also change, which we don't want!
+    //public static boolean isServiceRunning = false
 
 
     /**
@@ -59,7 +65,6 @@ public abstract class BaseExternalSensorService extends Service {
         public void handleMessage(Message msg) {
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread");
             mainCode();
-            //isServiceRunning = true;
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread finished setup");
         }
     }
@@ -86,10 +91,13 @@ public abstract class BaseExternalSensorService extends Service {
     }
 
     /**
-     * called every minute to save data initially stored in local object to File in memory.
+     * called every x minutes to save data initially stored in local object to File in memory.
      */
-    private void saveDataToFile(){
+    public void saveDataToFile(){
         Log.d(TAG, "saveDataToFile");
+
+        //TODO: Implement the model storage in memory
+        //TODO: Implement a generic method in FileUtil to store a generic model
         /*
         List<SensorData> tempGyroList = new ArrayList<>(listGyroData);
         List<SensorData> tempAccelerList = new ArrayList<>(listAccelData);
@@ -107,7 +115,6 @@ public abstract class BaseExternalSensorService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        //isServiceRunning = false;
     }
 
     @Override
