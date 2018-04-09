@@ -2,12 +2,8 @@ package data.com.datacollector.model;
 
 import android.os.Build;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.UUID;
 
-import static android.provider.Settings.Secure.ANDROID_ID;
-import static java.security.AccessController.getContext;
 
 /**
  * class for storing constants to be used across the codebase.
@@ -16,6 +12,12 @@ import static java.security.AccessController.getContext;
 
 
 public class Const {
+
+    //Determines how will the system attempt to transfer the data
+    public static final int TM_HTTP = 1; //HTTP transfer files
+    public static final int TM_BT = 2; //Bluetooth transfer files
+    public static final int SELECTED_TRANSFER_METHOD = TM_BT;
+
     //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold
     public static final float EPSILON_GYRO = 3.0f;
     /* Used by Accelerometer data save procedure to ensure sensor data is above a threshold (in g = ~9.8 m/s^2)*/
@@ -26,6 +28,12 @@ public class Const {
     public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Home", "Work In Lab", "Schoolwork",
             "Lab Seminar", "Class", "Lab Course", "Eating", "Break","Phone Call",
             "Traveling", "Restroom", "Gym", "Outdoor Exercise", "Meeting"}; //The default list of activities if not obtained from a server
+
+    //Bluetooth file transfer
+    //This is the SPP UUIS which is also set up on the server
+    public static UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+    //We assume the paired device that hosts the BT server has this name
+    public static String HOST_MACHINE_BT_NAME = "intel-desktop";
 
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";

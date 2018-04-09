@@ -42,9 +42,6 @@ import static data.com.datacollector.model.Const.DEVICE_ID;
 
 public class NetworkIO {
     private static final String TAG = "DC_NetworkIO";
-    public static boolean fileUploadInProgress = false;
-
-    public static boolean lastUploadResult = true;
     public static boolean isTransfer;
 
     /**
@@ -117,7 +114,7 @@ public class NetworkIO {
      */
     public static void uploadData(final Context context) {
         Log.d(TAG, "uploadData::\n\n");
-        fileUploadInProgress = true;
+        FileUtil.fileUploadInProgress = true;
 
         //final File dir = new File(context.getApplicationContext().getFilesDir() + "/DC/");
         //dir.mkdirs();
@@ -193,21 +190,21 @@ public class NetworkIO {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                     Log.d(TAG, "uploadData:: successful:: " + response.toString());
-                    fileUploadInProgress = false;
+                    FileUtil.fileUploadInProgress = false;
                     String PathToDir = date.getPath();
 
                     if (!PathToDir.contains(Util.getDateForDir())) {
                         clearFilesContent(PathToDir);
                     }
                     zipFile.delete();
-                    lastUploadResult = true;
+                    FileUtil.lastUploadResult = true;
                 }
 
                 @Override
                 public void onFailure(Call<ResponseBody> call, Throwable t) {
                     Log.d(TAG, "uploadData:: failure: " + t.toString());
-                    fileUploadInProgress = false;
-                    lastUploadResult = false;
+                    FileUtil.fileUploadInProgress = false;
+                    FileUtil.lastUploadResult = false;
                 }
             });
 

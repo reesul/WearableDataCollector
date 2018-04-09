@@ -7,16 +7,12 @@ import android.webkit.MimeTypeMap;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +20,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import data.com.datacollector.model.BTDevice;
-import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
-import data.com.datacollector.network.NetworkIO;
 
 import static data.com.datacollector.model.Const.DEVICE_ID;
 import static data.com.datacollector.model.Const.FILE_NAME_ACCELEROMETER;
@@ -50,6 +44,12 @@ public class FileUtil {
     private static boolean gyroFileAlreadyExists;
     private static boolean ppgFileAlreadyExists;
     private static boolean actFileAlreadyExists;
+
+    //Used to be in NetworkIO. Now here since it can be set by any of the transfer methods
+    //Set by either NetworkIO or BluetoothFileTransfer
+    public static boolean fileUploadInProgress = false;
+    public static boolean lastUploadResult = true;
+
     /**
      * called by SensorService to store data of Accelerometer and Gyroscope Sensors to File in device memory
      * @param context : context of the caller
@@ -57,7 +57,7 @@ public class FileUtil {
      * @param listGyroData: list of Gyroscopre Data
      */
     public static synchronized void saveGyroNAcceleroDataToFile(Context context, List<SensorData> listAccelData, List<SensorData> listGyroData){
-        if(NetworkIO.fileUploadInProgress){
+        if(fileUploadInProgress){
             Log.d(TAG, "saveDataToFile:: fileUploadInProgress, will save data in the next call");
             return;
         }
@@ -161,7 +161,7 @@ public class FileUtil {
      * @param btDeviceList : list of BLE Data
      */
     public static synchronized void saveBLEDataToFile(Context context, List<BTDevice> btDeviceList){
-        if(NetworkIO.fileUploadInProgress){
+        if(fileUploadInProgress){
             Log.d(TAG, "saveBLEDataToFile:: fileUploadInProgress, will save data in the next call");
             return;
         }
@@ -226,7 +226,7 @@ public class FileUtil {
      * @param listPPGData : list of PPG Data
      */
     public static synchronized void savePPGDataToFile(Context context, List<PPGData> listPPGData){
-        if(NetworkIO.fileUploadInProgress){
+        if(fileUploadInProgress){
             Log.d(TAG, "savePPGDataToFile:: fileUploadInProgress, will save data in the next call");
             return;
         }
@@ -285,7 +285,7 @@ public class FileUtil {
      * @param activity The activity selected by the user
      */
     public static synchronized void saveActivityDataToFile(Context context, String timeStamp, String activity) throws IOException{
-        if(NetworkIO.fileUploadInProgress){
+        if(fileUploadInProgress){
             //TODO: Think how to solve this issue. If this fails to upload, the activity will not hold the tag for so long
             //maybe it would be required to create a service or something that will wait until it is possible to write and then write the tag
             //to file. For now this tag is lost.

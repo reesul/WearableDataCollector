@@ -4,7 +4,6 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -18,7 +17,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.support.annotation.IntDef;
 import android.util.Log;
 
 import java.io.File;
@@ -30,16 +28,12 @@ import java.util.Date;
 import java.util.List;
 
 import data.com.datacollector.model.BTDevice;
-import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
-import data.com.datacollector.utility.Util;
-import data.com.datacollector.model.Const;
 
 import static data.com.datacollector.model.Const.BLE_SCAN_START_TIME;
 import static data.com.datacollector.model.Const.BLE_SCAN_STOP_TIME;
 import static data.com.datacollector.model.Const.NUM_BLE_CYCLES;
-import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import android.os.HandlerThread;
@@ -167,7 +161,7 @@ public class LeBLEService extends Service {
             if (intent.getBooleanExtra("save_data", false)) {
                 //The service is still running, we only save data
                 Log.d(TAG, "onStartCommand: intent with save_data");
-                if (!NetworkIO.lastUploadResult)
+                if (!FileUtil.lastUploadResult)
                     Log.d(TAG, "last attempt to upload data failed");
                 saveDataToFile();
             }else{
