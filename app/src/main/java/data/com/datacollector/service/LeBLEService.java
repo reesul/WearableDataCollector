@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import data.com.datacollector.interfaces.ServiceStatusInterface;
 import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
@@ -42,7 +43,7 @@ import android.os.Process;
 /**
  * Service to carry out BLE Scan in the background
  */
-public class LeBLEService extends Service {
+public class LeBLEService extends Service implements ServiceStatusInterface {
     private final String TAG = "DC_LeBLEService";
 
     /** BLE scan specific object starts */
@@ -73,6 +74,11 @@ public class LeBLEService extends Service {
     //Service worker thread variables based on android guidelines
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
+
+    @Override
+    public boolean isServiceRunning() {
+        return isServiceRunning;
+    }
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -112,7 +118,8 @@ public class LeBLEService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        // We don't provide binding, so return null
+        return null;
     }
 
     @Override
