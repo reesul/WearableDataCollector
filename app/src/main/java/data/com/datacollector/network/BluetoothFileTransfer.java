@@ -29,7 +29,7 @@ import static data.com.datacollector.model.Const.MY_UUID;
  */
 
 public class BluetoothFileTransfer {
-    private final String TAG = "DC_BluetoothIO";
+    private final String TAG = "BluetoothFileTransfer";
     private int DEFAULT_BUFFER_SIZE = 8192;
     private BluetoothDevice device = null;
     private BluetoothSocket btSocket = null;
@@ -38,6 +38,7 @@ public class BluetoothFileTransfer {
 
     public BluetoothFileTransfer(){
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
     }
 
     public void sendData(final Context context){
@@ -215,16 +216,19 @@ public class BluetoothFileTransfer {
         }
 
         Log.d(TAG, "send: Waiting a second before closing the socket");
-
-        //TODO: Change this sleep for something more robust
+        // We wait for a second just to make sure everything its been written. This shouldn't be
+        // necessary since the flush handles this, however, sometimes id did not handle it properly
+        // therefore, this second wait is just in case
         Thread.sleep(1000);
 
         in.close();
 
-        /*To avoid a possible segmentation fault that is somethimes caused by closiing a socket twice
-        * we fisrt verify the connection is open before clossing it.*/
+        /*To avoid a possible segmentation fault that is sometimes caused by closiing a socket twice
+        * we first verify the connection is open before closing it.*/
         if(btSocket.isConnected()){
+            //This ensures everything is written before closing
             out.flush();
+            //This closes the stream and also the socket
             out.close();
         }
         //btSocket.close() This might cause problems since closing the outputstream also closes the socket
