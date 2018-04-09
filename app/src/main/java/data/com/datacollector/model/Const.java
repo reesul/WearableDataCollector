@@ -4,6 +4,9 @@ import android.os.Build;
 
 import java.util.UUID;
 
+import data.com.datacollector.service.LeBLEService;
+import data.com.datacollector.service.SensorService;
+
 
 /**
  * class for storing constants to be used across the codebase.
@@ -13,6 +16,8 @@ import java.util.UUID;
 
 public class Const {
 
+    //ALL REGISTERED SERVICES MUST IMPLEMENT ServiceStatusInterface
+    public static final Class []REGISTERED_SENSOR_SERVICES = {SensorService.class, LeBLEService.class};
     //Determines how will the system attempt to transfer the data
     public static final int TM_HTTP = 1; //HTTP transfer files
     public static final int TM_BT = 2; //Bluetooth transfer files
