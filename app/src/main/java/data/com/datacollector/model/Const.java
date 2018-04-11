@@ -69,7 +69,7 @@ public class Const {
      *  and Acceleremoter and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
      *  This limit would ensure at the same time limited data is being stored.
      *  Value in milliseconds*/
-    public static final long SENSOR_DATA_MIN_INTERVAL = 50; //20Hz
+    public static final long SENSOR_DATA_MIN_INTERVAL = 40; //25Hz
     /* Conversion from nanoseconds to milliseconds (SensorEvents have timestamp in ns that is used for downsampling) */
     public static final long NANOS_TO_MILLIS = 1000000;
     /* Min interval between sensor (Acc, Gyro, and heart rate) samples that are saved in ns*/
