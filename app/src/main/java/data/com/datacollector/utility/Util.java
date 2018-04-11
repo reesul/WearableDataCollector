@@ -25,6 +25,22 @@ import static android.content.Context.SENSOR_SERVICE;
 public class Util {
     private static final String TAG = "DC_Util";
 
+     /*
+        startTime is used as a reference for sensor event's timestamps
+        This is a long corresponding the system time that the watch was turned on at
+        timestamps from events should be added to this value to get the realtime version of said timestamp
+     */
+    private static long startTime;
+
+    public static long getStartTime() {
+        return startTime;
+    }
+
+    public static void setStartTime(long startTime) {
+        if(startTime != 0) {
+            Util.startTime = startTime;
+        }
+    }
 
     /**
      * return time in format MM/dd/yy HH:mm:ss
@@ -106,6 +122,37 @@ public class Util {
         return newArray;
     }
 
+    private static SensorManager manager;
 
+    private static SensorEventListener listener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            long realtime = System.currentTimeMillis();
+            long timestamp = event.timestamp;
+            //convert to milliseconds
+            timestamp /= Const.NANOS_TO_MILLIS;
+
+            Log.d(TAG, "initTimeStamps: sensor read");
+
+            setStartTime(realtime-timestamp);
+            Log.d(TAG, "Current time is " + System.currentTimeMillis() + "\tSystem start time is " + startTime);
+
+            manager.unregisterListener(this);
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
+    //This function sets a value for startTime, used as a reference for timestamps in the future
+    //Take a single value from a sensor, and use
+    public static void initTimeStamps(Context context) {
+        manager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+        Sensor acc = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        manager.registerListener(listener, acc, SensorManager.SENSOR_DELAY_FASTEST);
+    }
 
 }

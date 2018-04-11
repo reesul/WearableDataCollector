@@ -53,6 +53,7 @@ public class HomeActivity extends Activity   {
         requestPermission();
 
         //startBgService();
+        Util.initTimestamps(this);
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
     }
