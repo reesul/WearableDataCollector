@@ -19,6 +19,7 @@ import data.com.datacollector.model.Const;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
+import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.REGISTERED_SENSOR_SERVICES;
 
