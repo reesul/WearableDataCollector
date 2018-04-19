@@ -42,7 +42,9 @@ public class CustomizedExceptionHandler implements UncaughtExceptionHandler {
             writeToFile(stacktrace);
         }
 
-        //Used only to prevent from any code getting executed.
+        //TODO: We can uncomment this when collecting data to prevent
+        //TODO: the app from stopping. But it migh cause even bigger problems
+        // Used only to prevent from any code getting executed.
         defaultUEH.uncaughtException(t, e);
     }
 
