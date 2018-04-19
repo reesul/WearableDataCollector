@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.wear.widget.WearableLinearLayoutManager;
 import android.util.Log;
 import android.view.View;
@@ -42,12 +43,12 @@ public class HomeActivity extends Activity   {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: called");
 
         //Custom uncaugh exception handling
         Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
         //Finish custom
 
-        Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
         initView();
         requestPermission();
@@ -200,6 +201,12 @@ public class HomeActivity extends Activity   {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(TAG, "onResume: called");
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy: called");
+    }
 }
