@@ -28,6 +28,8 @@ public class DataCollectReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
 
+        Log.d(TAG, "OnReceive");
+
         // intent received from alarm to save data
         if(intent.getBooleanExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, false)){
             Log.d(TAG, "onReceive:: BROADCAST_DATA_SAVE_ALARM_RECEIVED");
