@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.wear.widget.WearableLinearLayoutManager;
 import android.util.Log;
 import android.view.View;
@@ -80,6 +81,8 @@ public class HomeActivity extends Activity   {
         recActivitiesList =  findViewById((R.id.recycler_activities));
         //recActivitiesList.setCircularScrollingGestureEnabled(true); Consider if this might be easier for the user
         recActivitiesList.setLayoutManager(new WearableLinearLayoutManager((this)));
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recActivitiesList.getContext(), DividerItemDecoration.VERTICAL);
+        recActivitiesList.addItemDecoration(dividerItemDecoration);
 
         //Get activites list
         activities = new ActivitiesList();
