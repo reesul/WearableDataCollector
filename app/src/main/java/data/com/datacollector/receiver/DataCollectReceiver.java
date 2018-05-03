@@ -38,6 +38,10 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 Log.d(TAG, "Service not running so not saving the data");
                 return;
             }
+            if(!LeBLEService.isServiceRunning || !LeBLEService.mScanning)
+                Log.d(TAG, "OnReceive: BLE service is not running or is not scanning");
+            if(!SensorService.isServiceRunning)
+                Log.d(TAG, "OnReceive: Sensor service is not running, but BLE service is");
 
             //TODO reenable sensor service once BLE works
 

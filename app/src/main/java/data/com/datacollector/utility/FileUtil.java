@@ -170,6 +170,7 @@ public class FileUtil {
         final File fileBle = getBLEFile(context);
 
         Log.d(TAG, "saveBLEDataToFile::  absolute path: fileBle: "+fileBle.getAbsolutePath());
+        Log.d(TAG, "saveBLEDataToFile::  saving " + btDeviceList.size() + " devices to file");
 
         boolean fileBleExists = fileBle.exists();
         try {

@@ -51,7 +51,7 @@ public class Const {
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */
     //TODO set up an online server so this can remain static, or even use url
-    public static final String SERVER_ADDRESS  = "192.168.1.100";//"192.168.1.104";
+    public static final String SERVER_ADDRESS  = "192.168.1.101";//"192.168.1.104";
     public static final String SERVER_PORT = "9000";
     //This address may need to change based on where the server is setup (use command "ifconfig" in terminal to find current IP/inet address)
     public static final String BASE_SERVER_URL = "http://" + SERVER_ADDRESS + ":" + SERVER_PORT + "/file/";
