@@ -30,6 +30,7 @@ import java.util.List;
 import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
+import data.com.datacollector.utility.ServiceNotification;
 
 import static data.com.datacollector.model.Const.BLE_SCAN_START_TIME;
 import static data.com.datacollector.model.Const.BLE_SCAN_STOP_TIME;
@@ -167,11 +168,13 @@ public class LeBLEService extends Service {
             }else{
                 //Start from activity
                 Log.d(TAG, "onStartCommand: intent without save_data");
+                startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
                 sendMessageToWorkerThread(startId);
             }
         }else{
             //Start due STICKY property
             Log.d(TAG, "onStartCommand: intent null");
+            startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
             sendMessageToWorkerThread(startId);
 
         }

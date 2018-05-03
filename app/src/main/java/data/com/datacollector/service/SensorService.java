@@ -29,6 +29,7 @@ import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
+import data.com.datacollector.utility.ServiceNotification;
 import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
@@ -130,11 +131,13 @@ public class SensorService extends Service implements SensorEventListener{
             }else{
                 //Start from activity
                 Log.d(TAG, "onStartCommand: intent without save_data");
+                startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
                 sendMessageToWorkerThread(startId);
             }
         }else{
             //Start due STICKY property
             Log.d(TAG, "onStartCommand: intent null");
+            startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
             sendMessageToWorkerThread(startId);
 
         }

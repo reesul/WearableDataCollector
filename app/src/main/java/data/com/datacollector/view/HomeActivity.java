@@ -132,14 +132,14 @@ public class HomeActivity extends Activity   {
      * Start Sensor Service to collect data related to Acceleromter, Gyroscope and Heart Rate
      */
     private void startSensorService(){
-        startService(new Intent(this, SensorService.class));
+        startForegroundService(new Intent(this, SensorService.class));
     }
 
     /**
      * start BLe data collection service in the background.
      */
     private void startBLEService(){
-        startService(new Intent(this, LeBLEService.class));
+        startForegroundService(new Intent(this, LeBLEService.class));
     }
 
     /**
