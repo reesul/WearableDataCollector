@@ -174,28 +174,6 @@ public class LeBLEService extends Service {
             Log.d(TAG, "onStartCommand: intent null");
             sendMessageToWorkerThread(startId);
 
-            //TODO: This is for testing purposes only. Remove after testing is complete
-            try {
-                File dir = new File(getApplicationContext().getFilesDir(), "/DC/logs/iorestartBT");
-                if (!dir.exists()) {
-                    dir.mkdirs();
-                }
-
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
-                Date date = new Date();
-                String filename = dateFormat.format(date) + ".txt";
-
-                // Write the file into the folder
-                File reportFile = new File(dir, filename);
-                FileWriter fileWriter = new FileWriter(reportFile);
-                fileWriter.append("restarted");
-                fileWriter.flush();
-
-                fileWriter.close();
-            } catch (IOException e) {
-                Log.d(TAG, "onStartCommand: could not save restart due to system");
-                e.printStackTrace();
-            }
         }
 
         // If we get killed, after returning from here, restart
