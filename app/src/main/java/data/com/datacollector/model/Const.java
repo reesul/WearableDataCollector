@@ -43,6 +43,8 @@ public class Const {
     public static final String FILE_NAME_ACTIVITY = "activity_data.txt";
 
     /* Take the last 8 digits of the device's serial number as a unique identifier  */
+    //TODO: use Build.getSerial() to get serial, as this method is deprecated
+        //BUT, that function call requires permission to access phone state, so this would have to be initialized after the permissions check in HomeActivity.onCreate
     public static final String DEVICE_ID = (Build.SERIAL).substring(Build.SERIAL.length() - 8);
 
     //Broadcasts
@@ -51,7 +53,7 @@ public class Const {
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */
     //TODO set up an online server so this can remain static, or even use url
-    public static final String SERVER_ADDRESS  = "192.168.1.101";//"192.168.1.104";
+    public static final String SERVER_ADDRESS  = "192.168.1.100";//"192.168.1.104";
     public static final String SERVER_PORT = "9000";
     //This address may need to change based on where the server is setup (use command "ifconfig" in terminal to find current IP/inet address)
     public static final String BASE_SERVER_URL = "http://" + SERVER_ADDRESS + ":" + SERVER_PORT + "/file/";

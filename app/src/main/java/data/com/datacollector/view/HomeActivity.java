@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,6 +19,7 @@ import android.support.wear.widget.WearableRecyclerView;
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
 import data.com.datacollector.model.Const;
+import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
@@ -35,6 +37,7 @@ public class HomeActivity extends Activity   {
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
+    private static final int PERMISSION_READ_PHONE_STATE = 3;
 
     private ActivitiesList activities;
     private ActivitiesAdapter adapterList;
@@ -51,8 +54,13 @@ public class HomeActivity extends Activity   {
         //Finish custom
 
         setContentView(R.layout.activity_main);
-        initView();
         requestPermission();
+        initView();
+
+        //register the receiver to handle data saving and file transfers
+        //TODO: migrate this to a service, so if the system kills the activity, it doesn't prevent file transfers
+        registerFileTransferAction();
+
 
         //startBgService();
         Util.initTimeStamps(this);
@@ -61,7 +69,7 @@ public class HomeActivity extends Activity   {
     }
 
     /**
-     * initialize all views realted to the application.
+     * initialize all views related to the application.
      */
     private void initView(){
 
@@ -173,6 +181,22 @@ public class HomeActivity extends Activity   {
             });
             builder.show();
         }
+
+        //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
+
+    }
+
+    DataCollectReceiver mReceiver;
+
+    /***
+     * registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
+     *     can recognize when the watch is plugged in
+     */
+    private void registerFileTransferAction() {
+        mReceiver = new DataCollectReceiver();
+        IntentFilter filter = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
+        registerReceiver(mReceiver, filter);
+
     }
 
     /**
