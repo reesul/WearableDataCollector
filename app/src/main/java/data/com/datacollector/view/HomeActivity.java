@@ -234,6 +234,7 @@ public class HomeActivity extends Activity   {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(mReceiver);
         Log.d(TAG, "onDestroy: called");
     }
 }
