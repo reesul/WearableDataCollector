@@ -152,7 +152,8 @@ public class NetworkIO {
 
         for (final File date : dateDirs) {
             /*the current day's file will have incomplete information, so do this only for previous days
-            TODO comment out this condition to control if today's data is sent
+            TODO comment out this condition to control if today's data is sent or not!! depends on the application
+                If this is not commented our, transfers will send data from today, which is incomplete, but useful for testing
 
             if(date.getPath().contains(Util.getDateForDir())) {
                 Log.d(TAG, "skipping current day's data; most likely incomplete");

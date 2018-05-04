@@ -28,6 +28,8 @@ public class DataCollectReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
 
+        Log.d(TAG, "OnReceive");
+
         // intent received from alarm to save data
         if(intent.getBooleanExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, false)){
             Log.d(TAG, "onReceive:: BROADCAST_DATA_SAVE_ALARM_RECEIVED");
@@ -36,6 +38,10 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 Log.d(TAG, "Service not running so not saving the data");
                 return;
             }
+            if(!LeBLEService.isServiceRunning || !LeBLEService.mScanning)
+                Log.d(TAG, "OnReceive: BLE service is not running or is not scanning");
+            if(!SensorService.isServiceRunning)
+                Log.d(TAG, "OnReceive: Sensor service is not running, but BLE service is");
 
             //TODO reenable sensor service once BLE works
 

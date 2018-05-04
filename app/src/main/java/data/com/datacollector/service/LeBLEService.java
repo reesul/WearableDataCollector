@@ -66,7 +66,6 @@ public class LeBLEService extends Service {
     /** time when BLE was last updated. This helps to  keep data collection frequency in check*/
     private long lastUpdateBLE = 0;
 
-    private int bleCycles = 0;
 
     /** Android Handler*/
     private Handler mHandler;
@@ -87,9 +86,11 @@ public class LeBLEService extends Service {
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread with ID: " + msg.arg1);
 
             //When the service is killed by the OS, the alarm may not be killed, we verify that there is no alarm running already
+            /*
             if(!isAlarmUp()) {
                 setRepeatingAlarm();
             }
+            */
             initBlParams();
             scanLeDevice(true);
             isServiceRunning = true;
@@ -101,9 +102,6 @@ public class LeBLEService extends Service {
 
             }
 
-            //reset scan counter
-            bleCycles = 0;
-            mHandler.postDelayed(mStopScanRunnable, BLE_SCAN_STOP_TIME);
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread finished setup");
         }
     }
@@ -131,10 +129,25 @@ public class LeBLEService extends Service {
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
+        //set an alarm for saving data
+        if(isAlarmUp()) {
+            //remove the alarm if it exists
+            Log.d(TAG, "OnCreate:: Existing repeating alarm - Removing.");
+            Intent intent = new Intent(this, DataCollectReceiver.class);
+            intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    this.getApplicationContext(), 234324243, intent, 0);
+            if (pendingIntent!=null && alarmManagerData!=null) {
+                alarmManagerData.cancel(pendingIntent);
+            }
+        }
+
+        setRepeatingAlarm();
+
     }
 
     /**
-     * initialize BLE scan realted objects. Basically setup the ground for BLE scan
+     * initialize BLE scan related objects. Basically setup the ground for BLE scan
      */
     private void initBlParams() {
         Log.d(TAG, "initBlParams");
@@ -165,6 +178,8 @@ public class LeBLEService extends Service {
                 if (!FileUtil.lastUploadResult)
                     Log.d(TAG, "last attempt to upload data failed");
                 saveDataToFile();
+                scanLeDevice(false); //cycle scans off and back on
+                scanLeDevice(true);
             }else{
                 //Start from activity
                 Log.d(TAG, "onStartCommand: intent without save_data");
@@ -197,43 +212,7 @@ public class LeBLEService extends Service {
         Log.d(TAG, "onStartCommand: Sent start request to working thread");
     }
 
-    /**
-     * Runnable to shut BLE scan after specified time.
-     */
-    private Runnable mStopScanRunnable = new Runnable() {
-        @Override
-        public void run() {
 
-            Log.d(TAG, "mStopServiceRunnable");
-            scanLeDevice(false);
-
-            //only execute runnable to start the service if we have not reached max cycles for the data saving interval used by the repeating alarm
-            bleCycles++;
-            if(bleCycles <= NUM_BLE_CYCLES) {
-                //once this runnable has executed, set a similar runnable to restart the scans
-                mHandler.postDelayed(mStartScanRunnable, BLE_SCAN_START_TIME);
-            }
-        }
-    };
-
-    /**
-     * Runnable to start BLE scan after specified time.
-     */
-    private Runnable mStartScanRunnable = new Runnable() {
-        @Override
-        public void run() {
-            Log.d(TAG, "mStartServiceRunnable");
-
-            //if the service running, restart the scan in a moment
-            if(isServiceRunning) {
-                scanLeDevice(true);
-
-                //check to see if we should run this cycle again
-
-                mHandler.postDelayed(mStopScanRunnable, BLE_SCAN_STOP_TIME);
-            }
-        }
-    };
 
     /**
      * Set up scan params
@@ -267,7 +246,7 @@ public class LeBLEService extends Service {
         // Maybe it has to do to some instability in the timers
         // Before starting a scan or stopping it, make sure the Bluetooth is ON
         // See reference: https://stackoverflow.com/questions/28085104/app-crash-when-bluetooth-is-turned-off-on-android-lollipop
-        if(isBTAvailable()) {
+        if(isBTAvailable()) {//todo try removing this if scans still unstable
             if (enable) {
                 mLEScanner.startScan(filters, settings, mScanCallback);
             } else {
@@ -293,7 +272,6 @@ public class LeBLEService extends Service {
     private ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-
             //interval between two data entry should be min SENSOR_DATA_MIN_INTERVAL
             /*  No plans to use this; may have lots of devices coming in at a time, don't want to miss them
                     since there would be no way to differentiate low frequency from high frequency advertisements
@@ -358,23 +336,7 @@ public class LeBLEService extends Service {
     };
 
 
-/*  @deprecated
-    /**
-     * make a BLE device object with given parameters
-     * @param result: BLE device
-     * @param rssi: RSSI of the BLE
-     * @return: BLE device object
-     *//*
-    private BTDevice makeBtDeviceObj(BluetoothDevice result, int rssi) {
-        BluetoothDevice bluetoothDevice = result;
-        BTDevice btDevice = new BTDevice();
-        btDevice.setName(bluetoothDevice.getName());
-        btDevice.setMac(bluetoothDevice.getAddress());
-        btDevice.setTimeStamp(Util.getTime(System.currentTimeMillis()));
-        btDevice.setRssi(rssi);
-        return btDevice;
-    }
-*/
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -391,7 +353,7 @@ public class LeBLEService extends Service {
         Log.d(TAG, "saveDataToFile");
 
         if(btDeviceList.size() == 0){
-            Log.d(TAG, "saveDataToFile:: nothing to save ");
+            Log.d(TAG, "saveDataToFile:: nothing to save, and service is scanning (t/f): "+mScanning);
             return;
         }
 
