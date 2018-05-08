@@ -12,6 +12,7 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -129,6 +130,9 @@ public class LeBLEService extends Service {
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
+        //setup the broadcast receiver to receive ACTION_POWER_CONNECTED for transferring files
+        registerFileTransferAction();
+
         //set an alarm for saving data
         if(isAlarmUp()) {
             //remove the alarm if it exists
@@ -192,6 +196,12 @@ public class LeBLEService extends Service {
             startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
             sendMessageToWorkerThread(startId);
 
+        }
+
+        if (mReceiver==null) {
+            //Check to ensure the Broadcast Receiver is set up properly
+            Log.d(TAG, "onStartCommand: Resetting broadcast receiver");
+            registerFileTransferAction();
         }
 
         // If we get killed, after returning from here, restart
@@ -344,6 +354,8 @@ public class LeBLEService extends Service {
         isServiceRunning = false;
         scanLeDevice(false);
         mScanning = false;
+
+        unregisterReceiver(mReceiver);
     }
 
     /**
@@ -396,12 +408,27 @@ public class LeBLEService extends Service {
 //        }
         alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
 
-
-
         //start timer, start time is earlier than current
         //trigger on interval ALARM_SENSOR_DATA_SAVE INTERVAL
         alarmManagerData.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
                 + ALARM_SENSOR_DATA_SAVE_INTERVAL, ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
     }
+
+
+
+    private DataCollectReceiver mReceiver;
+    /***
+     * registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
+     *     can recognize when the watch is plugged in
+     */
+    private void registerFileTransferAction() {
+        Log.d(TAG, "registerFileTransferAction: setup Broadcast Receiver");
+        mReceiver = new DataCollectReceiver();
+        IntentFilter filter = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
+        registerReceiver(mReceiver, filter);
+
+    }
+
+
 }
 

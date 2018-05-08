@@ -191,7 +191,6 @@ public class NetworkIO {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                     Log.d(TAG, "uploadData:: successful:: " + response.toString());
-                    FileUtil.fileUploadInProgress = false;
                     String PathToDir = date.getPath();
 
                     if (!PathToDir.contains(Util.getDateForDir())) {
@@ -204,13 +203,14 @@ public class NetworkIO {
                 @Override
                 public void onFailure(Call<ResponseBody> call, Throwable t) {
                     Log.d(TAG, "uploadData:: failure: " + t.toString());
-                    FileUtil.fileUploadInProgress = false;
                     FileUtil.lastUploadResult = false;
                 }
             });
 
 
         }
+
+        FileUtil.fileUploadInProgress = false;
     }
 
 

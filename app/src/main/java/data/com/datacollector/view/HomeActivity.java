@@ -57,13 +57,8 @@ public class HomeActivity extends Activity   {
         requestPermission();
         initView();
 
-        //register the receiver to handle data saving and file transfers
-        //TODO: migrate this to a service, so if the system kills the activity, it doesn't prevent file transfers
-        registerFileTransferAction();
-
-
         //startBgService();
-        Util.initTimeStamps(this);
+
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
     }
@@ -186,18 +181,6 @@ public class HomeActivity extends Activity   {
 
     }
 
-    DataCollectReceiver mReceiver;
-
-    /***
-     * registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
-     *     can recognize when the watch is plugged in
-     */
-    private void registerFileTransferAction() {
-        mReceiver = new DataCollectReceiver();
-        IntentFilter filter = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
-        registerReceiver(mReceiver, filter);
-
-    }
 
     /**
      * Start all background services to collect data
@@ -234,7 +217,6 @@ public class HomeActivity extends Activity   {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mReceiver);
         Log.d(TAG, "onDestroy: called");
     }
 }

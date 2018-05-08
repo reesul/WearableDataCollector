@@ -106,6 +106,9 @@ public class SensorService extends Service implements SensorEventListener{
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
+        //initialize the timestamp reference so that sensor events have accurate timestamps
+        Util.initTimeStamps(this);
+
     }
 
     @Override
@@ -141,6 +144,10 @@ public class SensorService extends Service implements SensorEventListener{
             sendMessageToWorkerThread(startId);
 
         }
+
+        if (Util.getStartTime()==0)
+            //ensure that the timestamp reference point is set up, will be zero if not initialized
+            Util.initTimeStamps(this);
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
