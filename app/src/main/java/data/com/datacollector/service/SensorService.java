@@ -367,20 +367,6 @@ public class SensorService extends Service implements SensorEventListener{
         listGyroData.add(sensorData);
     }
 
-    /*
-     * sets repeating alarm to save data after every minute
-     */       //alarm moved to BLE service
-
-    private void setRepeatingAlarm(){
-        Intent intent = new Intent(this, DataCollectReceiver.class);
-        intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
-        pendingIntent = PendingIntent.getBroadcast(
-                this.getApplicationContext(), 234324243, intent, 0);
-        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
-                + ALARM_SENSOR_DATA_SAVE_INTERVAL, ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntent);
-    }
-
     /**
      * called every minute to save data initially stored in local object to File in memory.
      */

@@ -47,16 +47,21 @@ import android.os.Process;
 public class LeBLEService extends Service {
     private final String TAG = "DC_LeBLEService";
 
-    /** BLE scan specific object starts */
+    /**
+     * BLE scan specific object starts
+     */
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mLEScanner;
     private ScanSettings settings;
     private List<ScanFilter> filters;
-    /** BLE scan object ends */
+    /**
+     * BLE scan object ends
+     */
 
     //used for the alarm, so that data from the scanner is written to files every few seconds
     private AlarmManager alarmManagerData;
     private PendingIntent pendingIntentData;
+    private DataCollectReceiver mReceiver;
 
     public static boolean mScanning;
     public static boolean isServiceRunning = false;
@@ -64,11 +69,15 @@ public class LeBLEService extends Service {
     private List<BTDevice> btDeviceList = new ArrayList<BTDevice>();    //holds devices scanned within current interval
     public List<String> macList = new ArrayList<>();    //map of MAC addresses from the current scan
 
-    /** time when BLE was last updated. This helps to  keep data collection frequency in check*/
+    /**
+     * time when BLE was last updated. This helps to  keep data collection frequency in check
+     */
     private long lastUpdateBLE = 0;
 
 
-    /** Android Handler*/
+    /**
+     * Android Handler
+     */
     private Handler mHandler;
 
     //Service worker thread variables based on android guidelines
@@ -87,20 +96,21 @@ public class LeBLEService extends Service {
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread with ID: " + msg.arg1);
 
             //When the service is killed by the OS, the alarm may not be killed, we verify that there is no alarm running already
-            /*
-            if(!isAlarmUp()) {
-                setRepeatingAlarm();
-            }
-            */
+            //setup the broadcast receiver to receive ACTION_POWER_CONNECTED for transferring files
+            //TODO: This along with the alarm logic can be moved to its own service to have a cleaner implementation 
+            registerFileTransferAction();
+
+            //remove the alarm if it exists
+            cancelAlarm();
+            setRepeatingAlarm();
             initBlParams();
             scanLeDevice(true);
             isServiceRunning = true;
             mHandler = new Handler();
 
-            if(!mScanning) {
+            if (!mScanning) {
                 setUpScanParams();
                 scanLeDevice(true);
-
             }
 
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread finished setup");
@@ -130,24 +140,6 @@ public class LeBLEService extends Service {
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
-        //setup the broadcast receiver to receive ACTION_POWER_CONNECTED for transferring files
-        registerFileTransferAction();
-
-        //set an alarm for saving data
-        if(isAlarmUp()) {
-            //remove the alarm if it exists
-            Log.d(TAG, "OnCreate:: Existing repeating alarm - Removing.");
-            Intent intent = new Intent(this, DataCollectReceiver.class);
-            intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    this.getApplicationContext(), 234324243, intent, 0);
-            if (pendingIntent!=null && alarmManagerData!=null) {
-                alarmManagerData.cancel(pendingIntent);
-            }
-        }
-
-        setRepeatingAlarm();
-
     }
 
     /**
@@ -171,7 +163,7 @@ public class LeBLEService extends Service {
          with a null intent unless there are pending intents to start the service which is NOT our case
          since we do not pending intents to start our service. but this is important to consider if there is
          any bug */
-        if(intent != null) {
+        if (intent != null) {
 
             //When the alarm fires, it broadcast a message which is received by the DataCollectReceiver
             //which then starts the services and this method is called. Here, we validate if we were
@@ -184,24 +176,13 @@ public class LeBLEService extends Service {
                 saveDataToFile();
                 scanLeDevice(false); //cycle scans off and back on
                 scanLeDevice(true);
-            }else{
-                //Start from activity
-                Log.d(TAG, "onStartCommand: intent without save_data");
-                startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
-                sendMessageToWorkerThread(startId);
+            } else {
+                Log.d(TAG, "onStartCommand: called by our activity");
+                startService(startId);
             }
-        }else{
-            //Start due STICKY property
-            Log.d(TAG, "onStartCommand: intent null");
-            startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
-            sendMessageToWorkerThread(startId);
-
-        }
-
-        if (mReceiver==null) {
-            //Check to ensure the Broadcast Receiver is set up properly
-            Log.d(TAG, "onStartCommand: Resetting broadcast receiver");
-            registerFileTransferAction();
+        } else {
+            Log.d(TAG, "onStartCommand: intent null because of sticky property");
+            startService(startId);
         }
 
         // If we get killed, after returning from here, restart
@@ -209,10 +190,31 @@ public class LeBLEService extends Service {
     }
 
     /**
+     * Starts our service and creates the notification. This method can be called when the user
+     * starts the service on when it is started by the system
+     *
+     * @param startId
+     */
+    public void startService(int startId) {
+        //Start due STICKY property
+
+        //TODO: Make sure the notification is visible and that when touched it opens up our app
+        startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
+        sendMessageToWorkerThread(startId);
+        /* Might not be necessary since we are doing this inside the message handling
+        if (mReceiver == null) {
+            //Check to ensure the Broadcast Receiver is set up properly
+            Log.d(TAG, "onStartCommand: Resetting broadcast receiver");
+            registerFileTransferAction();
+        }*/
+    }
+
+    /**
      * This is how we actually start our service in our worker thread
+     *
      * @param startId The start id of the service
      */
-    public void sendMessageToWorkerThread(int startId){
+    public void sendMessageToWorkerThread(int startId) {
         // For each start request, send a message to start a job and deliver the
         // start ID so we know which request we're stopping when we finish the job
         Log.d(TAG, "onStartCommand: Sending start request to working thread");
@@ -221,7 +223,6 @@ public class LeBLEService extends Service {
         mServiceHandler.sendMessage(msg);
         Log.d(TAG, "onStartCommand: Sent start request to working thread");
     }
-
 
 
     /**
@@ -240,6 +241,7 @@ public class LeBLEService extends Service {
 
     /**
      * Start/Stop BLE scan
+     *
      * @param enable : true to start BLE scan, false to stop BLE scan
      */
     private void scanLeDevice(final boolean enable) {
@@ -256,7 +258,7 @@ public class LeBLEService extends Service {
         // Maybe it has to do to some instability in the timers
         // Before starting a scan or stopping it, make sure the Bluetooth is ON
         // See reference: https://stackoverflow.com/questions/28085104/app-crash-when-bluetooth-is-turned-off-on-android-lollipop
-        if(isBTAvailable()) {//todo try removing this if scans still unstable
+        if (isBTAvailable()) {//TODO: try removing this if scans still unstable
             if (enable) {
                 mLEScanner.startScan(filters, settings, mScanCallback);
             } else {
@@ -293,7 +295,7 @@ public class LeBLEService extends Service {
             String curMac = result.getDevice().getAddress();
 
             //If the device scanned has a MAC hasn't already been scanned in this data save period, add to list
-            if(!macList.contains(curMac)) {
+            if (!macList.contains(curMac)) {
                 BTDevice btDevice = new BTDevice(result, scanTime);
                 btDeviceList.add(btDevice);
                 macList.add(curMac);
@@ -345,8 +347,6 @@ public class LeBLEService extends Service {
         }
     };
 
-
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -364,8 +364,8 @@ public class LeBLEService extends Service {
     private void saveDataToFile() {
         Log.d(TAG, "saveDataToFile");
 
-        if(btDeviceList.size() == 0){
-            Log.d(TAG, "saveDataToFile:: nothing to save, and service is scanning (t/f): "+mScanning);
+        if (btDeviceList.size() == 0) {
+            Log.d(TAG, "saveDataToFile:: nothing to save, and service is scanning (t/f): " + mScanning);
             return;
         }
 
@@ -377,16 +377,17 @@ public class LeBLEService extends Service {
     }
 
     /**
-     * In the event of the OS killing our service, we need to make sure that the previous alarm is
-     * not currently running before creating it again
-     * @return A boolean that indicates whether a previous alarm still working
+     * Cancels any alarm that its still going before we can create another one
      */
-    public boolean isAlarmUp(){
-        Intent intent = new Intent(this, DataCollectReceiver.class);
+    private void cancelAlarm(){
+        Log.d(TAG, "OnCreate:: Existing repeating alarm - Removing.");
+        Intent intent = new Intent(LeBLEService.this, DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
-        boolean alarmUp = (PendingIntent.getBroadcast(this.getApplicationContext(),234324243,
-                intent, PendingIntent.FLAG_NO_CREATE) != null);
-        return alarmUp;
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                LeBLEService.this.getApplicationContext(), 234324243, intent, 0);
+        if (pendingIntent != null && alarmManagerData != null) {
+            alarmManagerData.cancel(pendingIntent);
+        }
     }
 
     /**
@@ -396,16 +397,13 @@ public class LeBLEService extends Service {
      * command with an extra parameter "save_data" The extra parameter is handled in the onStart
      * which either saves data or starts the service
      */
-    private void setRepeatingAlarm(){
+    private void setRepeatingAlarm() {
         Log.d(TAG, "setRepeatingAlarm: ");
         Intent intent = new Intent(this, DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
         pendingIntentData = PendingIntent.getBroadcast(
                 this.getApplicationContext(), 234324243, intent, 0);
 
-//        if(alarmManagerData !=null) {
-//            alarmManagerData.cancel(pendingIntentData);
-//        }
         alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
 
         //start timer, start time is earlier than current
@@ -414,12 +412,10 @@ public class LeBLEService extends Service {
                 + ALARM_SENSOR_DATA_SAVE_INTERVAL, ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
     }
 
-
-
-    private DataCollectReceiver mReceiver;
     /***
-     * registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
-     *     can recognize when the watch is plugged in
+     * Android > 8.0 requirement
+     * Registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
+     * can recognize when the watch is plugged in
      */
     private void registerFileTransferAction() {
         Log.d(TAG, "registerFileTransferAction: setup Broadcast Receiver");
