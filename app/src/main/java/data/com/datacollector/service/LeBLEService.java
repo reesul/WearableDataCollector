@@ -97,7 +97,7 @@ public class LeBLEService extends Service {
 
             //When the service is killed by the OS, the alarm may not be killed, we verify that there is no alarm running already
             //setup the broadcast receiver to receive ACTION_POWER_CONNECTED for transferring files
-            //TODO: This along with the alarm logic can be moved to its own service to have a cleaner implementation 
+            //TODO: This along with the alarm logic can be moved to its own service to have a cleaner implementation
             registerFileTransferAction();
 
             //remove the alarm if it exists

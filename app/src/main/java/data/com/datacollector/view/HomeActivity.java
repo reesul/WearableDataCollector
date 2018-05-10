@@ -49,16 +49,13 @@ public class HomeActivity extends Activity   {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate: called");
 
-        //Custom uncaugh exception handling
+        //Custom uncaught exception handling
         Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
         //Finish custom
 
         setContentView(R.layout.activity_main);
         requestPermission();
         initView();
-
-        //startBgService();
-
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
     }
@@ -87,7 +84,7 @@ public class HomeActivity extends Activity   {
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recActivitiesList.getContext(), DividerItemDecoration.VERTICAL);
         recActivitiesList.addItemDecoration(dividerItemDecoration);
 
-        //Get activites list
+        //Get activities list
         activities = new ActivitiesList();
         //Set up recycler view adapter with the obtained list
         adapterList = new ActivitiesAdapter(activities.getList());
