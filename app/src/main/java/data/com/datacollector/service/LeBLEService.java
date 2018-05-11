@@ -369,6 +369,11 @@ public class LeBLEService extends Service {
 
         if (btDeviceList.size() == 0) {
             Log.d(TAG, "saveDataToFile:: nothing to save, and service is scanning (t/f): " + mScanning);
+            if(stop){
+                Log.d(TAG, "saveDataToFile: Stopping withouth saving. Broadcasting message");
+                Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+                LocalBroadcastManager.getInstance(LeBLEService.this).sendBroadcast(intent);
+            }
             return;
         }
 

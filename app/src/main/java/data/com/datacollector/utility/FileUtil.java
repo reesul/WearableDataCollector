@@ -62,9 +62,6 @@ public class FileUtil {
             return;
         }
 
-        List<SensorData> tempAccelList = new ArrayList<>(listAccelData);
-        List<SensorData> tempGyroList = new ArrayList<>(listGyroData);
-
         //final File dir = new File(context.getFilesDir() + "/DC/");
         //dir.mkdirs();
         final File fileAccel = getAccelerometerFile(context);
@@ -90,7 +87,7 @@ public class FileUtil {
 
 
         //first write ACC data to file
-        if(tempAccelList.size() == 0){
+        if(listAccelData.size() == 0){
             Log.d(TAG, "saveDataToFile:: No Accelerometer data to save");
             //check if file is empty, if so, delete it
             try {
@@ -109,11 +106,12 @@ public class FileUtil {
                 }
                 fos.write("\r\n".getBytes());
 
-                for (int i = 0; i < tempAccelList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
-                    SensorData sensorData = tempAccelList.get(i);
+                for (int i = 0; i < listAccelData.size() ; i++) {
+                    //Allocates unnecessary memory. do not use
+                    //SensorData sensorData = listAccelData.get(i);
 
-                    fos.write((sensorData.getTimestamp() + "," + sensorData.getX() + "," + sensorData.getY() + "," + sensorData.getZ()).getBytes());
-                    if (i != tempAccelList.size() - 1)
+                    fos.write((listAccelData.get(i).getTimestamp() + "," + listAccelData.get(i).getX() + "," + listAccelData.get(i).getY() + "," + listAccelData.get(i).getZ()).getBytes());
+                    if (i != listAccelData.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
                 fos.close();
@@ -123,7 +121,7 @@ public class FileUtil {
             }
         }
 
-        if(tempGyroList.size() == 0){
+        if(listGyroData.size() == 0){
             Log.d(TAG, "saveDataToFile:: No Gyro data to save");
             //check if file is empty: if so, delete it
             try {
@@ -140,11 +138,11 @@ public class FileUtil {
                 }
 
                 fos.write("\r\n".getBytes());
-                for (int i = 0; i < tempGyroList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
-                    SensorData sensorData = tempGyroList.get(i);
+                for (int i = 0; i < listGyroData.size() ; i++) {
+                    //SensorData sensorData = listGyroData.get(i);
 
-                    fos.write((sensorData.getTimestamp() + "," + sensorData.getX() + "," + sensorData.getY() + "," + sensorData.getZ()).getBytes());
-                    if (i != tempGyroList.size() - 1)
+                    fos.write((listGyroData.get(i).getTimestamp() + "," + listGyroData.get(i).getX() + "," + listGyroData.get(i).getY() + "," + listGyroData.get(i).getZ()).getBytes());
+                    if (i != listGyroData.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
                 fos.close();
@@ -166,7 +164,6 @@ public class FileUtil {
             return;
         }
 
-        List<BTDevice> tempBleList = new ArrayList<>(btDeviceList); //copy the current BLE device list
         final File fileBle = getBLEFile(context);
 
         Log.d(TAG, "saveBLEDataToFile::  absolute path: fileBle: "+fileBle.getAbsolutePath());
@@ -180,7 +177,7 @@ public class FileUtil {
             }
         }catch(Exception e){}
 
-        if(tempBleList.size() == 0){
+        if(btDeviceList.size() == 0){
             Log.d(TAG, "saveBLEDataToFile:: No BLE data to save");
             //check if file is empty, if so, delete it
             try {
@@ -202,13 +199,13 @@ public class FileUtil {
 
                 fos.write("\r\n".getBytes());
 
-                for (int i = 0; i < tempBleList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
-                    BTDevice btDevice = tempBleList.get(i);
+                for (int i = 0; i < btDeviceList.size(); i++) {
+                    //BTDevice btDevice = btDeviceList.get(i);
 
                     //if(macList.contains(btDevice.getMac())) continue;
 
-                    fos.write(btDevice.toString().getBytes());
-                    if (i != tempBleList.size() - 1)
+                    fos.write(btDeviceList.get(i).toString().getBytes());
+                    if (i != btDeviceList.size() - 1)
                         fos.write("\r\n".getBytes());
 
                    // macList.add(btDevice.getMac());
@@ -232,7 +229,6 @@ public class FileUtil {
             return;
         }
 
-        List<PPGData> tempPPGList = new ArrayList<>(listPPGData);
         //final File dir = new File(context.getFilesDir() + "/DC/");
         //dir.mkdirs();
 
@@ -248,7 +244,7 @@ public class FileUtil {
             }
         }catch(Exception e){}
 
-        if(tempPPGList.size() == 0){
+        if(listPPGData.size() == 0){
             Log.d(TAG, "savePPGDataToFile:: No PPG data to save");
             //check if file is empty, if so, delete it
             try {
@@ -265,11 +261,11 @@ public class FileUtil {
                     fos.write(DEVICE_ID.getBytes());
                 }
                 fos.write("\r\n".getBytes());
-                for (int i = 0; i < tempPPGList.size() && i < MAX_PER_MIN_SENSOR_DATA_ALLOWED; i++) {
-                    PPGData ppgData = tempPPGList.get(i);
+                for (int i = 0; i < listPPGData.size() ; i++) {
+                    //PPGData ppgData = listPPGData.get(i);
 
-                    fos.write((ppgData.getTimestamp() + "," + ppgData.getHeartRate()).getBytes());
-                    if (i != tempPPGList.size() - 1)
+                    fos.write((listPPGData.get(i).getTimestamp() + "," + listPPGData.get(i).getHeartRate()).getBytes());
+                    if (i != listPPGData.size() - 1)
                         fos.write("\r\n".getBytes());
                 }
                 fos.close();
