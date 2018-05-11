@@ -64,7 +64,6 @@ public class CurrentLabelActivity extends WearableActivity {
         String timestamp = Util.getTime(System.currentTimeMillis());
         SaveDataInBackground backgroundSave = new SaveDataInBackground(this);
         backgroundSave.execute(timestamp, label);
-
     }
 
     private void vibrate(){
