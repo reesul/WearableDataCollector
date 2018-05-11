@@ -14,6 +14,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.Process;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -74,6 +75,9 @@ public class SensorService extends Service implements SensorEventListener{
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
 
+    //We force the app to stay up so we can get sensor data
+    private PowerManager.WakeLock mWakeLock = null;
+
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
 
@@ -87,6 +91,13 @@ public class SensorService extends Service implements SensorEventListener{
             //The alarm for data saving to files is already included in the BLE service
             initSensor();
             isServiceRunning = true;
+
+            if(mWakeLock == null){
+                PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+                mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"SensorWakeLock");
+            }
+
+            mWakeLock.acquire();
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread finished setup");
         }
     }
@@ -394,6 +405,7 @@ public class SensorService extends Service implements SensorEventListener{
         Log.d(TAG, "onDestroy");
         sensorManager.unregisterListener(this);
         isServiceRunning = false;
+        mWakeLock.release();
         //alarmManager.cancel(pendingIntent);   //alarm manager now in BLE service
     }
 

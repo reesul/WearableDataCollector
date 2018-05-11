@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -87,6 +88,9 @@ public class LeBLEService extends Service {
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
 
+    //We force the app to stay up so we can get sensor data
+    //private PowerManager.WakeLock mWakeLock = null; //Uncomment if the BT data has missing data. The system might be putting this to sleep
+
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
 
@@ -115,6 +119,15 @@ public class LeBLEService extends Service {
                 setUpScanParams();
                 scanLeDevice(true);
             }
+
+            /* Uncomment if the BT data has missing data. The system might be putting this to sleep
+            if(mWakeLock == null){
+                PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+                mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"SensorWakeLock");
+            }
+
+            mWakeLock.acquire();
+            */
 
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread finished setup");
         }
@@ -357,7 +370,7 @@ public class LeBLEService extends Service {
         isServiceRunning = false;
         scanLeDevice(false);
         mScanning = false;
-
+        //mWakeLock.release(); Uncomment if the BT data has missing data. The system might be putting this to sleep
         unregisterReceiver(mReceiver);
     }
 
