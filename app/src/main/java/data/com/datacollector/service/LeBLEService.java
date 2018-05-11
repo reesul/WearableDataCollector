@@ -372,6 +372,7 @@ public class LeBLEService extends Service {
         mScanning = false;
         //mWakeLock.release(); Uncomment if the BT data has missing data. The system might be putting this to sleep
         unregisterReceiver(mReceiver);
+        cancelAlarm();
     }
 
     /**
