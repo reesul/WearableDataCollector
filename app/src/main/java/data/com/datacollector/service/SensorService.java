@@ -8,6 +8,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -379,18 +380,12 @@ public class SensorService extends Service implements SensorEventListener{
         List<SensorData> tempAccelerList = new ArrayList<>(listAccelData);
         List<PPGData> tempPPGList = new ArrayList<>(listPPGData);
 
-        FileUtil.saveGyroNAcceleroDataToFile(this, tempAccelerList, tempGyroList);
-        FileUtil.savePPGDataToFile(this, tempPPGList);
-
-        //clear local copy of data, since data has been stored in memory.
+        //Should create right away since we already have a copy to allow for new samples to come
         listGyroData.clear(); listAccelData.clear(); listPPGData.clear();
 
-        //Once, we have finished saving the files, we send the broadcast message to stop the services
-        if(stop){
-            Log.d(TAG, "saveDataToFile: Broadcast stop message");
-            Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        }
+        SaveDataInBackground backgroundSave = new SaveDataInBackground(stop);
+        backgroundSave.execute(tempAccelerList, tempGyroList, tempPPGList);
+        Log.d(TAG, "saveDataToFile: Saving files asynchronously");
     }
 
     @Override
@@ -400,5 +395,33 @@ public class SensorService extends Service implements SensorEventListener{
         sensorManager.unregisterListener(this);
         isServiceRunning = false;
         //alarmManager.cancel(pendingIntent);   //alarm manager now in BLE service
+    }
+
+    private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
+
+        boolean stopServiceAfterFinish;
+
+        public SaveDataInBackground(boolean stop){
+            stopServiceAfterFinish = stop;
+        }
+
+        protected Void doInBackground(List... lists) {
+            Log.d(TAG, "doInBackground: About to save IMU files in background");
+            FileUtil.saveGyroNAcceleroDataToFile(SensorService.this, (List<SensorData>)lists[0], (List<SensorData>)lists[1]);
+            FileUtil.savePPGDataToFile(SensorService.this, (List<PPGData>)lists[2]);
+
+            ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<SensorData>)lists[2]).clear();
+            return null;
+        }
+
+        protected void onPostExecute(Void v) {
+            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
+            //Once, we have finished saving the files, we send the broadcast message to stop the services
+            if(stopServiceAfterFinish){
+                Log.d(TAG, "onPostExecute: Stopping after save. Broadcasting message");
+                Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+                LocalBroadcastManager.getInstance(SensorService.this).sendBroadcast(intent);
+            }
+        }
     }
 }

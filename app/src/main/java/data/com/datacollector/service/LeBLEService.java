@@ -13,6 +13,7 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -371,18 +372,15 @@ public class LeBLEService extends Service {
             return;
         }
 
-        FileUtil.saveBLEDataToFile(getApplicationContext(), btDeviceList);
-
-        //clear local copy of data, since data has been stored in memory.
+        //Create a copy for saving and clean the current one to continue saving BT data
+        List<BTDevice> copyBtDeviceList = new ArrayList<>(btDeviceList);
         btDeviceList.clear();
-        macList.clear();
+        macList.clear(); //Simply clean it without copy since we do not use it to save data to file
 
-        //Once, we have finished saving the files, we send the broadcast message to stop the services
-        if(stop){
-            Log.d(TAG, "saveDataToFile: Broadcast stop message");
-            Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        }
+        SaveDataInBackground backgroundSave = new SaveDataInBackground(stop);
+        backgroundSave.execute(copyBtDeviceList);
+        Log.d(TAG, "saveDataToFile: Saving files asynchronously");
+
     }
 
     /**
@@ -432,6 +430,35 @@ public class LeBLEService extends Service {
         IntentFilter filter = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
         registerReceiver(mReceiver, filter);
 
+    }
+
+    private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
+
+        boolean stopServiceAfterFinish;
+
+
+        public SaveDataInBackground(boolean stop){
+            stopServiceAfterFinish = stop;
+        }
+
+        protected Void doInBackground(List... lists) {
+
+            Log.d(TAG, "doInBackground: About to save BLE files in background");
+            FileUtil.saveBLEDataToFile(LeBLEService.this.getApplicationContext(), (List<BTDevice>)lists[0]);
+            //clear local copy of data after it has been saved
+            ((List<BTDevice>)lists[0]).clear();
+            return null;
+        }
+
+        protected void onPostExecute(Void v) {
+            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
+            //Once, we have finished saving the files, we send the broadcast message to stop the services
+            if(stopServiceAfterFinish){
+                Log.d(TAG, "onPostExecute: Stopping after save. Broadcasting message");
+                Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+                LocalBroadcastManager.getInstance(LeBLEService.this).sendBroadcast(intent);
+            }
+        }
     }
 
 
