@@ -14,6 +14,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.io.File;
@@ -34,6 +35,7 @@ import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
+import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
 
@@ -130,7 +132,7 @@ public class SensorService extends Service implements SensorEventListener{
                 Log.d(TAG, "onStartCommand: intent with save_data");
                 if (!FileUtil.lastUploadResult)
                     Log.d(TAG, "last attempt to upload data failed");
-                saveDataToFile();
+                saveDataToFile(intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
             }else{
                 //Start from activity
                 Log.d(TAG, "onStartCommand: intent without save_data");
@@ -370,7 +372,7 @@ public class SensorService extends Service implements SensorEventListener{
     /**
      * called every minute to save data initially stored in local object to File in memory.
      */
-    private void saveDataToFile(){
+    private void saveDataToFile(boolean stop){
         Log.d(TAG, "saveDataToFile");
 
         List<SensorData> tempGyroList = new ArrayList<>(listGyroData);
@@ -382,6 +384,13 @@ public class SensorService extends Service implements SensorEventListener{
 
         //clear local copy of data, since data has been stored in memory.
         listGyroData.clear(); listAccelData.clear(); listPPGData.clear();
+
+        //Once, we have finished saving the files, we send the broadcast message to stop the services
+        if(stop){
+            Log.d(TAG, "saveDataToFile: Broadcast stop message");
+            Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        }
     }
 
     @Override

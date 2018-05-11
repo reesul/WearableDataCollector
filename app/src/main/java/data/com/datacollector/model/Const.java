@@ -49,6 +49,7 @@ public class Const {
 
     //Broadcasts
     public static final String BROADCAST_DATA_SAVE_ALARM_RECEIVED = "BROADCAST_DATA_SAVE_ALARM_RECEIVED";
+    public static final String BROADCAST_DATA_SAVE_DATA_AND_STOP = "BROADCAST_DATA_SAVE_DATA_AND_STOP";
 
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */

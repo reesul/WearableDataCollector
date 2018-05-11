@@ -3,12 +3,15 @@ package data.com.datacollector.view;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.wear.widget.WearableLinearLayoutManager;
 import android.util.Log;
@@ -26,6 +29,9 @@ import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
 import data.com.datacollector.utility.Util;
 
+import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
+import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+
 /**
  * Application's Home activity. This is also the launcher activity for the application
  */
@@ -38,16 +44,47 @@ public class HomeActivity extends Activity   {
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
     private static final int PERMISSION_READ_PHONE_STATE = 3;
+    private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
+    private int confirmationsReceived = 0; //The number of confirmations received so far
 
     private ActivitiesList activities;
     private ActivitiesAdapter adapterList;
 
+    private BroadcastReceiver mStopServicesReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "mStopServicesReceiver onReceive: called");
+            String action = intent.getAction();
+
+            //Action that tells us to stop our services
+            if(action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)){
+
+                Log.d(TAG, "onReceive: Received confirmation");
+                confirmationsReceived++;
+
+                if(confirmationsReceived >= CONFIRMATIONS_EXPECTED){
+                    Log.d(TAG, "onReceive: Safe to restart, everything has been saved");
+                    //It is safe to stop the activity
+                    confirmationsReceived = 0;
+
+                    //A previous alarm issued a restart request. Once we have received confirmation
+                    //that all the data has been saved, we now force the activity to restart
+                    stopBgService();
+                }
+
+            }
+        }
+    };
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate: called");
+
+        //Registering a local broadcast receiver to listen for data save confirmation
+        IntentFilter confirmationIntent = new IntentFilter(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mStopServicesReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
         Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
@@ -121,10 +158,10 @@ public class HomeActivity extends Activity   {
 
         if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
             startBgService();
+            confirmationsReceived = 0;
             btnStartStop.setText("STOP");
         }else{
-            stopBgService();
-            btnStartStop.setText("START");
+            requestSaveBeforeStop();
         }
     }
 
@@ -189,11 +226,32 @@ public class HomeActivity extends Activity   {
     }
 
     /**
-     * Stop all background service
+     * Stop all background service once the data has been saved
      */
-    private void stopBgService(){
+    public void stopBgService(){
+
         stopService(new Intent(this, SensorService.class));
         stopService(new Intent(this, LeBLEService.class));
+        btnStartStop.setText("START");
+        btnStartStop.setEnabled(true);
+    }
+
+    /**
+     * Requests the broadcast to issue a saving event
+     */
+    private void requestSaveBeforeStop(){
+
+        //Before stopping we need to make sure that the data on memory buffer is saved to files
+        Log.d(TAG, "forceDataSave: Forcing the app to save data before shutting down");
+        //Send a special request to the receiver
+        Intent intent = new Intent(this, DataCollectReceiver.class);
+        intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
+        intent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, true);
+
+        //We send the broadcast to the receiver that coordinates the services to save their data
+        HomeActivity.this.sendBroadcast(intent);
+        btnStartStop.setEnabled(false);
+
     }
 
     @Override
@@ -216,4 +274,5 @@ public class HomeActivity extends Activity   {
         super.onDestroy();
         Log.d(TAG, "onDestroy: called");
     }
+
 }

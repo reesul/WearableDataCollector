@@ -18,6 +18,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.io.File;
@@ -35,6 +36,7 @@ import data.com.datacollector.utility.ServiceNotification;
 
 import static data.com.datacollector.model.Const.BLE_SCAN_START_TIME;
 import static data.com.datacollector.model.Const.BLE_SCAN_STOP_TIME;
+import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.NUM_BLE_CYCLES;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
@@ -173,7 +175,7 @@ public class LeBLEService extends Service {
                 Log.d(TAG, "onStartCommand: intent with save_data");
                 if (!FileUtil.lastUploadResult)
                     Log.d(TAG, "last attempt to upload data failed");
-                saveDataToFile();
+                saveDataToFile(intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
                 scanLeDevice(false); //cycle scans off and back on
                 scanLeDevice(true);
             } else {
@@ -361,7 +363,7 @@ public class LeBLEService extends Service {
     /**
      * call to save stored data in local list to device memory.
      */
-    private void saveDataToFile() {
+    private void saveDataToFile(boolean stop) {
         Log.d(TAG, "saveDataToFile");
 
         if (btDeviceList.size() == 0) {
@@ -374,6 +376,13 @@ public class LeBLEService extends Service {
         //clear local copy of data, since data has been stored in memory.
         btDeviceList.clear();
         macList.clear();
+
+        //Once, we have finished saving the files, we send the broadcast message to stop the services
+        if(stop){
+            Log.d(TAG, "saveDataToFile: Broadcast stop message");
+            Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        }
     }
 
     /**

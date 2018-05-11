@@ -11,6 +11,7 @@ import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
+import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.TM_HTTP;
 import static data.com.datacollector.model.Const.TM_BT;
 import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
@@ -34,27 +35,32 @@ public class DataCollectReceiver extends BroadcastReceiver {
         if(intent.getBooleanExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, false)){
             Log.d(TAG, "onReceive:: BROADCAST_DATA_SAVE_ALARM_RECEIVED");
 
-            if(!LeBLEService.isServiceRunning && !SensorService.isServiceRunning){
-                Log.d(TAG, "Service not running so not saving the data");
-                return;
-            }
             if(!LeBLEService.isServiceRunning || !LeBLEService.mScanning)
                 Log.d(TAG, "OnReceive: BLE service is not running or is not scanning");
             if(!SensorService.isServiceRunning)
                 Log.d(TAG, "OnReceive: Sensor service is not running, but BLE service is");
 
+            if(!LeBLEService.isServiceRunning && !SensorService.isServiceRunning){
+                Log.d(TAG, "Service not running so not saving the data");
+                return;
+            }
+
+
             //TODO reenable sensor service once BLE works
 
-            //This intents are not restarting the service iself but its a way to communicate to the
+            //This intents are not restarting the service itself but its a way to communicate to the
             //service something. In our case, we ask the service to save the data. We handle in the
             //onStart method what the service should do depending on the extra values from the intent
             //if not save_data, then we start our processes using the working tree
             Intent serviceIntent = new Intent(context, SensorService.class);
             serviceIntent.putExtra("save_data", true);
+            //If we were asked to stop after saving, pass this parameter to the service intent
+            serviceIntent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
             context.startService(serviceIntent);
 
             Intent leBleServiceIntent = new Intent(context, LeBLEService.class);
             leBleServiceIntent.putExtra("save_data", true);
+            leBleServiceIntent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
             context.startService(leBleServiceIntent);
 
         }
