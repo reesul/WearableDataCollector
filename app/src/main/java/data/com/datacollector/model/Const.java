@@ -25,9 +25,8 @@ public class Const {
 
     //Activities configuration
     public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
-    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Home", "Work In Lab", "Schoolwork",
-            "Lab Seminar", "Class", "Lab Course", "Eating", "Break","Phone Call",
-            "Traveling", "Restroom", "Gym", "Outdoor Exercise", "Meeting"}; //The default list of activities if not obtained from a server
+    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"New step", "Arm argentometer", "Cycle", "Treadmill", "Elliptical", "Walking",
+            "Eating", "Sitting", "Standing", "Lying down", "Biking"}; //The default list of activities if not obtained from a server
 
     //Bluetooth file transfer
     //This is the SPP UUIS which is also set up on the server
