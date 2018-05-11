@@ -1,6 +1,8 @@
 package data.com.datacollector.utility;
 
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.support.wear.widget.WearableRecyclerView;
 import android.util.DisplayMetrics;
@@ -13,7 +15,11 @@ import android.widget.Toast;
 
 import java.io.IOException;
 
-import data.com.datacollector.model.Const;
+import data.com.datacollector.service.LeBLEService;
+import data.com.datacollector.service.SensorService;
+import data.com.datacollector.view.ReminderTimeConfigActivity;
+
+import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 
 
 /**
@@ -66,18 +72,35 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         holder.mTextView.setText(activitiesList[position]);
+        holder.mTextView.setTextColor(Color.WHITE);
         final int listItemPosition = position;
 
         holder.mTextView.setOnClickListener(new View.OnClickListener() {
             //Context ctx = holder.mTextView.getContext();
             TextView txtView = holder.mTextView;
+
+            /**
+             * Called when the user clicks on an activity label
+             * @param v
+             */
             @Override
             public void onClick(View v) {
                 Log.d(TAG,"Saving activity on background: " + activitiesList[listItemPosition]);
+                Context context = txtView.getContext();
+                if(LeBLEService.isServiceRunning && SensorService.isServiceRunning){
+                    //Save information to file
+                    String timestamp = Util.getTime(System.currentTimeMillis());
+                    SaveDataInBackground backgroundSave = new SaveDataInBackground(context);
+                    backgroundSave.execute(timestamp, activitiesList[listItemPosition]);
 
-                String timestamp = Util.getTime(System.currentTimeMillis());
-                SaveDataInBackground backgroundSave = new SaveDataInBackground(txtView.getContext());
-                backgroundSave.execute(timestamp, activitiesList[listItemPosition]);
+                    //Launch time select activity
+                    Intent intent = new Intent(context, ReminderTimeConfigActivity.class);
+                    intent.putExtra(EXTRA_ACTIVITY_LABEL, activitiesList[listItemPosition]);
+                    context.startActivity(intent);
+                } else {
+                    Toast.makeText(context, "The app is not collecting data", Toast.LENGTH_LONG).show();
+                }
+
             }
         });
 

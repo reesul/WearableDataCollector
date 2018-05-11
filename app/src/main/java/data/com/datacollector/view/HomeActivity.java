@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.wear.widget.WearableLinearLayoutManager;
@@ -140,8 +141,10 @@ public class HomeActivity extends Activity   {
         //TODO: reenable check for sensor service (IMU) once BLE working
         if(LeBLEService.isServiceRunning ||  SensorService.isServiceRunning){
             btnStartStop.setText("STOP");
+            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         }else{
             btnStartStop.setText("START");
+            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         }
 
         //while making changes an trying to add a list
@@ -160,6 +163,7 @@ public class HomeActivity extends Activity   {
             startBgService();
             confirmationsReceived = 0;
             btnStartStop.setText("STOP");
+            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         }else{
             requestSaveBeforeStop();
         }
@@ -233,6 +237,7 @@ public class HomeActivity extends Activity   {
         stopService(new Intent(this, SensorService.class));
         stopService(new Intent(this, LeBLEService.class));
         btnStartStop.setText("START");
+        btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         btnStartStop.setEnabled(true);
     }
 

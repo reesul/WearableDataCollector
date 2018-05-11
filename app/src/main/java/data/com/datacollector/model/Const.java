@@ -34,6 +34,10 @@ public class Const {
     //We assume the paired device that hosts the BT server has this name
     public static String HOST_MACHINE_BT_NAME = "intel-desktop";
 
+    //Current activity label
+    public static final String EXTRA_ACTIVITY_LABEL = "EXTRA_ACTIVITY_LABEL";
+    public static final String EXTRA_ACTIVITY_LABEL_REMINDING_TIME = "EXTRA_ACTIVITY_LABEL_REMINDING_TIME";
+
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
     public static final String FILE_NAME_GYROSCOPE = "gyroscope_data.txt";

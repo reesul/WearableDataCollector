@@ -2,4 +2,6 @@
     <string name="app_name">DataCollector</string>
     <string name="hello_world">Hello World!</string>
     <string name="button_init">Start</string>
+    <string name="title_activity_current_label">CurrentLabel</string>
+    <string name="title_activity_reminder_time_config">ReminderTimeConfig</string>
 </resources>

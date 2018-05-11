@@ -121,6 +121,7 @@ public class SensorService extends Service implements SensorEventListener{
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
         //initialize the timestamp reference so that sensor events have accurate timestamps
+        //TODO: Is this synchronous? Can we ensure that will this always be executed before getting our actual sensor data?
         Util.initTimeStamps(this);
 
     }
