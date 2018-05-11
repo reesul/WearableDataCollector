@@ -1,5 +1,7 @@
 package data.com.datacollector.utility;
 
+import android.content.Context;
+import android.os.AsyncTask;
 import android.support.wear.widget.WearableRecyclerView;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -71,20 +73,41 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
             TextView txtView = holder.mTextView;
             @Override
             public void onClick(View v) {
-                Log.d(TAG,"Saving activity: " + activitiesList[listItemPosition]);
-                try {
-                    FileUtil.saveActivityDataToFile(txtView.getContext(),
-                            Util.getTime(System.currentTimeMillis()),
-                            activitiesList[listItemPosition]);
-                    Toast.makeText(txtView.getContext(), activitiesList[listItemPosition] + " Saved", Toast.LENGTH_SHORT).show();
-                }catch (IOException e){
-                    Log.e(TAG,"Error while saving activity: " + e.getMessage());
-                    Toast.makeText(txtView.getContext(), "Error, try again later", Toast.LENGTH_SHORT).show();
-                }
+                Log.d(TAG,"Saving activity on background: " + activitiesList[listItemPosition]);
 
+                String timestamp = Util.getTime(System.currentTimeMillis());
+                SaveDataInBackground backgroundSave = new SaveDataInBackground(txtView.getContext());
+                backgroundSave.execute(timestamp, activitiesList[listItemPosition]);
             }
         });
 
+    }
+
+    private class SaveDataInBackground extends AsyncTask<String, Integer, Void> {
+
+        Context context;
+        String activity;
+
+        public SaveDataInBackground(Context context){
+            this.context = context;
+        }
+
+        protected Void doInBackground(String... lists) {
+            try {
+                activity = lists[1];
+                FileUtil.saveActivityDataToFile(context, lists[0], activity);
+            }catch (IOException e){
+                Log.e(TAG,"Error while saving activity: " + e.getMessage());
+                Toast.makeText(context, "Error, try again later", Toast.LENGTH_SHORT).show();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void v) {
+            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
+
+            Toast.makeText(context, activity + " saved", Toast.LENGTH_SHORT).show();
+        }
     }
 
     // Return the size of your dataset (invoked by the layout manager)
