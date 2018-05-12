@@ -38,7 +38,15 @@ public class Const {
     public static final String EXTRA_ACTIVITY_LABEL = "EXTRA_ACTIVITY_LABEL";
     public static final String EXTRA_ACTIVITY_LABEL_REMINDING_TIME = "EXTRA_ACTIVITY_LABEL_REMINDING_TIME";
     public static final String ACTION_REMINDER_NOTIFICATION = "ACTION_REMINDER_NOTIFICATION";
+
+    //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
+
+    //Notification IDs
+    public static final int NOTIFICATION_ID_RUNNING_SERVICES = 101;
+    public static final int NOTIFICATION_ID_REMINDER = 102;
+
+    public static final String NOTIFICATION_CHANNEL_ID = "REMINDERS_CHANNEL";
 
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";

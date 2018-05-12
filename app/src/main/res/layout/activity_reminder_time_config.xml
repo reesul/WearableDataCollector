@@ -9,55 +9,56 @@
     tools:context=".view.ReminderTimeConfigActivity"
     tools:deviceIds="wear">
 
-    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/container"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        tools:context="data.com.datacollector.view.HomeActivity"
-        tools:deviceIds="wear"
         android:padding="5dp">
 
         <TextView
             android:id="@+id/txtRemindMe"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
+            android:layout_height="106dp"
             android:gravity="center"
             android:text="Remind me every"
-            android:textColor="@color/white"
-            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Medium"/>
+            android:textSize="26dp"
+            android:textColor="@color/white" />
 
         <Button
             android:id="@+id/btn5min"
-            android:layout_width="80dp"
-            android:layout_height="wrap_content"
-            android:layout_alignStart="@+id/txtRemindMe"
-            android:layout_centerVertical="true"
-            android:text="5 min"
-            android:background="@drawable/custom_circle"
-            android:onClick="onClickMinutesButton"/>
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|start"
+            android:background="@drawable/custom_blue_circle"
+            android:onClick="onClickMinutesButton"
+            android:text="5"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
 
         <Button
             android:id="@+id/btn10min"
-            android:layout_width="80dp"
-            android:layout_height="wrap_content"
-            android:layout_alignEnd="@+id/txtRemindMe"
-            android:layout_centerVertical="true"
-            android:text="10 min"
-            android:background="@drawable/custom_circle"
-            android:onClick="onClickMinutesButton"/>
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|center"
+            android:background="@drawable/custom_blue_circle"
+            android:onClick="onClickMinutesButton"
+            android:text="10"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
 
         <Button
             android:id="@+id/btn20min"
-            android:layout_width="80dp"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/btn5min"
-            android:layout_centerHorizontal="true"
-            android:text="20 min"
-            android:background="@drawable/custom_circle"
-            android:onClick="onClickMinutesButton"/>
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/custom_blue_circle"
+            android:onClick="onClickMinutesButton"
+            android:text="20"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
 
-    </RelativeLayout>
+    </FrameLayout>
 </android.support.wear.widget.BoxInsetLayout>

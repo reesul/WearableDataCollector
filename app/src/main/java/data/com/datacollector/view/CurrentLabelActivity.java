@@ -1,6 +1,7 @@
 package data.com.datacollector.view;
 
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -10,7 +11,9 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.support.wearable.activity.WearableActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +28,7 @@ import data.com.datacollector.utility.Util;
 import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL_REMINDING_TIME;
+import static data.com.datacollector.model.Const.NOTIFICATION_ID_REMINDER;
 import static data.com.datacollector.model.Const.PENDING_INTENT_CODE_NOTIFICATION;
 
 public class CurrentLabelActivity extends WearableActivity {
@@ -40,6 +44,7 @@ public class CurrentLabelActivity extends WearableActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: ");
         setContentView(R.layout.activity_current_label);
 
         txtActivityLabel = (TextView) findViewById(R.id.txtActivityLabel);
@@ -53,7 +58,6 @@ public class CurrentLabelActivity extends WearableActivity {
             minutes = intent.getIntExtra(EXTRA_ACTIVITY_LABEL_REMINDING_TIME, 0);
             Log.d(TAG, "onCreate: Label: " + label);
             Log.d(TAG, "onCreate: Minutes: " + minutes);
-            Log.d(TAG, "onCreate: Notification? " + intent.getBooleanExtra("notification", false));
         }
 
         txtActivityLabel.setText(label);
@@ -71,19 +75,16 @@ public class CurrentLabelActivity extends WearableActivity {
      */
     public void onClickFinishActivity(View v){
         cancelRepeatingAlarm();
+        clearNotification(NOTIFICATION_ID_REMINDER);
         //Save information to file
         String timestamp = Util.getTime(System.currentTimeMillis());
         SaveDataInBackground backgroundSave = new SaveDataInBackground(this);
         backgroundSave.execute(timestamp, label);
     }
 
-    private void vibrate(){
-
-        //TODO: This might need to need a wake up lock
-        long[] timings = {0, 300, 150, 300, 150, 300, 700, 300, 150, 300, 150, 300};
-        int[] amplitudes = {0, 100, 0, 100, 0, 100, 0, 255, 0, 255, 0, 255};
-        int repeat = -1;
-        ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createWaveform(timings, amplitudes, repeat));
+    public void clearNotification(int id) {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(id);
     }
 
     private void setRepeatingAlarm(int minutes) {
@@ -129,6 +130,12 @@ public class CurrentLabelActivity extends WearableActivity {
             CurrentLabelActivity.this.finish();
             Toast.makeText(context, activity + " saved", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: ");
     }
 
     @Override

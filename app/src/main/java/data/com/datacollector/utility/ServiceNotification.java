@@ -4,14 +4,10 @@ import android.app.Notification;
 import android.content.Context;
 import android.support.v4.app.NotificationCompat;
 
-import data.com.datacollector.R;
-
 import static android.app.NotificationChannel.DEFAULT_CHANNEL_ID;
-import static android.support.v4.app.NotificationCompat.VISIBILITY_PUBLIC;
+import static data.com.datacollector.model.Const.NOTIFICATION_ID_RUNNING_SERVICES;
 
 public class ServiceNotification {
-
-    private static final int NOTIFICATION_ID = 101;
 
     private static Notification notification;
 
@@ -25,14 +21,13 @@ public class ServiceNotification {
                     .setOngoing(true)
                     .build();
 
-
         }
 
         return notification;
     }
 
     public static int getNotificationId() {
-        return NOTIFICATION_ID;
+        return NOTIFICATION_ID_RUNNING_SERVICES;
     }
 
 }
