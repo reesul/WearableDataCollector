@@ -37,6 +37,8 @@ public class Const {
     //Current activity label
     public static final String EXTRA_ACTIVITY_LABEL = "EXTRA_ACTIVITY_LABEL";
     public static final String EXTRA_ACTIVITY_LABEL_REMINDING_TIME = "EXTRA_ACTIVITY_LABEL_REMINDING_TIME";
+    public static final String ACTION_REMINDER_NOTIFICATION = "ACTION_REMINDER_NOTIFICATION";
+    public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
 
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
