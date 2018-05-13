@@ -23,12 +23,12 @@ import java.io.IOException;
 import data.com.datacollector.R;
 import data.com.datacollector.receiver.NotificationReceiver;
 import data.com.datacollector.utility.FileUtil;
+import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL_REMINDING_TIME;
-import static data.com.datacollector.model.Const.NOTIFICATION_ID_REMINDER;
 import static data.com.datacollector.model.Const.PENDING_INTENT_CODE_NOTIFICATION;
 
 public class CurrentLabelActivity extends WearableActivity {
@@ -75,7 +75,7 @@ public class CurrentLabelActivity extends WearableActivity {
      */
     public void onClickFinishActivity(View v){
         cancelRepeatingAlarm();
-        clearNotification(NOTIFICATION_ID_REMINDER);
+        clearNotification(Notifications.NOTIFICATION_ID_REMINDER);
         //Save information to file
         String timestamp = Util.getTime(System.currentTimeMillis());
         SaveDataInBackground backgroundSave = new SaveDataInBackground(this);

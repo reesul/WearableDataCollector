@@ -42,12 +42,6 @@ public class Const {
     //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
 
-    //Notification IDs
-    public static final int NOTIFICATION_ID_RUNNING_SERVICES = 101;
-    public static final int NOTIFICATION_ID_REMINDER = 102;
-
-    public static final String NOTIFICATION_CHANNEL_ID = "REMINDERS_CHANNEL";
-
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
     public static final String FILE_NAME_GYROSCOPE = "gyroscope_data.txt";

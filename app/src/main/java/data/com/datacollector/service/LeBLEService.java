@@ -19,27 +19,18 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.os.PowerManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
-import data.com.datacollector.utility.ServiceNotification;
+import data.com.datacollector.utility.Notifications;
 
-import static data.com.datacollector.model.Const.BLE_SCAN_START_TIME;
-import static data.com.datacollector.model.Const.BLE_SCAN_STOP_TIME;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
-import static data.com.datacollector.model.Const.NUM_BLE_CYCLES;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import android.os.HandlerThread;
@@ -212,10 +203,8 @@ public class LeBLEService extends Service {
      * @param startId
      */
     public void startService(int startId) {
-        //Start due STICKY property
-
         //TODO: Make sure the notification is visible and that when touched it opens up our app
-        startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
+        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext()));
         sendMessageToWorkerThread(startId);
         /* Might not be necessary since we are doing this inside the message handling
         if (mReceiver == null) {

@@ -19,24 +19,16 @@ import android.os.Process;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
-import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
-import data.com.datacollector.utility.ServiceNotification;
+import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 
-import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
-import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
@@ -149,14 +141,12 @@ public class SensorService extends Service implements SensorEventListener{
             }else{
                 //Start from activity
                 Log.d(TAG, "onStartCommand: intent without save_data");
-                startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
-                sendMessageToWorkerThread(startId);
+                startService(startId);
             }
         }else{
             //Start due STICKY property
             Log.d(TAG, "onStartCommand: intent null");
-            startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
-            sendMessageToWorkerThread(startId);
+            startService(startId);
 
         }
 
@@ -166,6 +156,17 @@ public class SensorService extends Service implements SensorEventListener{
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
+    }
+
+    /**
+     * Starts our service and creates the notification. This method can be called when the user
+     * starts the service on when it is started by the system
+     *
+     * @param startId
+     */
+    public void startService(int startId) {
+        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext()));
+        sendMessageToWorkerThread(startId);
     }
 
     /**
