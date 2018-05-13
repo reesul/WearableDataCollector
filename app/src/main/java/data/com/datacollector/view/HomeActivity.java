@@ -3,22 +3,27 @@ package data.com.datacollector.view;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.service.notification.StatusBarNotification;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.wear.widget.WearableLinearLayoutManager;
+import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
+import android.widget.ProgressBar;
 
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
@@ -36,10 +41,11 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
 /**
  * Application's Home activity. This is also the launcher activity for the application
  */
-public class HomeActivity extends Activity   {
+public class HomeActivity extends WearableActivity {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
     private WearableRecyclerView recActivitiesList;
+    private ProgressBar progressBar;
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -96,6 +102,7 @@ public class HomeActivity extends Activity   {
         initView();
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
+        setAmbientEnabled();
     }
 
     /**
@@ -128,6 +135,8 @@ public class HomeActivity extends Activity   {
         adapterList = new ActivitiesAdapter(activities.getList());
         recActivitiesList.setAdapter(adapterList);
 
+        progressBar = findViewById(R.id.progressBar);
+
     }
 
     /**
@@ -141,10 +150,10 @@ public class HomeActivity extends Activity   {
         //TODO: reenable check for sensor service (IMU) once BLE working
         if(LeBLEService.isServiceRunning ||  SensorService.isServiceRunning){
             btnStartStop.setText("STOP");
-            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
+            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         }else{
             btnStartStop.setText("START");
-            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         }
 
         //while making changes an trying to add a list
@@ -163,7 +172,7 @@ public class HomeActivity extends Activity   {
             startBgService();
             confirmationsReceived = 0;
             btnStartStop.setText("STOP");
-            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
+            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         }else{
             requestSaveBeforeStop();
         }
@@ -237,8 +246,9 @@ public class HomeActivity extends Activity   {
         stopService(new Intent(this, SensorService.class));
         stopService(new Intent(this, LeBLEService.class));
         btnStartStop.setText("START");
-        btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+        //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         btnStartStop.setEnabled(true);
+        progressBar.setVisibility(View.GONE);
     }
 
     /**
@@ -256,6 +266,7 @@ public class HomeActivity extends Activity   {
         //We send the broadcast to the receiver that coordinates the services to save their data
         HomeActivity.this.sendBroadcast(intent);
         btnStartStop.setEnabled(false);
+        progressBar.setVisibility(View.VISIBLE);
 
     }
 

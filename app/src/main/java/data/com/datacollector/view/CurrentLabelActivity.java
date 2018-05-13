@@ -40,6 +40,7 @@ public class CurrentLabelActivity extends WearableActivity {
     private PendingIntent alarmPendingIntent;
     private NotificationReceiver notificationReceiver;
     private AlarmManager alarmManager;
+    private NotificationManager notificationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +68,10 @@ public class CurrentLabelActivity extends WearableActivity {
         IntentFilter filter = new IntentFilter(ACTION_REMINDER_NOTIFICATION);
         registerReceiver(notificationReceiver, filter);
         setRepeatingAlarm(minutes);
+
+        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,CurrentLabelActivity.class));
+
     }
 
     /**
@@ -74,17 +79,19 @@ public class CurrentLabelActivity extends WearableActivity {
      * @param v
      */
     public void onClickFinishActivity(View v){
+
+        String timestamp = Util.getTime(System.currentTimeMillis());
+
         cancelRepeatingAlarm();
         clearNotification(Notifications.NOTIFICATION_ID_REMINDER);
         //Save information to file
-        String timestamp = Util.getTime(System.currentTimeMillis());
         SaveDataInBackground backgroundSave = new SaveDataInBackground(this);
         backgroundSave.execute(timestamp, label);
     }
 
     public void clearNotification(int id) {
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(id);
+        notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,HomeActivity.class));
     }
 
     private void setRepeatingAlarm(int minutes) {

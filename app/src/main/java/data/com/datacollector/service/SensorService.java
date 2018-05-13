@@ -28,6 +28,7 @@ import data.com.datacollector.model.SensorData;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
+import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
@@ -165,7 +166,7 @@ public class SensorService extends Service implements SensorEventListener{
      * @param startId
      */
     public void startService(int startId) {
-        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext()));
+        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
         sendMessageToWorkerThread(startId);
     }
 

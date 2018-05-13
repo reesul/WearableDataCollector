@@ -1,6 +1,9 @@
 package data.com.datacollector.view;
 
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
@@ -8,6 +11,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import data.com.datacollector.R;
+import data.com.datacollector.utility.Notifications;
 
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL_REMINDING_TIME;
@@ -22,6 +26,7 @@ public class ReminderTimeConfigActivity extends WearableActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: ");
         setContentView(R.layout.activity_reminder_time_config);
 
         mTextView = (TextView) findViewById(R.id.text);
@@ -33,6 +38,9 @@ public class ReminderTimeConfigActivity extends WearableActivity {
         if(intent != null) {
             label = intent.getStringExtra(EXTRA_ACTIVITY_LABEL);
         }
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,ReminderTimeConfigActivity.class));
     }
 
     public void onClickMinutesButton(View view){
@@ -67,5 +75,10 @@ public class ReminderTimeConfigActivity extends WearableActivity {
         intent.putExtra(EXTRA_ACTIVITY_LABEL_REMINDING_TIME, minutes);
         this.startActivity(intent);
         this.finish();
+    }
+    
+    protected void onDestroy(){
+        super.onDestroy();
+        Log.d(TAG, "onDestroy:");
     }
 }

@@ -29,6 +29,7 @@ import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
+import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
@@ -204,7 +205,7 @@ public class LeBLEService extends Service {
      */
     public void startService(int startId) {
         //TODO: Make sure the notification is visible and that when touched it opens up our app
-        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext()));
+        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
         sendMessageToWorkerThread(startId);
         /* Might not be necessary since we are doing this inside the message handling
         if (mReceiver == null) {
