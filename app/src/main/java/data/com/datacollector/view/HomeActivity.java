@@ -21,6 +21,7 @@ import android.support.wear.widget.WearableLinearLayoutManager;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
 import android.widget.ProgressBar;
@@ -137,6 +138,8 @@ public class HomeActivity extends WearableActivity {
 
         progressBar = findViewById(R.id.progressBar);
 
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+
     }
 
     /**
@@ -249,6 +252,7 @@ public class HomeActivity extends WearableActivity {
         //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         btnStartStop.setEnabled(true);
         progressBar.setVisibility(View.GONE);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     /**
@@ -267,7 +271,8 @@ public class HomeActivity extends WearableActivity {
         HomeActivity.this.sendBroadcast(intent);
         btnStartStop.setEnabled(false);
         progressBar.setVisibility(View.VISIBLE);
-
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     @Override
