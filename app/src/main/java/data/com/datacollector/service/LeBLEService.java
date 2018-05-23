@@ -31,6 +31,7 @@ import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.view.HomeActivity;
 
+import static data.com.datacollector.model.Const.BROADCAST_ACTION_FILTERS;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
@@ -57,7 +58,6 @@ public class LeBLEService extends Service {
     //used for the alarm, so that data from the scanner is written to files every few seconds
     private AlarmManager alarmManagerData;
     private PendingIntent pendingIntentData;
-    private DataCollectReceiver mReceiver;
 
     public static boolean mScanning;
     public static boolean isServiceRunning = false;
@@ -94,11 +94,7 @@ public class LeBLEService extends Service {
         public void handleMessage(Message msg) {
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread with ID: " + msg.arg1);
 
-            //When the service is killed by the OS, the alarm may not be killed, we verify that there is no alarm running already
-            //setup the broadcast receiver to receive ACTION_POWER_CONNECTED for transferring files
-            //TODO: This along with the alarm logic can be moved to its own service to have a cleaner implementation
-            registerFileTransferAction();
-
+            //TODO: This can be moved to its own service to have a cleaner implementation
             //remove the alarm if it exists
             cancelAlarm();
             setRepeatingAlarm();
@@ -361,7 +357,6 @@ public class LeBLEService extends Service {
         scanLeDevice(false);
         mScanning = false;
         //mWakeLock.release(); Uncomment if the BT data has missing data. The system might be putting this to sleep
-        unregisterReceiver(mReceiver);
         cancelAlarm();
     }
 
@@ -426,19 +421,6 @@ public class LeBLEService extends Service {
         //trigger on interval ALARM_SENSOR_DATA_SAVE INTERVAL
         alarmManagerData.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
                 + ALARM_SENSOR_DATA_SAVE_INTERVAL, ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
-    }
-
-    /***
-     * Android > 8.0 requirement
-     * Registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
-     * can recognize when the watch is plugged in
-     */
-    private void registerFileTransferAction() {
-        Log.d(TAG, "registerFileTransferAction: setup Broadcast Receiver");
-        mReceiver = new DataCollectReceiver();
-        IntentFilter filter = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
-        registerReceiver(mReceiver, filter);
-
     }
 
     private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
