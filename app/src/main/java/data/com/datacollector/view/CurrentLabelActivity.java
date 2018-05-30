@@ -27,6 +27,7 @@ import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION;
+import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION_INTERVAL;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL_REMINDING_TIME;
 import static data.com.datacollector.model.Const.PENDING_INTENT_CODE_NOTIFICATION;
@@ -41,6 +42,7 @@ public class CurrentLabelActivity extends WearableActivity {
     private NotificationReceiver notificationReceiver;
     private AlarmManager alarmManager;
     private NotificationManager notificationManager;
+    private int interval = 60*1000; //One minute by default
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,15 +62,19 @@ public class CurrentLabelActivity extends WearableActivity {
             Log.d(TAG, "onCreate: Label: " + label);
             Log.d(TAG, "onCreate: Minutes: " + minutes);
         }
-
+        interval = minutes*60*1000;
         txtActivityLabel.setText(label);
         alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         notificationReceiver = new NotificationReceiver();
 
         IntentFilter filter = new IntentFilter(ACTION_REMINDER_NOTIFICATION);
         registerReceiver(notificationReceiver, filter);
-        setRepeatingAlarm(minutes);
 
+        //Set up the alarm for notification
+        setRepeatingAlarm();
+
+        //This simply modifies the notification for our running services to open THIS activity instead
+        //of the HomeActivity
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,CurrentLabelActivity.class));
 
@@ -94,22 +100,35 @@ public class CurrentLabelActivity extends WearableActivity {
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,HomeActivity.class));
     }
 
-    private void setRepeatingAlarm(int minutes) {
+    private void setRepeatingAlarm() {
         Log.d(TAG, "setRepeatingAlarm: ");
 
-        Intent intent = new Intent(this, NotificationReceiver.class);
+        Intent intent = new Intent(this.getApplicationContext(), NotificationReceiver.class);
         intent.setAction(ACTION_REMINDER_NOTIFICATION);
+        intent.putExtra(ACTION_REMINDER_NOTIFICATION_INTERVAL, interval);
         alarmPendingIntent = PendingIntent.getBroadcast( this.getApplicationContext(), PENDING_INTENT_CODE_NOTIFICATION, intent, 0);
 
-        //start timer, start time is earlier than current
-        //trigger on interval ALARM_SENSOR_DATA_SAVE INTERVAL
-        int interval = minutes*60*1000;
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + interval, interval, alarmPendingIntent);
+
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + interval,
+                alarmPendingIntent);
     }
 
     private void cancelRepeatingAlarm(){
         Log.d(TAG, "cancelRepeatingAlarm: ");
-        alarmManager.cancel(alarmPendingIntent);
+        //Just for security in case something goes wrong we first verify we have the information before using it
+        if(alarmManager == null){
+            alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        }
+        if(alarmPendingIntent == null){
+            Intent intent = new Intent(this.getApplicationContext(), NotificationReceiver.class);
+            intent.setAction(ACTION_REMINDER_NOTIFICATION);
+            intent.putExtra(ACTION_REMINDER_NOTIFICATION_INTERVAL, interval);
+            alarmPendingIntent = PendingIntent.getBroadcast( this.getApplicationContext(), PENDING_INTENT_CODE_NOTIFICATION, intent, 0);
+        }
+        if(alarmPendingIntent != null) {
+            alarmManager.cancel(alarmPendingIntent);
+        }
     }
 
     private class SaveDataInBackground extends AsyncTask<String, Integer, Void> {

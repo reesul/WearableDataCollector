@@ -1,5 +1,7 @@
 package data.com.datacollector.receiver;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +12,8 @@ import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 
+import static android.content.Context.ALARM_SERVICE;
+import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.TM_HTTP;
@@ -33,6 +37,21 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
         // intent received from alarm to save data
         if(intent.getBooleanExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, false)){
+
+            //Since there is no repeating allow while idle we have to manually create the alarm again
+            //once the previous one goes off. Therefore, we first need to validate that this received broadcast
+            //was not a BROADCAST_DATA_SAVE_DATA_AND_STOP broadcast message
+            if(!intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false)) {
+                //If we were triggered by a stop command there is no need to create another alarm
+                Intent alarmIntent = new Intent(context.getApplicationContext(), DataCollectReceiver.class);
+                alarmIntent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                        context.getApplicationContext(), 234324243, alarmIntent, 0);
+                AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                        + ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntent);
+            }
+
             Log.d(TAG, "onReceive:: BROADCAST_DATA_SAVE_ALARM_RECEIVED");
 
             if(!LeBLEService.isServiceRunning || !LeBLEService.mScanning)
@@ -93,11 +112,6 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 }
 
                 //uploadData(context);
-            }else if (action.equals(Intent.ACTION_POWER_DISCONNECTED)){
-                Log.d(TAG, "onReceive:: ACTION_POWER_DISCONNECTED");
-                //TODO: Properly close any possible data sending thread
-                //Sometimes, the watch can be connected multiple times in a few seconds creating multiple threads and possible
-                //causing conflicts
             }
         }
     }

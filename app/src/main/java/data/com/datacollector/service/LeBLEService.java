@@ -12,7 +12,6 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
@@ -31,7 +30,6 @@ import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.view.HomeActivity;
 
-import static data.com.datacollector.model.Const.BROADCAST_ACTION_FILTERS;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
@@ -93,6 +91,8 @@ public class LeBLEService extends Service {
         @Override
         public void handleMessage(Message msg) {
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread with ID: " + msg.arg1);
+
+            alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
 
             //TODO: This can be moved to its own service to have a cleaner implementation
             //remove the alarm if it exists
@@ -392,12 +392,19 @@ public class LeBLEService extends Service {
      */
     private void cancelAlarm(){
         Log.d(TAG, "OnCreate:: Existing repeating alarm - Removing.");
-        Intent intent = new Intent(LeBLEService.this, DataCollectReceiver.class);
+        Intent intent = new Intent(this.getApplicationContext(), DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                LeBLEService.this.getApplicationContext(), 234324243, intent, 0);
-        if (pendingIntent != null && alarmManagerData != null) {
-            alarmManagerData.cancel(pendingIntent);
+                this.getApplicationContext(), 234324243, intent, 0);
+        if(alarmManagerData == null){
+            alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
+        }
+        if(pendingIntentData!=null){
+            alarmManagerData.cancel(pendingIntentData);
+        } else {
+            if (pendingIntent != null) {
+                alarmManagerData.cancel(pendingIntent);
+            }
         }
     }
 
@@ -410,17 +417,17 @@ public class LeBLEService extends Service {
      */
     private void setRepeatingAlarm() {
         Log.d(TAG, "setRepeatingAlarm: ");
-        Intent intent = new Intent(this, DataCollectReceiver.class);
+        Intent intent = new Intent(this.getApplicationContext(), DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
         pendingIntentData = PendingIntent.getBroadcast(
                 this.getApplicationContext(), 234324243, intent, 0);
-
-        alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
-
+        if(alarmManagerData == null){
+            alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
+        }
         //start timer, start time is earlier than current
         //trigger on interval ALARM_SENSOR_DATA_SAVE INTERVAL
-        alarmManagerData.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
-                + ALARM_SENSOR_DATA_SAVE_INTERVAL, ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
+        alarmManagerData.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                + ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
     }
 
     private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {

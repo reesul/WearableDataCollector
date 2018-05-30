@@ -39,6 +39,8 @@ public class ReminderTimeConfigActivity extends WearableActivity {
             label = intent.getStringExtra(EXTRA_ACTIVITY_LABEL);
         }
 
+        //This simply modifies the notification for our running services to open THIS activity instead
+        //of the HomeActivity
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,ReminderTimeConfigActivity.class));
     }

@@ -38,6 +38,7 @@ public class Const {
     public static final String EXTRA_ACTIVITY_LABEL = "EXTRA_ACTIVITY_LABEL";
     public static final String EXTRA_ACTIVITY_LABEL_REMINDING_TIME = "EXTRA_ACTIVITY_LABEL_REMINDING_TIME";
     public static final String ACTION_REMINDER_NOTIFICATION = "ACTION_REMINDER_NOTIFICATION";
+    public static final String ACTION_REMINDER_NOTIFICATION_INTERVAL = "ACTION_REMINDER_NOTIFICATION_INTERVAL";
 
     //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
@@ -76,10 +77,11 @@ public class Const {
     //Sensor data collection constants
 
     /** Min, Interval between two data collection. Esp. Gyro
-     *  and Acceleremoter and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
+     *  and Accelerometer and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
      *  This limit would ensure at the same time limited data is being stored.
      *  Value in milliseconds*/
-    public static final long SENSOR_DATA_MIN_INTERVAL = 40; //25Hz
+    //28Hz this actually gives about 25Hz? If we use 40 for 20Hz we might get values as low as 17Hz
+    public static final long SENSOR_DATA_MIN_INTERVAL = 35;
     /* Conversion from nanoseconds to milliseconds (SensorEvents have timestamp in ns that is used for downsampling) */
     public static final long NANOS_TO_MILLIS = 1000000;
     /* Min interval between sensor (Acc, Gyro, and heart rate) samples that are saved in ns*/
