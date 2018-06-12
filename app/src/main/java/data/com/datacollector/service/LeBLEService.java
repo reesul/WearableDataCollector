@@ -274,7 +274,6 @@ public class LeBLEService extends Service {
      */
     public boolean isBTAvailable() {
         BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-
         return (btAdapter != null &&
                 btAdapter.isEnabled() &&
                 btAdapter.getState() == BluetoothAdapter.STATE_ON);

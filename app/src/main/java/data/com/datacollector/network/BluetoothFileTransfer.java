@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Util;
 
@@ -24,8 +26,6 @@ import static data.com.datacollector.model.Const.MY_UUID;
 
 /**
  * Created by ROGER on 3/11/2018.
- * TODO: Verify control variables like "is uploading". It might be required to implement this code under NetworkIO.java
- * TODO: Only one thread should be attempting to upload data. Http OR Bluetooth.
  */
 
 public class BluetoothFileTransfer {
@@ -41,7 +41,7 @@ public class BluetoothFileTransfer {
 
     }
 
-    public void sendData(final Context context){
+    public void sendData(final Context context) throws Exception{
 
 
         //zip contents of folder holding all BLE files, returns the path to the file
@@ -76,13 +76,19 @@ public class BluetoothFileTransfer {
             File file = new File(destPath);
 
             Log.d(TAG, "sendData: Attempt to send " + file.getName() + " of size " + FileUtil.fileSize(file) + " bytes");
+            if(!mBluetoothAdapter.isEnabled()){
+                Log.d(TAG, "sendData: Enabling BT");
+                mBluetoothAdapter.enable();
+            }
 
             if (!mBluetoothAdapter.isEnabled()) {
                 //The bluetooth is off. Do not send data.
-                Log.d(TAG, "The bluetooth is off. Data transfer cancelled.");
+                Log.d(TAG, "The bluetooth is off and we could not turn it on. Data transfer cancelled.");
                 //TODO: Handle this, should we turn it on?
                 FileUtil.lastUploadResult = false;
                 FileUtil.fileUploadInProgress = false;
+                Exception btOff = new Exception("BT is off");
+                throw btOff;
             } else {
                 try {
                     String BTServerAddress = getPairedAddress();
@@ -91,6 +97,8 @@ public class BluetoothFileTransfer {
                         Log.d(TAG, "The bluetooth server device has not been paired. Data transfer cancelled.");
                         FileUtil.lastUploadResult = false;
                         FileUtil.fileUploadInProgress = false;
+                        Exception deviceNotPaired = new Exception("Device is not paired");
+                        throw deviceNotPaired;
                     } else {
                         //We found the address, and we are ready to open the socket
                         openSocket(BTServerAddress);
@@ -107,6 +115,7 @@ public class BluetoothFileTransfer {
 
                         FileUtil.lastUploadResult = true;
                         FileUtil.fileUploadInProgress = false;
+
 
                     }
                 } catch (IOException e){
@@ -129,12 +138,13 @@ public class BluetoothFileTransfer {
                         }
                         btSocket = null;
                     }
+                    throw e;
                 } catch (InterruptedException e) {
                     Log.e(TAG, "There was an error while creating a timer before closing the socket: " + e.getMessage());
                     e.printStackTrace();
                     FileUtil.lastUploadResult = false;
                     FileUtil.fileUploadInProgress = false;
-
+                    throw e;
                 }
             }
         }

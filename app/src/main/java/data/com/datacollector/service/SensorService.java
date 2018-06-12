@@ -293,7 +293,7 @@ public class SensorService extends Service implements SensorEventListener{
      * @param heartRate
      */
     private void savePPGData(float heartRate, long timestamp){
-        Log.d(TAG, "savePPGData:: heart rate: "+heartRate);
+        //Log.d(TAG, "savePPGData:: heart rate: "+heartRate);
         PPGData ppgData = new PPGData(heartRate, Util.getTimeMillis(timestamp));
         listPPGData.add(ppgData);
     }

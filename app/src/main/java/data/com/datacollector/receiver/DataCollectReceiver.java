@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import data.com.datacollector.network.BluetoothFileTransfer;
@@ -28,7 +29,10 @@ import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
 
 public class DataCollectReceiver extends BroadcastReceiver {
     private final String TAG = "DC_Receiver";
-    public static Thread uploadBTThread = null;
+    private static boolean isAsyncTaskRunning = false;//TODO: This static variable might need to be changed to another location or using shared preferences
+    private int retries = 6;//How many times are we going to retry to send the data
+    private int MINUTES_TO_WAIT = 10;
+
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
@@ -98,7 +102,15 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
                 if(SELECTED_TRANSFER_METHOD == TM_BT){
                     Log.d(TAG, "onReceive:: sending files through Bluetooth");
-                    if(DataCollectReceiver.uploadBTThread == null) {
+                    if(isAsyncTaskRunning){
+                        Log.d(TAG, "onReceive: BT Asynctask transfer is already running");
+                        return;
+                    }else{
+                        Log.d(TAG, "onReceive: Attempt to send data through BT");
+                        uploadBTData(context, retries);
+                    }
+
+                    /*if(DataCollectReceiver.uploadBTThread == null) {
                         Log.d(TAG, "onReceive: Creating the thread");
                         DataCollectReceiver.uploadBTThread = new Thread(new uploadBTRunnable(context));
                     }
@@ -108,7 +120,7 @@ public class DataCollectReceiver extends BroadcastReceiver {
                         DataCollectReceiver.uploadBTThread.start();
                     }else{
                         Log.d(TAG, "onReceive: It was alive, do nothing");
-                    }
+                    }*/
                 }
 
                 //uploadData(context);
@@ -128,9 +140,14 @@ public class DataCollectReceiver extends BroadcastReceiver {
      * call Bluetooth class to upload data
      * @param context : context of the caller.
      */
-    private void uploadBTData(Context context){
-        BluetoothFileTransfer btio = new BluetoothFileTransfer();
-        btio.sendData(context.getApplicationContext());
+    private void uploadBTData(Context context, int retries){
+        //BluetoothFileTransfer btio = new BluetoothFileTransfer();
+        //btio.sendData(context.getApplicationContext());
+        Log.d(TAG, "uploadBTData: Preparing asynctask");
+        isAsyncTaskRunning = true;
+        TransferBTData backgroundTransfer = new TransferBTData(context, retries);
+        backgroundTransfer.execute();
+        
     }
 
     private class uploadRunnable implements Runnable {
@@ -141,11 +158,60 @@ public class DataCollectReceiver extends BroadcastReceiver {
         }
     }
 
-    private class uploadBTRunnable implements Runnable {
+    /*private class uploadBTRunnable implements Runnable {
         Context currentContext;
         uploadBTRunnable(Context context) {currentContext = context;}
         public void run() {
             uploadBTData(currentContext);
+        }
+    }*/
+
+    private class TransferBTData extends AsyncTask<Void, Integer, Boolean> {
+
+        private Context context;
+        private int retriesRemaining;
+
+        public TransferBTData(Context context, int retriesRemaining){
+            this.context = context;
+            this.retriesRemaining = retriesRemaining;
+        }
+
+        protected Boolean doInBackground(Void... lists) {
+            boolean success = false;
+            try {
+                BluetoothFileTransfer btio = new BluetoothFileTransfer();
+                Log.d(TAG, "doInBackground: About to send data");
+                btio.sendData(context.getApplicationContext());
+                Log.d(TAG, "doInBackground: Data is sent");
+                success = true;
+            }catch (Exception e){
+                Log.d(TAG, "doInBackground: Error: " + e.getMessage());
+                success = false;
+            }
+            return success;
+        }
+
+        protected void onPostExecute(Boolean success) {
+            Log.d(TAG, "onPostExecute:");
+            if(!success){
+                Log.d(TAG, "onPostExecute: There was a problem with the BT transfer");
+                if((retriesRemaining-1) > 0){
+                    Log.d(TAG, "onPostExecute: Retrying");
+                    try {
+                        Thread.sleep(MINUTES_TO_WAIT*1000); //Wait a 10 minutes before retrying
+                        uploadBTData(context, retriesRemaining-1);
+                    } catch (InterruptedException e) {
+                        Log.e(TAG, "onPostExecute: Error while waiting to retry" );
+                        e.printStackTrace();
+                    }
+                }else{
+                    Log.d(TAG, "onPostExecute: No more retries remain");
+                    isAsyncTaskRunning = false;
+                }
+            }else{
+                Log.d(TAG, "onPostExecute: BT Data transfer successful");
+                isAsyncTaskRunning = false;
+            }
         }
     }
 

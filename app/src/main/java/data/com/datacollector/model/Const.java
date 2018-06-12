@@ -16,7 +16,7 @@ public class Const {
     //Determines how will the system attempt to transfer the data
     public static final int TM_HTTP = 1; //HTTP transfer files
     public static final int TM_BT = 2; //Bluetooth transfer files
-    public static final int SELECTED_TRANSFER_METHOD = TM_HTTP;
+    public static final int SELECTED_TRANSFER_METHOD = TM_BT;
 
     //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold
     public static final float EPSILON_GYRO = 3.0f;
