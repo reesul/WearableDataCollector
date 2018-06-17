@@ -281,8 +281,9 @@ public class FileUtil {
      * @param timeStamp The time stamp created when the user touches the tag
      * @param activity The activity selected by the user
      */
-    public static synchronized void saveActivityDataToFile(Context context, String timeStamp, String activity) throws IOException{
+    public static synchronized void saveActivityDataToFile(Context context, String timeStamp, String activity, String status) throws IOException{
         if(fileUploadInProgress){
+            //This means that no label its saved if the watch is uploading (connected to power)
             //TODO: Think how to solve this issue. If this fails to upload, the activity will not hold the tag for so long
             //maybe it would be required to create a service or something that will wait until it is possible to write and then write the tag
             //to file. For now this tag is lost.
@@ -311,7 +312,7 @@ public class FileUtil {
                 fos.write(DEVICE_ID.getBytes());
             }
             fos.write("\r\n".getBytes());
-            fos.write((timeStamp + "," + activity).getBytes());
+            fos.write((timeStamp + "," + activity + "," + status).getBytes());
             fos.close();
             Log.d(TAG, "saveActivityDataToFile:: Activity data saved successfully");
         } catch (IOException e) {

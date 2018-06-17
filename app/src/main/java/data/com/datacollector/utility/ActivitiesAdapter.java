@@ -4,12 +4,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.wear.widget.WearableRecyclerView;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,8 +19,10 @@ import java.io.IOException;
 
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
+import data.com.datacollector.view.HomeActivity;
 import data.com.datacollector.view.ReminderTimeConfigActivity;
 
+import static data.com.datacollector.model.Const.ENABLE_WINDOW;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 
 
@@ -85,51 +89,66 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
              */
             @Override
             public void onClick(View v) {
-                Log.d(TAG,"Saving activity on background: " + activitiesList[listItemPosition]);
+                Log.d(TAG, "onClick label");
                 Context context = txtView.getContext();
-                if(LeBLEService.isServiceRunning && SensorService.isServiceRunning){
+                //TODO: If multiple services are added, this must change
+                if (LeBLEService.isServiceRunning && SensorService.isServiceRunning) {
+                    Log.d(TAG, "Saving activity on background: " + activitiesList[listItemPosition]);
                     //Save information to file
-                    String timestamp = Util.getTime(System.currentTimeMillis());
-                    SaveDataInBackground backgroundSave = new SaveDataInBackground(context);
+                    String timestamp = Util.getTimeMillis(System.currentTimeMillis());
+                    SaveDataInBackground backgroundSave = new SaveDataInBackground(context, listItemPosition);
                     backgroundSave.execute(timestamp, activitiesList[listItemPosition]);
 
-                    //Launch time select activity
-                    Intent intent = new Intent(context, ReminderTimeConfigActivity.class);
-                    intent.putExtra(EXTRA_ACTIVITY_LABEL, activitiesList[listItemPosition]);
-                    context.startActivity(intent);
                 } else {
+                    Log.d(TAG, "onClick: The app is not collecting any data");
+                    //Re enable window
+                    Intent intent = new Intent(ENABLE_WINDOW);
+                    intent.putExtra(ENABLE_WINDOW,true);
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
                     Toast.makeText(context, "The app is not collecting data", Toast.LENGTH_LONG).show();
                 }
-
             }
         });
 
     }
 
-    private class SaveDataInBackground extends AsyncTask<String, Integer, Void> {
+    private class SaveDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
         Context context;
         String activity;
+        int listItemPosition;
 
-        public SaveDataInBackground(Context context){
+        public SaveDataInBackground(Context context, int listItemPosition){
             this.context = context;
+            this.listItemPosition = listItemPosition;
         }
 
-        protected Void doInBackground(String... lists) {
+        protected Boolean doInBackground(String... lists) {
             try {
                 activity = lists[1];
-                FileUtil.saveActivityDataToFile(context, lists[0], activity);
+                FileUtil.saveActivityDataToFile(context, lists[0], activity, "start");
+                return true;
             }catch (IOException e){
                 Log.e(TAG,"Error while saving activity: " + e.getMessage());
-                Toast.makeText(context, "Error, try again later", Toast.LENGTH_SHORT).show();
+                return false;
             }
-            return null;
         }
 
-        protected void onPostExecute(Void v) {
+        protected void onPostExecute(Boolean success) {
             Log.d(TAG, "onPostExecute: Saved the files asynchronously");
 
-            Toast.makeText(context, activity + " saved", Toast.LENGTH_SHORT).show();
+            if(success){
+                //Launch time select activity
+                Intent intent = new Intent(context, ReminderTimeConfigActivity.class);
+                intent.putExtra(EXTRA_ACTIVITY_LABEL, activitiesList[listItemPosition]);
+                context.startActivity(intent);
+            }else{
+                //Re enable window
+                Intent intent = new Intent(ENABLE_WINDOW);
+                intent.putExtra(ENABLE_WINDOW,true);
+                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 

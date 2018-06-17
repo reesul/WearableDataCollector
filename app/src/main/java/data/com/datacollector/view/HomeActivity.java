@@ -12,9 +12,11 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.RecyclerView;
 import android.support.wear.widget.WearableLinearLayoutManager;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -32,6 +34,7 @@ import data.com.datacollector.utility.CustomizedExceptionHandler;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.ENABLE_WINDOW;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
@@ -48,11 +51,12 @@ public class HomeActivity extends WearableActivity {
     private static final int PERMISSION_READ_PHONE_STATE = 3;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
     private int confirmationsReceived = 0; //The number of confirmations received so far
+    private int previousEvent = MotionEvent.ACTION_UP;
 
     private ActivitiesList activities;
     private ActivitiesAdapter adapterList;
 
-    private BroadcastReceiver mStopServicesReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mLocalReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "mStopServicesReceiver onReceive: called");
@@ -61,7 +65,7 @@ public class HomeActivity extends WearableActivity {
             //Action that tells us to stop our services
             if(action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)){
 
-                Log.d(TAG, "onReceive: Received confirmation");
+                Log.d(TAG, "onReceive: Received BROADCAST_DATA_SAVE_DATA_AND_STOP confirmation");
                 confirmationsReceived++;
 
                 if(confirmationsReceived >= CONFIRMATIONS_EXPECTED){
@@ -74,6 +78,9 @@ public class HomeActivity extends WearableActivity {
                     stopBgService();
                 }
 
+            } else if(action.equals(ENABLE_WINDOW)) {
+                Log.d(TAG, "onReceive: Received ENABLE_WINDOW confirmation");
+                enableWindow(intent.getBooleanExtra(ENABLE_WINDOW,true));
             }
         }
     };
@@ -85,8 +92,10 @@ public class HomeActivity extends WearableActivity {
         Log.d(TAG, "onCreate: called");
 
         //Registering a local broadcast receiver to listen for data save confirmation
-        IntentFilter confirmationIntent = new IntentFilter(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-        LocalBroadcastManager.getInstance(this).registerReceiver(mStopServicesReceiver, confirmationIntent);
+        IntentFilter confirmationIntent = new IntentFilter();
+        confirmationIntent.addAction(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+        confirmationIntent.addAction(ENABLE_WINDOW);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
         Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
@@ -130,9 +139,25 @@ public class HomeActivity extends WearableActivity {
         adapterList = new ActivitiesAdapter(activities.getList());
         recActivitiesList.setAdapter(adapterList);
 
+        //We intercept multiple touches and prevent any other after the first one arrives
+        recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                // true: consume touch event
+                // false: dispatch touch event
+                //We first determine if we touched the label and not only moved
+                if(previousEvent == MotionEvent.ACTION_DOWN && e.getAction() == MotionEvent.ACTION_UP) {
+                   enableWindow(false);// This prevents user from submitting multiple labels when touching quickly
+                }
+                //else ignore
+                previousEvent = e.getAction();
+                return false;
+            }
+        });
+
         progressBar = findViewById(R.id.progressBar);
 
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        enableWindow(true);
 
     }
 
@@ -246,7 +271,7 @@ public class HomeActivity extends WearableActivity {
         //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         btnStartStop.setEnabled(true);
         progressBar.setVisibility(View.GONE);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        enableWindow(true);
     }
 
     /**
@@ -265,8 +290,7 @@ public class HomeActivity extends WearableActivity {
         HomeActivity.this.sendBroadcast(intent);
         btnStartStop.setEnabled(false);
         progressBar.setVisibility(View.VISIBLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        enableWindow(false);
     }
 
     @Override
@@ -282,12 +306,26 @@ public class HomeActivity extends WearableActivity {
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume: called");
+        enableWindow(true);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy: called");
+    }
+
+    /**
+     * Prevents or allows user to touch the screen
+     * @param enable
+     */
+    public void enableWindow(boolean enable){
+        if(enable){
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        }else{
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        }
     }
 
 }

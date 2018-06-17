@@ -8,9 +8,11 @@ import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import data.com.datacollector.R;
+import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.Notifications;
 
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
@@ -23,6 +25,10 @@ public class ReminderTimeConfigActivity extends WearableActivity {
     private int minutes = 5;
     private String TAG = "ReminderTimeConfigActivity";
 
+    private Button btn1 = null;
+    private Button btn2 = null;
+    private Button btn3 = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,6 +36,10 @@ public class ReminderTimeConfigActivity extends WearableActivity {
         setContentView(R.layout.activity_reminder_time_config);
 
         mTextView = (TextView) findViewById(R.id.text);
+
+        btn1 = findViewById(R.id.btn5min);
+        btn2 = findViewById(R.id.btn10min);
+        btn3 = findViewById(R.id.btn20min);
 
         // Enables Always-on TODO: Verify what's this
         setAmbientEnabled();
@@ -46,6 +56,7 @@ public class ReminderTimeConfigActivity extends WearableActivity {
     }
 
     public void onClickMinutesButton(View view){
+        enableButtons(false);
         switch(view.getId())
         {
             case R.id.btn5min:
@@ -82,5 +93,19 @@ public class ReminderTimeConfigActivity extends WearableActivity {
     protected void onDestroy(){
         super.onDestroy();
         Log.d(TAG, "onDestroy:");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        enableButtons(true);
+    }
+
+    private void enableButtons(boolean b){
+        if(btn1 != null && btn2 != null && btn3 != null) {
+            btn1.setEnabled(b);
+            btn2.setEnabled(b);
+            btn3.setEnabled(b);
+        }
     }
 }

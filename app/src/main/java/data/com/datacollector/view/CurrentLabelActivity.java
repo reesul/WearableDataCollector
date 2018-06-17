@@ -15,6 +15,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,6 +43,7 @@ public class CurrentLabelActivity extends WearableActivity {
     private NotificationReceiver notificationReceiver;
     private AlarmManager alarmManager;
     private NotificationManager notificationManager;
+    private Button finishActivity = null;
     private int interval = 60*1000; //One minute by default
 
     @Override
@@ -51,6 +53,7 @@ public class CurrentLabelActivity extends WearableActivity {
         setContentView(R.layout.activity_current_label);
 
         txtActivityLabel = (TextView) findViewById(R.id.txtActivityLabel);
+        finishActivity = findViewById(R.id.btnFinish);
 
         // Enables Always-on TODO: Verify what's this
         setAmbientEnabled();
@@ -85,8 +88,10 @@ public class CurrentLabelActivity extends WearableActivity {
      * @param v
      */
     public void onClickFinishActivity(View v){
+        Log.d(TAG, "onClickFinishActivity:");
 
-        String timestamp = Util.getTime(System.currentTimeMillis());
+        finishActivity.setEnabled(false);
+        String timestamp = Util.getTimeMillis(System.currentTimeMillis());
 
         cancelRepeatingAlarm();
         clearNotification(Notifications.NOTIFICATION_ID_REMINDER);
@@ -131,7 +136,7 @@ public class CurrentLabelActivity extends WearableActivity {
         }
     }
 
-    private class SaveDataInBackground extends AsyncTask<String, Integer, Void> {
+    private class SaveDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
         Context context;
         String activity;
@@ -140,27 +145,35 @@ public class CurrentLabelActivity extends WearableActivity {
             this.context = context;
         }
 
-        protected Void doInBackground(String... lists) {
+        protected Boolean doInBackground(String... lists) {
             try {
                 activity = lists[1];
-                FileUtil.saveActivityDataToFile(context, lists[0], activity);
+                FileUtil.saveActivityDataToFile(context, lists[0], activity, "end");
+                return true;
             }catch (IOException e){
                 Log.e(TAG,"Error while saving activity: " + e.getMessage());
-                Toast.makeText(context, "Error, try again later", Toast.LENGTH_SHORT).show();
+                return false;
             }
-            return null;
         }
 
-        protected void onPostExecute(Void v) {
+        protected void onPostExecute(Boolean success) {
             Log.d(TAG, "onPostExecute: Saved the files asynchronously");
-            CurrentLabelActivity.this.finish();
-            Toast.makeText(context, activity + " saved", Toast.LENGTH_SHORT).show();
+            if(success) {
+                CurrentLabelActivity.this.finish();
+            }else{
+                Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
+                finishActivity.setEnabled(true);
+            }
+
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        if(finishActivity != null) {
+            finishActivity.setEnabled(true);
+        }
         Log.d(TAG, "onResume: ");
     }
 
