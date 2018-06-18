@@ -11,7 +11,6 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,10 +18,9 @@ import java.io.IOException;
 
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
-import data.com.datacollector.view.HomeActivity;
 import data.com.datacollector.view.ReminderTimeConfigActivity;
 
-import static data.com.datacollector.model.Const.ENABLE_WINDOW;
+import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.EXTRA_ACTIVITY_LABEL;
 
 
@@ -102,8 +100,8 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
                 } else {
                     Log.d(TAG, "onClick: The app is not collecting any data");
                     //Re enable window
-                    Intent intent = new Intent(ENABLE_WINDOW);
-                    intent.putExtra(ENABLE_WINDOW,true);
+                    Intent intent = new Intent(SET_LOADING);
+                    intent.putExtra(SET_LOADING,false);
                     LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
                     Toast.makeText(context, "The app is not collecting data", Toast.LENGTH_LONG).show();
                 }
@@ -144,8 +142,8 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
                 context.startActivity(intent);
             }else{
                 //Re enable window
-                Intent intent = new Intent(ENABLE_WINDOW);
-                intent.putExtra(ENABLE_WINDOW,true);
+                Intent intent = new Intent(SET_LOADING);
+                intent.putExtra(SET_LOADING,false);
                 LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
                 Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
             }

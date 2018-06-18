@@ -58,7 +58,7 @@ public class Const {
     //Broadcasts
     public static final String BROADCAST_DATA_SAVE_ALARM_RECEIVED = "BROADCAST_DATA_SAVE_ALARM_RECEIVED";
     public static final String BROADCAST_DATA_SAVE_DATA_AND_STOP = "BROADCAST_DATA_SAVE_DATA_AND_STOP";
-    public static final String ENABLE_WINDOW = "ENABLE_WINDOW"; //Enables window in home activity
+    public static final String SET_LOADING = "SET_LOADING"; //Enables the loading view
 
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */

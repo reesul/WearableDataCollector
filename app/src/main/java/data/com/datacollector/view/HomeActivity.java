@@ -18,10 +18,9 @@ import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
-import android.widget.ProgressBar;
+import android.widget.FrameLayout;
 
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
@@ -34,7 +33,7 @@ import data.com.datacollector.utility.CustomizedExceptionHandler;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
-import static data.com.datacollector.model.Const.ENABLE_WINDOW;
+import static data.com.datacollector.model.Const.SET_LOADING;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
@@ -43,7 +42,7 @@ public class HomeActivity extends WearableActivity {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
     private WearableRecyclerView recActivitiesList;
-    private ProgressBar progressBar;
+    private FrameLayout progressBar;
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -78,9 +77,9 @@ public class HomeActivity extends WearableActivity {
                     stopBgService();
                 }
 
-            } else if(action.equals(ENABLE_WINDOW)) {
+            } else if(action.equals(SET_LOADING)) {
                 Log.d(TAG, "onReceive: Received ENABLE_WINDOW confirmation");
-                enableWindow(intent.getBooleanExtra(ENABLE_WINDOW,true));
+                setLoading(intent.getBooleanExtra(SET_LOADING,false));
             }
         }
     };
@@ -94,7 +93,7 @@ public class HomeActivity extends WearableActivity {
         //Registering a local broadcast receiver to listen for data save confirmation
         IntentFilter confirmationIntent = new IntentFilter();
         confirmationIntent.addAction(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-        confirmationIntent.addAction(ENABLE_WINDOW);
+        confirmationIntent.addAction(SET_LOADING);
         LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
@@ -143,21 +142,29 @@ public class HomeActivity extends WearableActivity {
         recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                // return
                 // true: consume touch event
                 // false: dispatch touch event
-                //We first determine if we touched the label and not only moved
-                if(previousEvent == MotionEvent.ACTION_DOWN && e.getAction() == MotionEvent.ACTION_UP) {
-                   enableWindow(false);// This prevents user from submitting multiple labels when touching quickly
+
+                View childView = rv.findChildViewUnder(e.getX(), e.getY());
+
+                //It could be the case on which the user touches in a portion of the UI where there is NO children. That's why our ui was being froze
+                //therefore we first verify we are touching on a child
+                if(childView != null){
+
+                    //We first determine if we touched the label and not only moved
+                    if(previousEvent == MotionEvent.ACTION_DOWN && e.getAction() == MotionEvent.ACTION_UP) {
+                        setLoading(true);// This prevents user from submitting multiple labels when touching quickly
+                    }
+                    //else ignore
+                    previousEvent = e.getAction();
                 }
-                //else ignore
-                previousEvent = e.getAction();
+
                 return false;
             }
         });
 
         progressBar = findViewById(R.id.progressBar);
-
-        enableWindow(true);
 
     }
 
@@ -269,9 +276,7 @@ public class HomeActivity extends WearableActivity {
         stopService(new Intent(this, LeBLEService.class));
         btnStartStop.setText("START");
         //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
-        btnStartStop.setEnabled(true);
-        progressBar.setVisibility(View.GONE);
-        enableWindow(true);
+        setLoading(false);
     }
 
     /**
@@ -288,9 +293,7 @@ public class HomeActivity extends WearableActivity {
 
         //We send the broadcast to the receiver that coordinates the services to save their data
         HomeActivity.this.sendBroadcast(intent);
-        btnStartStop.setEnabled(false);
-        progressBar.setVisibility(View.VISIBLE);
-        enableWindow(false);
+        setLoading(true);
     }
 
     @Override
@@ -306,7 +309,7 @@ public class HomeActivity extends WearableActivity {
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume: called");
-        enableWindow(true);
+        setLoading(false);
     }
 
     @Override
@@ -315,16 +318,17 @@ public class HomeActivity extends WearableActivity {
         Log.d(TAG, "onDestroy: called");
     }
 
-    /**
-     * Prevents or allows user to touch the screen
-     * @param enable
-     */
-    public void enableWindow(boolean enable){
-        if(enable){
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+    public void setLoading(boolean b){
+        if(b){
+            Log.d(TAG, "setLoading: true");
+            btnStartStop.setVisibility(View.GONE);
+            recActivitiesList.setVisibility(View.GONE);
+            progressBar.setVisibility(View.VISIBLE);
         }else{
-            getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            Log.d(TAG, "setLoading: false");
+            btnStartStop.setVisibility(View.VISIBLE);
+            recActivitiesList.setVisibility(View.VISIBLE);
+            progressBar.setVisibility(View.GONE);
         }
     }
 
