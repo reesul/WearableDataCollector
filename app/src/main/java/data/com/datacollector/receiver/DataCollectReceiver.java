@@ -102,7 +102,7 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
                 if(SELECTED_TRANSFER_METHOD == TM_BT){
                     Log.d(TAG, "onReceive:: sending files through Bluetooth");
-                    if(isAsyncTaskRunning){
+                    if(DataCollectReceiver.isAsyncTaskRunning){
                         Log.d(TAG, "onReceive: BT Asynctask transfer is already running");
                         return;
                     }else{
@@ -144,7 +144,7 @@ public class DataCollectReceiver extends BroadcastReceiver {
         //BluetoothFileTransfer btio = new BluetoothFileTransfer();
         //btio.sendData(context.getApplicationContext());
         Log.d(TAG, "uploadBTData: Preparing asynctask");
-        isAsyncTaskRunning = true;
+        DataCollectReceiver.isAsyncTaskRunning = true;
         TransferBTData backgroundTransfer = new TransferBTData(context, retries);
         backgroundTransfer.execute();
         
@@ -166,6 +166,9 @@ public class DataCollectReceiver extends BroadcastReceiver {
         }
     }*/
 
+    /**
+     * Transfers the collected data asynchronously
+     */
     private class TransferBTData extends AsyncTask<Void, Integer, Boolean> {
 
         private Context context;
@@ -206,11 +209,11 @@ public class DataCollectReceiver extends BroadcastReceiver {
                     }
                 }else{
                     Log.d(TAG, "onPostExecute: No more retries remain");
-                    isAsyncTaskRunning = false;
+                    DataCollectReceiver.isAsyncTaskRunning = false;
                 }
             }else{
                 Log.d(TAG, "onPostExecute: BT Data transfer successful");
-                isAsyncTaskRunning = false;
+                DataCollectReceiver.isAsyncTaskRunning = false;
             }
         }
     }
