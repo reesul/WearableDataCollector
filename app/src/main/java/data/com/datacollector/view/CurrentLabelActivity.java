@@ -20,6 +20,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import data.com.datacollector.R;
 import data.com.datacollector.receiver.NotificationReceiver;
@@ -97,7 +98,7 @@ public class CurrentLabelActivity extends WearableActivity {
         cancelRepeatingAlarm();
         clearNotification(Notifications.NOTIFICATION_ID_REMINDER);
         //Save information to file
-        SaveDataInBackground backgroundSave = new SaveDataInBackground(this);
+        SaveDataInBackground backgroundSave = new SaveDataInBackground(CurrentLabelActivity.this);
         backgroundSave.execute(timestamp, label);
     }
 
@@ -138,34 +139,40 @@ public class CurrentLabelActivity extends WearableActivity {
         }
     }
 
-    private class SaveDataInBackground extends AsyncTask<String, Integer, Boolean> {
+    public static class SaveDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
-        Context context;
+        private WeakReference<CurrentLabelActivity> currentActivity;
         String activity;
 
-        public SaveDataInBackground(Context context){
-            this.context = context;
+        SaveDataInBackground(CurrentLabelActivity context){
+            currentActivity = new WeakReference<>(context);
         }
 
         protected Boolean doInBackground(String... lists) {
+            CurrentLabelActivity activityRef = currentActivity.get();
+            if (activityRef == null || activityRef.isFinishing()) return false;
+
             try {
                 activity = lists[1];
-                FileUtil.saveActivityDataToFile(context, lists[0], activity, "end");
+                FileUtil.saveActivityDataToFile(activityRef, lists[0], activity, "end");
                 return true;
             }catch (IOException e){
-                Log.e(TAG,"Error while saving activity: " + e.getMessage());
+                Log.e(activityRef.TAG,"Error while saving activity: " + e.getMessage());
                 return false;
             }
         }
 
         protected void onPostExecute(Boolean success) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
-            if(success) {
-                isInProgress = false;
-                CurrentLabelActivity.this.finish();
-            }else{
-                Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
-                finishActivity.setEnabled(true);
+            CurrentLabelActivity activityRef = currentActivity.get();
+            if (activityRef != null && !activityRef.isFinishing()){
+                Log.d(activityRef.TAG, "onPostExecute: Saved the files asynchronously");
+                if(success) {
+                    CurrentLabelActivity.isInProgress = false;
+                    activityRef.finish();
+                }else{
+                    Toast.makeText(activityRef, "Error saving, try again", Toast.LENGTH_SHORT).show();
+                    activityRef.finishActivity.setEnabled(true);
+                }
             }
 
         }

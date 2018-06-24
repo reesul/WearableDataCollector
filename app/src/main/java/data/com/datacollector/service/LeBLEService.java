@@ -21,6 +21,7 @@ import android.os.Message;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -380,7 +381,7 @@ public class LeBLEService extends Service {
         btDeviceList.clear();
         macList.clear(); //Simply clean it without copy since we do not use it to save data to file
 
-        SaveDataInBackground backgroundSave = new SaveDataInBackground(stop);
+        SaveDataInBackground backgroundSave = new SaveDataInBackground(LeBLEService.this, stop);
         backgroundSave.execute(copyBtDeviceList);
         Log.d(TAG, "saveDataToFile: Saving files asynchronously");
 
@@ -429,31 +430,39 @@ public class LeBLEService extends Service {
                 + ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
     }
 
-    private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
+    public static class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
 
         boolean stopServiceAfterFinish;
+        private WeakReference<LeBLEService> bleService;
 
 
-        public SaveDataInBackground(boolean stop){
+        SaveDataInBackground(LeBLEService context, boolean stop){
+            bleService = new WeakReference<>(context);
             stopServiceAfterFinish = stop;
         }
 
         protected Void doInBackground(List... lists) {
-
-            Log.d(TAG, "doInBackground: About to save BLE files in background");
-            FileUtil.saveBLEDataToFile(LeBLEService.this.getApplicationContext(), (List<BTDevice>)lists[0]);
-            //clear local copy of data after it has been saved
-            ((List<BTDevice>)lists[0]).clear();
+            LeBLEService service = bleService.get();
+            if (service != null) {
+                Log.d(service.TAG, "doInBackground: About to save BLE files in background");
+                FileUtil.saveBLEDataToFile(service, (List<BTDevice>) lists[0]);
+                //clear local copy of data after it has been saved
+                ((List<BTDevice>) lists[0]).clear();
+            }
             return null;
         }
 
         protected void onPostExecute(Void v) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
-            //Once, we have finished saving the files, we send the broadcast message to stop the services
-            if(stopServiceAfterFinish){
-                Log.d(TAG, "onPostExecute: Stopping after save. Broadcasting message");
-                Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-                LocalBroadcastManager.getInstance(LeBLEService.this).sendBroadcast(intent);
+
+            LeBLEService service = bleService.get();
+            if (service != null) {
+                Log.d(service.TAG, "onPostExecute: Saved the files asynchronously");
+                //Once, we have finished saving the files, we send the broadcast message to stop the services
+                if (stopServiceAfterFinish) {
+                    Log.d(service.TAG, "onPostExecute: Stopping after save. Broadcasting message");
+                    Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+                    LocalBroadcastManager.getInstance(service).sendBroadcast(intent);
+                }
             }
         }
     }

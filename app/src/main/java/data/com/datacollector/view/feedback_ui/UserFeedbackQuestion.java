@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import data.com.datacollector.R;
 import data.com.datacollector.utility.FileUtil;
@@ -110,7 +111,7 @@ public class UserFeedbackQuestion extends WearableActivity {
         if(answer){
             Log.d(TAG, "saveAnswer: The predicted label was correct");
             String timestamp = Util.getTimeMillis(System.currentTimeMillis());
-            SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackQuestion.this.getApplicationContext());
+            SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackQuestion.this);
             saveData.execute(timestamp, predictedLabel, predictedLabel, predictionStartTs, predictionEndTs); //The predicted was correct so its the actual label
 
         }else{
@@ -130,35 +131,41 @@ public class UserFeedbackQuestion extends WearableActivity {
         btnNo.setEnabled(b);
     }
 
-    private class SaveFeedbackDataInBackground extends AsyncTask<String, Integer, Boolean> {
+    public static class SaveFeedbackDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
-        Context context;
+        private WeakReference<UserFeedbackQuestion> currentActivity;
 
-        public SaveFeedbackDataInBackground(Context context){
-            this.context = context;
+        public SaveFeedbackDataInBackground(UserFeedbackQuestion context){
+            currentActivity = new WeakReference<>(context);
         }
 
         protected Boolean doInBackground(String... lists) {
+            UserFeedbackQuestion activityRef = currentActivity.get();
+            if (activityRef == null || activityRef.isFinishing()) return false;
             try {
-                FileUtil.saveFeedbackDataToFile(context, lists[0], lists[1], lists[2], lists[3], lists[4]);
-                Log.d(TAG, "doInBackground: Feedback has been saved");
+                FileUtil.saveFeedbackDataToFile(activityRef, lists[0], lists[1], lists[2], lists[3], lists[4]);
+                Log.d(activityRef.TAG, "doInBackground: Feedback has been saved");
                 return true;
             }catch (IOException e){
-                Log.e(TAG,"Error while saving feedback: " + e.getMessage());
+                Log.e(activityRef.TAG,"Error while saving feedback: " + e.getMessage());
                 return false;
             }
         }
 
         protected void onPostExecute(Boolean success) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
 
-            if(success){
-                isInProgress = false;
-                clearNotification(Notifications.NOTIFICATION_ID_FEEDBACK);
-                UserFeedbackQuestion.this.finish();
-            }else{
-                Toast.makeText(context, "Error saving, try again", Toast.LENGTH_LONG);
-                enableButtons(true);
+            UserFeedbackQuestion activityRef = currentActivity.get();
+            if (activityRef != null && !activityRef.isFinishing()) {
+                Log.d(activityRef.TAG, "onPostExecute: Saved the files asynchronously");
+
+                if (success) {
+                    UserFeedbackQuestion.isInProgress = false;
+                    activityRef.clearNotification(Notifications.NOTIFICATION_ID_FEEDBACK);
+                    activityRef.finish();
+                } else {
+                    Toast.makeText(activityRef, "Error saving, try again", Toast.LENGTH_LONG);
+                    activityRef.enableButtons(true);
+                }
             }
         }
     }
