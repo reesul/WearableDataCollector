@@ -45,6 +45,8 @@ public class CurrentLabelActivity extends WearableActivity {
     private NotificationManager notificationManager;
     private Button finishActivity = null;
     private int interval = 60*1000; //One minute by default
+    //Whenever the user is seeing this screen this will set to true since a labeling process is in progress
+    public static boolean isInProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,8 +78,7 @@ public class CurrentLabelActivity extends WearableActivity {
         //Set up the alarm for notification
         setRepeatingAlarm();
 
-        //This simply modifies the notification for our running services to open THIS activity instead
-        //of the HomeActivity
+        //This simply modifies the running notification to open this activity instead the main one
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,CurrentLabelActivity.class));
 
@@ -100,6 +101,7 @@ public class CurrentLabelActivity extends WearableActivity {
         backgroundSave.execute(timestamp, label);
     }
 
+    //Removes the reminder notification and changes back the services notification intent to open the main activity instead of this.
     public void clearNotification(int id) {
         notificationManager.cancel(id);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,HomeActivity.class));
@@ -159,6 +161,7 @@ public class CurrentLabelActivity extends WearableActivity {
         protected void onPostExecute(Boolean success) {
             Log.d(TAG, "onPostExecute: Saved the files asynchronously");
             if(success) {
+                isInProgress = false;
                 CurrentLabelActivity.this.finish();
             }else{
                 Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
@@ -175,6 +178,7 @@ public class CurrentLabelActivity extends WearableActivity {
             finishActivity.setEnabled(true);
         }
         Log.d(TAG, "onResume: ");
+        isInProgress = true;
     }
 
     @Override
@@ -183,6 +187,7 @@ public class CurrentLabelActivity extends WearableActivity {
         Log.d(TAG, "onDestroy: ");
         unregisterReceiver(notificationReceiver);
         cancelRepeatingAlarm();
+        isInProgress = false;
     }
 
 }

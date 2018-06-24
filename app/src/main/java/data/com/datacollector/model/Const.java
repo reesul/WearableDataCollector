@@ -40,6 +40,13 @@ public class Const {
     public static final String ACTION_REMINDER_NOTIFICATION = "ACTION_REMINDER_NOTIFICATION";
     public static final String ACTION_REMINDER_NOTIFICATION_INTERVAL = "ACTION_REMINDER_NOTIFICATION_INTERVAL";
 
+    //Feedback activity
+    public static final String EXTRA_FEEDBACK_QUESTION = "EXTRA_FEEDBACK_QUESTION";
+    public static final String EXTRA_FEEDBACK_PREDICTED_LABEL = "EXTRA_FEEDBACK_PREDICTED_LABEL";
+    public static final String EXTRA_FEEDBACK_PREDICTION_START_LBL = "EXTRA_FEEDBACK_PREDICTION_START_LBL";
+    public static final String EXTRA_FEEDBACK_PREDICTION_END_LBL = "EXTRA_FEEDBACK_PREDICTION_END_LBL";
+    public static final String EXTRA_FEEDBACK_VIBRATE = "EXTRA_FEEDBACK_VIBRATE";
+
     //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
 
@@ -49,6 +56,10 @@ public class Const {
     public static final String FILE_NAME_BLE = "ble_data.txt";
     public static final String FILE_NAME_PPG = "ppg_data.txt";
     public static final String FILE_NAME_ACTIVITY = "activity_data.txt";
+    public static final String FILE_NAME_FEEDBACK = "feedback_data.txt";
+
+    //User feedback
+    public static final String[] AVAILABLE_LABELS_TO_PREDICT = DEFAULT_ACTIVITIES_LIST_TEXT; //Change this if needed. Remember that we are not only predicting activities. Also postures for example
 
     /* Take the last 8 digits of the device's serial number as a unique identifier  */
     //TODO: use Build.getSerial() to get serial, as this method is deprecated
@@ -58,7 +69,10 @@ public class Const {
     //Broadcasts
     public static final String BROADCAST_DATA_SAVE_ALARM_RECEIVED = "BROADCAST_DATA_SAVE_ALARM_RECEIVED";
     public static final String BROADCAST_DATA_SAVE_DATA_AND_STOP = "BROADCAST_DATA_SAVE_DATA_AND_STOP";
+    public static final String SET_LOADING_HOME_ACTIVITY = "SET_LOADING_HOME_ACTIVITY"; //Enables the loading view on the home activity
+    public static final String SET_LOADING_USER_FEEDBACK_QUESTION = "SET_LOADING_USER_FEEDBACK_QUESTION"; //Enables the loading view on the feedback question activity
     public static final String SET_LOADING = "SET_LOADING"; //Enables the loading view
+    public static final String DISMISS_FEEDBACK_QUESTION_ACTIVITY = "DISMISS_FEEDBACK_QUESTION_ACTIVITY";
 
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */

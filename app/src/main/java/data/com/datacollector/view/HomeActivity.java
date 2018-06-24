@@ -30,10 +30,12 @@ import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
+import data.com.datacollector.utility.Notifications;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.SET_LOADING;
+import static data.com.datacollector.model.Const.SET_LOADING_HOME_ACTIVITY;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
@@ -77,8 +79,8 @@ public class HomeActivity extends WearableActivity {
                     stopBgService();
                 }
 
-            } else if(action.equals(SET_LOADING)) {
-                Log.d(TAG, "onReceive: Received ENABLE_WINDOW confirmation");
+            } else if(action.equals(SET_LOADING_HOME_ACTIVITY)) {
+                Log.d(TAG, "onReceive: Received SET_LOADING_HOME_ACTIVITY confirmation");
                 setLoading(intent.getBooleanExtra(SET_LOADING,false));
             }
         }
@@ -93,7 +95,7 @@ public class HomeActivity extends WearableActivity {
         //Registering a local broadcast receiver to listen for data save confirmation
         IntentFilter confirmationIntent = new IntentFilter();
         confirmationIntent.addAction(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-        confirmationIntent.addAction(SET_LOADING);
+        confirmationIntent.addAction(SET_LOADING_HOME_ACTIVITY);
         LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
@@ -310,6 +312,8 @@ public class HomeActivity extends WearableActivity {
         super.onResume();
         Log.d(TAG, "onResume: called");
         setLoading(false);
+        //TODO: This should be uncomment whenever we are using the feedback feature (Notifications.requestFeedback)
+        //Notifications.openFeedbackIfNotificationActive(HomeActivity.this.getApplicationContext());
     }
 
     @Override

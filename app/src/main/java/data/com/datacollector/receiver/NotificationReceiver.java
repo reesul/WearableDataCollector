@@ -36,7 +36,7 @@ public class NotificationReceiver extends BroadcastReceiver {
                 setAlarm(context, interval);
 
                 NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                vibrate(context);
+                Notifications.vibrate(context);
                 notificationManager.notify(Notifications.NOTIFICATION_ID_REMINDER, Notifications.getReminderNotification(context));
             }
         }
@@ -54,15 +54,4 @@ public class NotificationReceiver extends BroadcastReceiver {
                 alarmPendingIntent);
     }
 
-    public void vibrate(Context context){
-        long[] timings = {0, 350, 150, 350, 150, 350, 700, 350, 150, 350, 150, 600};
-        int[] amplitudes = {0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255};
-        int repeat = -1;
-        Vibrator v = ((Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE));
-
-        if(v != null){
-            v.vibrate(VibrationEffect.createWaveform(timings, amplitudes, repeat));
-        }
-
-    }
 }

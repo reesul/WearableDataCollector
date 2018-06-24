@@ -29,6 +29,9 @@ public class ReminderTimeConfigActivity extends WearableActivity {
     private Button btn2 = null;
     private Button btn3 = null;
 
+    //Whenever the user is seeing this screen this will set to true since a labeling process is in progress
+    public static boolean isInProgress = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,8 +52,7 @@ public class ReminderTimeConfigActivity extends WearableActivity {
             label = intent.getStringExtra(EXTRA_ACTIVITY_LABEL);
         }
 
-        //This simply modifies the notification for our running services to open THIS activity instead
-        //of the HomeActivity
+        //This simply modifies the running notification to open this activity instead the main one
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,ReminderTimeConfigActivity.class));
     }
@@ -87,11 +89,13 @@ public class ReminderTimeConfigActivity extends WearableActivity {
         intent.putExtra(EXTRA_ACTIVITY_LABEL, label);
         intent.putExtra(EXTRA_ACTIVITY_LABEL_REMINDING_TIME, minutes);
         this.startActivity(intent);
+        isInProgress = false;
         this.finish();
     }
     
     protected void onDestroy(){
         super.onDestroy();
+        isInProgress = false;
         Log.d(TAG, "onDestroy:");
     }
 
@@ -99,6 +103,7 @@ public class ReminderTimeConfigActivity extends WearableActivity {
     protected void onResume() {
         super.onResume();
         enableButtons(true);
+        isInProgress = true;
     }
 
     private void enableButtons(boolean b){

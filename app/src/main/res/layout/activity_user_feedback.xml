@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_grey"
+    android:padding="@dimen/box_inset_layout_padding"
+    tools:context=".view.feedback_ui.UserFeedbackQuestion"
+    tools:deviceIds="wear">
+
+    <FrameLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:padding="@dimen/inner_frame_layout_padding"
+        app:boxedEdges="all">
+
+        <TextView
+            android:id="@+id/txtQuestion"
+            android:layout_width="match_parent"
+            android:layout_height="105dp"
+            android:gravity="center"
+            android:textSize="17dp"
+            android:textColor="@color/white"
+            android:text="Question" />
+
+        <Button
+            android:id="@+id/btnYes"
+            android:layout_width="75dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|start"
+            android:onClick="onClickYes"
+            android:text="YES"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"
+            android:textSize="18dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+
+        <Button
+            android:id="@+id/btnNo"
+            android:layout_width="75dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|end"
+            android:onClick="onClickNo"
+            android:text="NO"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"
+            android:textSize="18dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+
+
+    </FrameLayout>
+</android.support.wear.widget.BoxInsetLayout>
