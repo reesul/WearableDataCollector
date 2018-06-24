@@ -4,4 +4,6 @@
     <string name="button_init">Start</string>
     <string name="title_activity_current_label">CurrentLabel</string>
     <string name="title_activity_reminder_time_config">ReminderTimeConfig</string>
+    <string name="title_activity_user_feedback">UserFeedback</string>
+    <string name="title_activity_user_feedback_ground_truth">UserFeedbackGroundTruth</string>
 </resources>

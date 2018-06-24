@@ -12,6 +12,7 @@ import data.com.datacollector.network.BluetoothFileTransfer;
 import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
+import data.com.datacollector.utility.FileUtil;
 
 import static android.content.Context.ALARM_SERVICE;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
@@ -31,7 +32,7 @@ public class DataCollectReceiver extends BroadcastReceiver {
     private final String TAG = "DC_Receiver";
     private static boolean isAsyncTaskRunning = false;//TODO: This static variable might need to be changed to another location or using shared preferences
     private int retries = 6;//How many times are we going to retry to send the data
-    private int MINUTES_TO_WAIT = 10;
+    private int MINUTES_TO_WAIT = 3;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -146,8 +147,8 @@ public class DataCollectReceiver extends BroadcastReceiver {
         Log.d(TAG, "uploadBTData: Preparing asynctask");
         DataCollectReceiver.isAsyncTaskRunning = true;
         TransferBTData backgroundTransfer = new TransferBTData(context, retries);
-        backgroundTransfer.execute();
-        
+        backgroundTransfer.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        //backgroundTransfer.execute();
     }
 
     private class uploadRunnable implements Runnable {
@@ -196,12 +197,13 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
         protected void onPostExecute(Boolean success) {
             Log.d(TAG, "onPostExecute:");
+            FileUtil.fileUploadInProgress = false;//Just to make sure we have set up this flag
             if(!success){
                 Log.d(TAG, "onPostExecute: There was a problem with the BT transfer");
                 if((retriesRemaining-1) > 0){
                     Log.d(TAG, "onPostExecute: Retrying");
                     try {
-                        Thread.sleep(MINUTES_TO_WAIT*1000); //Wait a 10 minutes before retrying
+                        Thread.sleep(MINUTES_TO_WAIT*1000*60); //Wait a 10 minutes before retrying
                         uploadBTData(context, retriesRemaining-1);
                     } catch (InterruptedException e) {
                         Log.e(TAG, "onPostExecute: Error while waiting to retry" );

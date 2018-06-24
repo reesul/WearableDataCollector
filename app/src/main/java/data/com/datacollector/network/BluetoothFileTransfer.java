@@ -258,14 +258,9 @@ public class BluetoothFileTransfer {
                     fos.write(buf,0,count);//Writing to our model file
                 }
 
-                //TODO: Force to fail while data is being transferred to nuc. Remove this
-//                Thread.sleep(10000);
-//                Log.d(TAG, "run: Forcing fail");
-//                throw new IOException("Force");
                 //NOTE: It is important to notice that when the model is not available in the nuc, it will
                 //send null and null will be saved on the file, therefore, validation on the file content
                 //should be performed before using its information
-                //TODO: Uncomment this
                 fos.close();
                 Log.d(TAG, "InputStreamThread: The model has been received");
                 closeSocketAfterStreams();
