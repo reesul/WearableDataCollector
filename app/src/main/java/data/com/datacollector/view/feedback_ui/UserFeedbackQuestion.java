@@ -135,7 +135,7 @@ public class UserFeedbackQuestion extends WearableActivity {
 
         private WeakReference<UserFeedbackQuestion> currentActivity;
 
-        public SaveFeedbackDataInBackground(UserFeedbackQuestion context){
+        SaveFeedbackDataInBackground(UserFeedbackQuestion context){
             currentActivity = new WeakReference<>(context);
         }
 

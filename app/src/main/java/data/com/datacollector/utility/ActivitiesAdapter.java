@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
@@ -124,8 +125,8 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
                         Log.d(TAG, "Saving activity on background: " + activitiesList[listItemPosition]);
                         //Save information to file
                         String timestamp = Util.getTimeMillis(System.currentTimeMillis());
-                        SaveDataInBackground backgroundSave = new SaveDataInBackground(context, listItemPosition);
-                        backgroundSave.execute(timestamp, activitiesList[listItemPosition]);
+                        SaveDataInBackground backgroundSave = new SaveDataInBackground(context, activitiesList[listItemPosition], TAG);
+                        backgroundSave.execute(timestamp);
 
                     } else {
                         Log.d(TAG, "onClick: The app is not collecting any data");
@@ -155,7 +156,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
                     Log.d(TAG, "Saving feedback on background: " + activitiesList[listItemPosition]);
                     //Save information to file
                     String timestamp = Util.getTimeMillis(System.currentTimeMillis());
-                    SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(context);
+                    SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(context, TAG);
                     saveData.execute(timestamp, predictedLabel, activitiesList[listItemPosition], predictionStartLbl, predictionEndLbl); //The predicted was correct so its the actual label
                 }
             });
@@ -164,20 +165,22 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
 
     }
 
-    private class SaveDataInBackground extends AsyncTask<String, Integer, Boolean> {
+    public static class SaveDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
-        Context context;
+        private WeakReference<Context> ctx;
+        private String TAG;
         String activity;
-        int listItemPosition;
 
-        public SaveDataInBackground(Context context, int listItemPosition){
-            this.context = context;
-            this.listItemPosition = listItemPosition;
+        SaveDataInBackground(Context context, String activity, String TAG){
+            ctx = new WeakReference<>(context);
+            this.activity = activity;
+            this.TAG = TAG;
         }
 
         protected Boolean doInBackground(String... lists) {
+            Context context = ctx.get();
+            if (context == null) return false;
             try {
-                activity = lists[1];
                 FileUtil.saveActivityDataToFile(context, lists[0], activity, "start");
                 return true;
             }catch (IOException e){
@@ -187,32 +190,39 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         }
 
         protected void onPostExecute(Boolean success) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
+            Context context = ctx.get();
+            if (context != null ) {
+                Log.d(TAG, "onPostExecute: Saved the files asynchronously");
 
-            if(success){
-                //Launch time select activity
-                Intent intent = new Intent(context, ReminderTimeConfigActivity.class);
-                intent.putExtra(EXTRA_ACTIVITY_LABEL, activitiesList[listItemPosition]);
-                context.startActivity(intent);
-            }else{
-                //Re enable window
-                Intent intent = new Intent(SET_LOADING_HOME_ACTIVITY);
-                intent.putExtra(SET_LOADING,false);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-                Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
+                if (success) {
+                    //Launch time select activity
+                    Intent intent = new Intent(context, ReminderTimeConfigActivity.class);
+                    intent.putExtra(EXTRA_ACTIVITY_LABEL, activity);
+                    context.startActivity(intent);
+                } else {
+                    //Re enable window
+                    Intent intent = new Intent(SET_LOADING_HOME_ACTIVITY);
+                    intent.putExtra(SET_LOADING, false);
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                    Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
 
-    private class SaveFeedbackDataInBackground extends AsyncTask<String, Integer, Boolean> {
+    public static class SaveFeedbackDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
-        Context context;
+        private WeakReference<Context> ctx;
+        private String TAG;
 
-        public SaveFeedbackDataInBackground(Context context){
-            this.context = context;
+        SaveFeedbackDataInBackground(Context context, String TAG){
+            ctx = new WeakReference<>(context);
+            this.TAG = TAG;
         }
 
         protected Boolean doInBackground(String... lists) {
+            Context context = ctx.get();
+            if (context == null) return false;
             try {
                 FileUtil.saveFeedbackDataToFile(context, lists[0], lists[1], lists[2], lists[3], lists[4]);
                 Log.d(TAG, "doInBackground: Feedback has been saved");
@@ -224,19 +234,22 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         }
 
         protected void onPostExecute(Boolean success) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
 
-            if(success){
-                //TODO: Dismiss this activity and any possible notification
-                Intent intent = new Intent(SET_LOADING_USER_FEEDBACK_QUESTION);
-                intent.putExtra(DISMISS_FEEDBACK_QUESTION_ACTIVITY,true);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-            }else{
-                //Re enable window
-                Intent intent = new Intent(SET_LOADING_USER_FEEDBACK_QUESTION);
-                intent.putExtra(SET_LOADING,false);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-                Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
+            Context context = ctx.get();
+            if (context != null ) {
+                Log.d(TAG, "onPostExecute: Saved the files asynchronously");
+
+                if (success) {
+                    Intent intent = new Intent(SET_LOADING_USER_FEEDBACK_QUESTION);
+                    intent.putExtra(DISMISS_FEEDBACK_QUESTION_ACTIVITY, true);
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                } else {
+                    //Re enable window
+                    Intent intent = new Intent(SET_LOADING_USER_FEEDBACK_QUESTION);
+                    intent.putExtra(SET_LOADING, false);
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                    Toast.makeText(context, "Error saving, try again", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
