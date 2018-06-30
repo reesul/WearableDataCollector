@@ -49,6 +49,7 @@ public class Const {
 
     //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
+    public static final int PENDING_INTENT_CODE_FILE_TRANSFER_JOB = 123323019;
 
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
@@ -73,6 +74,8 @@ public class Const {
     public static final String SET_LOADING_USER_FEEDBACK_QUESTION = "SET_LOADING_USER_FEEDBACK_QUESTION"; //Enables the loading view on the feedback question activity
     public static final String SET_LOADING = "SET_LOADING"; //Enables the loading view
     public static final String DISMISS_FEEDBACK_QUESTION_ACTIVITY = "DISMISS_FEEDBACK_QUESTION_ACTIVITY";
+    public static final String TRANSFER_DATA = "TRANSFER_DATA";
+    public static final String TRANSFER_DATA_RETRIES = "TRANSFER_DATA_RETRIES";
 
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */

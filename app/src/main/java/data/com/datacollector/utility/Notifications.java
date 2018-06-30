@@ -18,6 +18,7 @@ import data.com.datacollector.R;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.view.CurrentLabelActivity;
+import data.com.datacollector.view.HomeActivity;
 import data.com.datacollector.view.ReminderTimeConfigActivity;
 import data.com.datacollector.view.feedback_ui.UserFeedbackGroundTruth;
 import data.com.datacollector.view.feedback_ui.UserFeedbackQuestion;
@@ -38,10 +39,12 @@ public class Notifications {
     public static final int NOTIFICATION_ID_RUNNING_SERVICES = 101;
     public static final int NOTIFICATION_ID_REMINDER = 102;
     public static final int NOTIFICATION_ID_FEEDBACK = 103;
+    public static final int NOTIFICATION_ID_FILE_TRANSFER = 104;
 
     public static final String NOTIFICATION_CHANNEL_ID_REMINDERS = "NOTIFICATION_CHANNEL_ID_REMINDERS";
     public static final String NOTIFICATION_CHANNEL_ID_SERVICE_RUNNING = "NOTIFICATION_CHANNEL_ID_SERVICE_RUNNING";
     public static final String NOTIFICATION_CHANNEL_ID_FEEDBACK = "NOTIFICATION_CHANNEL_ID_FEEDBACK";
+    public static final String NOTIFICATION_CHANNEL_ID_FILE_TRANSFER = "NOTIFICATION_CHANNEL_ID_FILE_TRANSFER";
 
     public static Notification getServiceRunningNotification(Context context, Class<?> activity) {
 
@@ -241,5 +244,35 @@ public class Notifications {
             Log.d(TAG, "isFeedbackNotificationActive: No notifications active");
         }
     }
+
+    public static Notification getServiceFileTransferNotification(Context context) {
+
+        // Build intent for notification content
+        Intent viewIntent = new Intent(context, HomeActivity.class);
+        viewIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); //Bring activity to top
+
+        PendingIntent viewPendingIntent = PendingIntent.getActivity(context, 0, viewIntent, 0);
+
+        NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID_FILE_TRANSFER, "Datacollector service", NotificationManager.IMPORTANCE_MIN);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Configure the notification channel.
+        notificationChannel.setDescription("Notifications issued by the datacollector app to remind users to finish an activity");
+        notificationChannel.enableLights(true);
+        notificationChannel.setLightColor(Color.RED);
+        //notificationChannel.setVibrationPattern(new long[]{0, 300, 150, 300, 150, 300, 700, 300, 150, 300, 150, 300});
+        //notificationChannel.enableVibration(true);
+        notificationManager.createNotificationChannel(notificationChannel);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID_FILE_TRANSFER)
+                .setContentIntent(viewPendingIntent)
+                .setSmallIcon(R.drawable.ic_cc_checkmark)
+                .setPriority(NotificationManager.IMPORTANCE_MIN)
+                .setOnlyAlertOnce(true)
+                .setContentTitle("Datacollector app")
+                .setContentText("Files are being transferred");
+        return builder.build();
+    }
+
 
 }

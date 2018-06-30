@@ -48,6 +48,16 @@
             android:enabled="true"
             android:exported="true" />
 
+        <service
+            android:name=".utility.FileTransferJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+
+        <service
+            android:name=".service.FileTransferService"
+            android:enabled="true"
+            android:exported="true" />
+
         <receiver android:name=".receiver.DataCollectReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />

@@ -5,14 +5,13 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.util.Log;
 
-import data.com.datacollector.network.BluetoothFileTransfer;
 import data.com.datacollector.network.NetworkIO;
+import data.com.datacollector.service.FileTransferService;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
-import data.com.datacollector.utility.FileUtil;
+import data.com.datacollector.utility.FileTransferJob;
 
 import static android.content.Context.ALARM_SERVICE;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
@@ -21,6 +20,8 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
 import static data.com.datacollector.model.Const.TM_HTTP;
 import static data.com.datacollector.model.Const.TM_BT;
 import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
+import static data.com.datacollector.model.Const.TRANSFER_DATA;
+import static data.com.datacollector.model.Const.TRANSFER_DATA_RETRIES;
 
 /**
  * BroadcastReceiver of the applciation.
@@ -30,9 +31,6 @@ import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
 
 public class DataCollectReceiver extends BroadcastReceiver {
     private final String TAG = "DC_Receiver";
-    private static boolean isAsyncTaskRunning = false;//TODO: This static variable might need to be changed to another location or using shared preferences
-    private int retries = 6;//How many times are we going to retry to send the data
-    private int MINUTES_TO_WAIT = 3;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -91,8 +89,12 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
         // device connected to power source, lets upload saved data to server.
         if(action!=null) {
-            if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
-                Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED");
+            boolean isPowerConnected = action.equals(Intent.ACTION_POWER_CONNECTED);
+            boolean isTransferData = action.equals(TRANSFER_DATA); //The alarm that triggers this
+
+            if( isPowerConnected || isTransferData) {
+                Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED " + isPowerConnected);
+                Log.d(TAG, "onReceive:: TRANSFER_DATA " + isTransferData);
 
                 if(SELECTED_TRANSFER_METHOD == TM_HTTP){
                     Log.d(TAG, "onReceive:: sending files through HTTP");
@@ -102,29 +104,25 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 }
 
                 if(SELECTED_TRANSFER_METHOD == TM_BT){
-                    Log.d(TAG, "onReceive:: sending files through Bluetooth");
-                    if(DataCollectReceiver.isAsyncTaskRunning){
-                        Log.d(TAG, "onReceive: BT Asynctask transfer is already running");
-                        return;
-                    }else{
-                        Log.d(TAG, "onReceive: Attempt to send data through BT");
-                        uploadBTData(context, retries);
-                    }
+                    Log.d(TAG, "onReceive:: Broadcast receive about to request Bluetooth data transfer");
 
-                    /*if(DataCollectReceiver.uploadBTThread == null) {
-                        Log.d(TAG, "onReceive: Creating the thread");
-                        DataCollectReceiver.uploadBTThread = new Thread(new uploadBTRunnable(context));
+                    if(isTransferData){
+                        //The retries alarm triggered this action
+                        int remainingRetries = intent.getIntExtra(TRANSFER_DATA_RETRIES,1); //How many retries are available
+                        Log.d(TAG, "onReceive: About to request upload with remaining retries " + String.valueOf(remainingRetries));
+                        uploadBTData(context, remainingRetries);
+                    } else{
+                        //Then its power connected who called this action. We verify that the job is not yet running (even if its waiting for a retry)
+                        //TODO: If using the service instead, then change this for FileTransferService.isJobAlreadyRunning
+                        if(FileTransferJob.isJobAlreadyRunning){
+                            Log.d(TAG, "onReceive: The BT data transfer job is already running");
+                            return;
+                        }else{
+                            Log.d(TAG, "onReceive: About to transfer data over Bluetooth for the first time");
+                            uploadBTData(context, FileTransferJob.MAX_NUM_OF_RETRIES);
+                        }
                     }
-                    if(!DataCollectReceiver.uploadBTThread.isAlive()){
-                        Log.d(TAG, "onReceive: Is not alive, starting the thread");
-                        //Uploads the data to the Bluetooth Server
-                        DataCollectReceiver.uploadBTThread.start();
-                    }else{
-                        Log.d(TAG, "onReceive: It was alive, do nothing");
-                    }*/
                 }
-
-                //uploadData(context);
             }
         }
     }
@@ -142,13 +140,18 @@ public class DataCollectReceiver extends BroadcastReceiver {
      * @param context : context of the caller.
      */
     private void uploadBTData(Context context, int retries){
-        //BluetoothFileTransfer btio = new BluetoothFileTransfer();
-        //btio.sendData(context.getApplicationContext());
-        Log.d(TAG, "uploadBTData: Preparing asynctask");
-        DataCollectReceiver.isAsyncTaskRunning = true;
-        TransferBTData backgroundTransfer = new TransferBTData(context, retries);
-        backgroundTransfer.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        //backgroundTransfer.execute();
+        Log.d(TAG, "uploadBTData: Preparing intent for Jobintent");
+        FileTransferJob.isJobAlreadyRunning = true;
+        Intent intent = new Intent(context, FileTransferJob.class);
+        //note, putExtra remembers type and I need this to be an integer.  so get an integer first.
+        intent.putExtra(TRANSFER_DATA_RETRIES, retries);  //should do error checking here!
+        FileTransferJob.enqueueWork(context,intent);
+        Log.d(TAG, "uploadBTData: Job has been enqueued");
+
+        //TODO: Comment out above and uncomment below if using the service
+        //Intent intent = new Intent(context, FileTransferService.class);
+        //intent.putExtra(TRANSFER_DATA_RETRIES, retries);
+        //context.startForegroundService(intent);
     }
 
     private class uploadRunnable implements Runnable {
@@ -156,67 +159,6 @@ public class DataCollectReceiver extends BroadcastReceiver {
         uploadRunnable(Context context) {currentContext = context;}
         public void run() {
             uploadData(currentContext);
-        }
-    }
-
-    /*private class uploadBTRunnable implements Runnable {
-        Context currentContext;
-        uploadBTRunnable(Context context) {currentContext = context;}
-        public void run() {
-            uploadBTData(currentContext);
-        }
-    }*/
-
-    /**
-     * Transfers the collected data asynchronously
-     */
-    private class TransferBTData extends AsyncTask<Void, Integer, Boolean> {
-
-        private Context context;
-        private int retriesRemaining;
-
-        public TransferBTData(Context context, int retriesRemaining){
-            this.context = context;
-            this.retriesRemaining = retriesRemaining;
-        }
-
-        protected Boolean doInBackground(Void... lists) {
-            boolean success = false;
-            try {
-                BluetoothFileTransfer btio = new BluetoothFileTransfer();
-                Log.d(TAG, "doInBackground: About to send data");
-                btio.sendData(context.getApplicationContext());
-                Log.d(TAG, "doInBackground: Data is sent");
-                success = true;
-            }catch (Exception e){
-                Log.d(TAG, "doInBackground: Error: " + e.getMessage());
-                success = false;
-            }
-            return success;
-        }
-
-        protected void onPostExecute(Boolean success) {
-            Log.d(TAG, "onPostExecute:");
-            FileUtil.fileUploadInProgress = false;//Just to make sure we have set up this flag
-            if(!success){
-                Log.d(TAG, "onPostExecute: There was a problem with the BT transfer");
-                if((retriesRemaining-1) > 0){
-                    Log.d(TAG, "onPostExecute: Retrying");
-                    try {
-                        Thread.sleep(MINUTES_TO_WAIT*1000*60); //Wait a 10 minutes before retrying
-                        uploadBTData(context, retriesRemaining-1);
-                    } catch (InterruptedException e) {
-                        Log.e(TAG, "onPostExecute: Error while waiting to retry" );
-                        e.printStackTrace();
-                    }
-                }else{
-                    Log.d(TAG, "onPostExecute: No more retries remain");
-                    DataCollectReceiver.isAsyncTaskRunning = false;
-                }
-            }else{
-                Log.d(TAG, "onPostExecute: BT Data transfer successful");
-                DataCollectReceiver.isAsyncTaskRunning = false;
-            }
         }
     }
 
