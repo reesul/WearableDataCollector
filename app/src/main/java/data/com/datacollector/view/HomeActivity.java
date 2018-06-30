@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
@@ -99,7 +100,7 @@ public class HomeActivity extends WearableActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
-        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
+        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(Environment.getExternalStorageDirectory().getAbsolutePath()));
         //Finish custom
 
         setContentView(R.layout.activity_main);
@@ -250,6 +251,20 @@ public class HomeActivity extends WearableActivity {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
                     requestPermissions(new String[]{Manifest.permission.BODY_SENSORS}, PERMISSION_REQUEST_BODY_SENSOR);
+                }
+            });
+            builder.show();
+        }
+
+        if(this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs to sensor information");
+            builder.setMessage("Please grant write permission to external storage");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_BODY_SENSOR);
                 }
             });
             builder.show();
