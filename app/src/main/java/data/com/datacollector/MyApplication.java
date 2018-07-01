@@ -26,6 +26,7 @@ public class MyApplication extends Application {
 
         //Triggered when the watch is connected to power
         filter.addAction(Intent.ACTION_POWER_CONNECTED);
+        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
 
         registerReceiver(mReceiver, filter);
 
