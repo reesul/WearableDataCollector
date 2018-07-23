@@ -312,7 +312,7 @@ public class HomeActivity extends WearableActivity {
         super.onResume();
         Log.d(TAG, "onResume: called");
         setLoading(false);
-        //TODO: This should be uncomment whenever we are using the feedback feature (Notifications.requestFeedback)
+        //TODO: IMPORTANT ---- This should be uncomment whenever we are using the feedback feature (Notifications.requestFeedback) ----
         //Notifications.openFeedbackIfNotificationActive(HomeActivity.this.getApplicationContext());
     }
 
