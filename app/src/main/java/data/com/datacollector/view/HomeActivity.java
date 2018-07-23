@@ -9,8 +9,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
@@ -22,6 +27,16 @@ import android.view.View;
 import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
 import android.widget.FrameLayout;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Locale;
 
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
@@ -32,6 +47,7 @@ import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
 import data.com.datacollector.utility.Notifications;
+import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
@@ -46,13 +62,27 @@ import static data.com.datacollector.model.Const.STOP_SERVICES;
 public class HomeActivity extends WearableActivity {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
-    private WearableRecyclerView recActivitiesList;
+    private Button btnRecord;
+//    private WearableRecyclerView recActivitiesList;
     private FrameLayout progressBar;
+
+    //Audio recording
+    private int bufferSize = 640;
+    private byte[] audioBuffer = new byte[bufferSize];
+    private AudioRecord audioRecord = null;
+    private boolean isAudioRecording = false;
+    private Thread audioRecordThread = null;
+    private static final int AUDIO_SOURCE = MediaRecorder.AudioSource.DEFAULT;
+    private static final int SAMPLE_RATE = 8000; // Hz
+    private static final int ENCODING = AudioFormat.ENCODING_PCM_8BIT;
+    private static final int CHANNEL_MASK = AudioFormat.CHANNEL_IN_MONO;
+
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
-    private static final int PERMISSION_READ_PHONE_STATE = 3;
+    private static final int PERMISSION_REQUEST_WRITE_EXTERNAL = 3;
+    private static final int PERMISSION_REQUEST_RECORD_AUDIO= 4;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
     private int confirmationsReceived = 0; //The number of confirmations received so far
     private int previousEvent = MotionEvent.ACTION_UP;
@@ -122,10 +152,20 @@ public class HomeActivity extends WearableActivity {
 
         setContentView(R.layout.activity_main);
         requestPermission();
+
+        //This might be accomplished while the permission is being granted
+        if(this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            initAudioRecord();
+        }
+
         initView();
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
         setAmbientEnabled();
+    }
+
+    public void initAudioRecord(){
+        audioRecord = new AudioRecord(AUDIO_SOURCE, SAMPLE_RATE, CHANNEL_MASK, ENCODING, bufferSize);
     }
 
     /**
@@ -142,47 +182,49 @@ public class HomeActivity extends WearableActivity {
                 handleStartStopBtnClick();
             }
         });
+        btnRecord = (Button) findViewById(R.id.btnRecord);
         setBtnStartStopText();
+        setBtnStartStopRecordText();
 
 
         //initialize the list that holds all of the labels
-        recActivitiesList =  findViewById((R.id.recycler_activities));
-        //recActivitiesList.setCircularScrollingGestureEnabled(true); Consider if this might be easier for the user
-        recActivitiesList.setLayoutManager(new WearableLinearLayoutManager((this)));
-        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recActivitiesList.getContext(), DividerItemDecoration.VERTICAL);
-        recActivitiesList.addItemDecoration(dividerItemDecoration);
-
-        //Get activities list
-        activities = new ActivitiesList();
-        //Set up recycler view adapter with the obtained list
-        adapterList = new ActivitiesAdapter(activities.getList());
-        recActivitiesList.setAdapter(adapterList);
-
-        //We intercept multiple touches and prevent any other after the first one arrives
-        recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-            @Override
-            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
-                // return
-                // true: consume touch event
-                // false: dispatch touch event
-
-                View childView = rv.findChildViewUnder(e.getX(), e.getY());
-
-                //It could be the case on which the user touches in a portion of the UI where there is NO children. That's why our ui was being froze
-                //therefore we first verify we are touching on a child
-                if(childView != null){
-
-                    //We first determine if we touched the label and not only moved
-                    if(previousEvent == MotionEvent.ACTION_DOWN && e.getAction() == MotionEvent.ACTION_UP) {
-                        setLoading(true);// This prevents user from submitting multiple labels when touching quickly
-                    }
-                    //else ignore
-                    previousEvent = e.getAction();
-                }
-
-                return false;
-            }
-        });
+//        recActivitiesList =  findViewById((R.id.recycler_activities));
+//        //recActivitiesList.setCircularScrollingGestureEnabled(true); Consider if this might be easier for the user
+//        recActivitiesList.setLayoutManager(new WearableLinearLayoutManager((this)));
+//        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recActivitiesList.getContext(), DividerItemDecoration.VERTICAL);
+//        recActivitiesList.addItemDecoration(dividerItemDecoration);
+//
+//        //Get activities list
+//        activities = new ActivitiesList();
+//        //Set up recycler view adapter with the obtained list
+//        adapterList = new ActivitiesAdapter(activities.getList());
+//        recActivitiesList.setAdapter(adapterList);
+//
+//        //We intercept multiple touches and prevent any other after the first one arrives
+//        recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+//            @Override
+//            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+//                // return
+//                // true: consume touch event
+//                // false: dispatch touch event
+//
+//                View childView = rv.findChildViewUnder(e.getX(), e.getY());
+//
+//                //It could be the case on which the user touches in a portion of the UI where there is NO children. That's why our ui was being froze
+//                //therefore we first verify we are touching on a child
+//                if(childView != null){
+//
+//                    //We first determine if we touched the label and not only moved
+//                    if(previousEvent == MotionEvent.ACTION_DOWN && e.getAction() == MotionEvent.ACTION_UP) {
+//                        setLoading(true);// This prevents user from submitting multiple labels when touching quickly
+//                    }
+//                    //else ignore
+//                    previousEvent = e.getAction();
+//                }
+//
+//                return false;
+//            }
+//        });
 
         progressBar = findViewById(R.id.progressBar);
 
@@ -208,6 +250,17 @@ public class HomeActivity extends WearableActivity {
         //while making changes an trying to add a list
         //btnStartStop.setText("null, test");
 
+    }
+
+    private void setBtnStartStopRecordText(){
+        if(btnRecord == null)
+            return;
+
+        if(isAudioRecording){
+            btnRecord.setText("STOP RECORDING");
+        }else{
+            btnRecord.setText("START RECORDING");
+        }
     }
 
     /**
@@ -275,13 +328,27 @@ public class HomeActivity extends WearableActivity {
 
         if(this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("This app needs to sensor information");
+            builder.setTitle("This app needs permission to write data");
             builder.setMessage("Please grant write permission to external storage");
             builder.setPositiveButton(android.R.string.ok, null);
             builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
-                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_BODY_SENSOR);
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_WRITE_EXTERNAL);
+                }
+            });
+            builder.show();
+        }
+
+        if(this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs permission to record");
+            builder.setMessage("Please grant recording permission");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_RECORD_AUDIO);
                 }
             });
             builder.show();
@@ -291,6 +358,60 @@ public class HomeActivity extends WearableActivity {
 
     }
 
+    public void onClickRecording(View v){
+
+        if(audioRecord == null){
+            Log.d(TAG, "onClickRecording: Setting up audioRecord");
+            initAudioRecord();
+        }
+
+        if(audioRecord == null){
+            Toast.makeText(this, "Error. Close the app and try again", Toast.LENGTH_SHORT).show();
+        }else{
+            if(!isAudioRecording){
+                Log.d(TAG, "onClickRecording: Starting audio recording");
+                FileOutputStream wavOut = null;
+                isAudioRecording = true;
+                btnRecord.setEnabled(false);
+
+                audioRecord.startRecording();
+                audioRecordThread = new Thread()
+                {
+                    public void run()
+                    {
+                        while(isAudioRecording){
+                            int readBufferSize = audioRecord.read(audioBuffer, 0, bufferSize);
+                            Log.d(TAG, "run: READING");
+//                        for(int i = 0; i < readBufferSize; i++){
+//                            dataOutputStream.writeShort(audioBuffer[i]);
+//                        }
+                        }
+                    }
+                };
+
+                audioRecordThread.setPriority(Thread.MAX_PRIORITY);
+                audioRecordThread.start();
+                //String timestamp = Util.getTimeMillis(System.currentTimeMillis());
+                //File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/"+"recordsound");
+
+
+                btnRecord.setText("STOP RECORDING");
+                btnRecord.setEnabled(true);
+
+            }else{
+                Log.d(TAG, "onClickRecording: Stopping audio recording");
+                isAudioRecording = false;
+                btnRecord.setText("START RECORDING");
+                btnRecord.setEnabled(false);
+                audioRecord.stop();
+                audioRecordThread.interrupt();
+                audioRecordThread = null;
+                btnRecord.setEnabled(true);
+            }
+        }
+
+
+    }
 
     /**
      * Start all background services to collect data
@@ -358,14 +479,16 @@ public class HomeActivity extends WearableActivity {
         if(b){
             Log.d(TAG, "setLoading: true");
             btnStartStop.setVisibility(View.GONE);
-            recActivitiesList.setVisibility(View.GONE);
+//            recActivitiesList.setVisibility(View.GONE);
             progressBar.setVisibility(View.VISIBLE);
         }else{
             Log.d(TAG, "setLoading: false");
             btnStartStop.setVisibility(View.VISIBLE);
-            recActivitiesList.setVisibility(View.VISIBLE);
+//            recActivitiesList.setVisibility(View.VISIBLE);
             progressBar.setVisibility(View.GONE);
         }
     }
+
+
 
 }
