@@ -28,8 +28,10 @@ import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -46,6 +48,7 @@ import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
+import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 
@@ -73,8 +76,8 @@ public class HomeActivity extends WearableActivity {
     private boolean isAudioRecording = false;
     private Thread audioRecordThread = null;
     private static final int AUDIO_SOURCE = MediaRecorder.AudioSource.DEFAULT;
-    private static final int SAMPLE_RATE = 8000; // Hz
-    private static final int ENCODING = AudioFormat.ENCODING_PCM_8BIT;
+    private static final int SAMPLE_RATE = 11025; // Hz
+    private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int CHANNEL_MASK = AudioFormat.CHANNEL_IN_MONO;
 
 
@@ -182,7 +185,7 @@ public class HomeActivity extends WearableActivity {
                 handleStartStopBtnClick();
             }
         });
-        btnRecord = (Button) findViewById(R.id.btnRecord);
+        btnRecord = (ToggleButton) findViewById(R.id.btnRecord);
         setBtnStartStopText();
         setBtnStartStopRecordText();
 
@@ -370,47 +373,81 @@ public class HomeActivity extends WearableActivity {
         }else{
             if(!isAudioRecording){
                 Log.d(TAG, "onClickRecording: Starting audio recording");
-                FileOutputStream wavOut = null;
-                isAudioRecording = true;
-                btnRecord.setEnabled(false);
 
-                audioRecord.startRecording();
-                audioRecordThread = new Thread()
-                {
-                    public void run()
+                try{
+
+                    setLoading(true);
+                    String timestamp = Util.getTimeMillisForFileName(System.currentTimeMillis());
+                    final File audioFile = FileUtil.getAudioFile(HomeActivity.this,timestamp);
+                    final FileOutputStream wavOut = setUpAudioFileStream(audioFile);
+
+                    isAudioRecording = true;
+                    btnRecord.setEnabled(false);
+                    audioRecord.startRecording();
+                    audioRecordThread = new Thread()
                     {
-                        while(isAudioRecording){
-                            int readBufferSize = audioRecord.read(audioBuffer, 0, bufferSize);
-                            Log.d(TAG, "run: READING");
-//                        for(int i = 0; i < readBufferSize; i++){
-//                            dataOutputStream.writeShort(audioBuffer[i]);
-//                        }
+                        public void run()
+                        {
+                            try {
+                                while (isAudioRecording) {
+                                    int readBufferSize = audioRecord.read(audioBuffer, 0, bufferSize);
+                                    Log.d(TAG, "run: READING");
+                                    for (int i = 0; i < readBufferSize; i++) {
+                                        wavOut.write(audioBuffer[i]);
+                                    }
+                                }
+                                wavOut.close();
+                                FileUtil.updateWavHeader(audioFile);
+                            }catch (IOException ie){
+                                Toast.makeText(HomeActivity.this, "Error. Close the app and try again", Toast.LENGTH_SHORT).show();
+                                stopRecording();
+                                Log.d(TAG, "run: There was an error writing to file");
+                                ie.printStackTrace();
+                            }
                         }
-                    }
-                };
+                    };
 
-                audioRecordThread.setPriority(Thread.MAX_PRIORITY);
-                audioRecordThread.start();
-                //String timestamp = Util.getTimeMillis(System.currentTimeMillis());
-                //File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/"+"recordsound");
-
-
-                btnRecord.setText("STOP RECORDING");
-                btnRecord.setEnabled(true);
+                    audioRecordThread.setPriority(Thread.MAX_PRIORITY);
+                    audioRecordThread.start();
+                    btnRecord.setText("STOP RECORDING");
+                    btnRecord.setEnabled(true);
+                    setLoading(false);
+                }catch (IOException e){
+                    Toast.makeText(this, "Error. Close the app and try again", Toast.LENGTH_SHORT).show();
+                    stopRecording();
+                    Log.d(TAG, "onClickRecording: There was an error creating the file.");
+                    e.printStackTrace();
+                }
 
             }else{
                 Log.d(TAG, "onClickRecording: Stopping audio recording");
-                isAudioRecording = false;
-                btnRecord.setText("START RECORDING");
-                btnRecord.setEnabled(false);
-                audioRecord.stop();
-                audioRecordThread.interrupt();
-                audioRecordThread = null;
-                btnRecord.setEnabled(true);
+                stopRecording();
             }
         }
 
+    }
 
+    public void stopRecording(){
+        isAudioRecording = false;
+        setLoading(true);
+        btnRecord.setEnabled(false);
+        audioRecord.stop();
+        if(!audioRecordThread.isInterrupted()) {
+            audioRecordThread.interrupt();
+        }
+        audioRecordThread = null;
+        btnRecord.setText("START RECORDING");
+        btnRecord.setEnabled(true);
+        setLoading(false);
+        Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show();
+    }
+
+    public FileOutputStream setUpAudioFileStream(File file) throws IOException {
+        FileOutputStream wavOut = null;
+        wavOut = new FileOutputStream(file);
+        // Write out the wav file header
+        FileUtil.writeWavHeader(wavOut, CHANNEL_MASK, SAMPLE_RATE, ENCODING);
+        return wavOut;
     }
 
     /**
@@ -479,16 +516,16 @@ public class HomeActivity extends WearableActivity {
         if(b){
             Log.d(TAG, "setLoading: true");
             btnStartStop.setVisibility(View.GONE);
+            btnRecord.setVisibility(View.GONE);
 //            recActivitiesList.setVisibility(View.GONE);
             progressBar.setVisibility(View.VISIBLE);
         }else{
             Log.d(TAG, "setLoading: false");
             btnStartStop.setVisibility(View.VISIBLE);
+            btnRecord.setVisibility(View.VISIBLE);
 //            recActivitiesList.setVisibility(View.VISIBLE);
             progressBar.setVisibility(View.GONE);
         }
     }
-
-
 
 }

@@ -65,15 +65,18 @@
                 android:layout_gravity="center" />
         </FrameLayout>
 
-        <Button
+        <ToggleButton
             android:id="@+id/btnRecord"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="17dp"
-            android:text="start recording"
-            android:onClick="onClickRecording"/>
+            android:text="Start recording"
+            android:textOn="Stop recording"
+            android:textOff="Start recording"
+            android:onClick="onClickRecording"
+            android:color="@color/green"/>
 
         <!--<ProgressBar-->
             <!--android:id="@+id/progressBar"-->

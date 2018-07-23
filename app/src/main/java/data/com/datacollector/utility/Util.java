@@ -60,6 +60,13 @@ public class Util {
         return dateFormatted;
     }
 
+    public static String getTimeMillisForFileName(long time) {
+        Date date = new Date(time);
+        DateFormat formatter = new SimpleDateFormat("MM_dd_yy_HH_mm_ss_SSS");
+        String dateFormatted = formatter.format(date);
+        return dateFormatted;
+    }
+
     public static long getMillisFromDate(String timeStamp) {
         String expectedPattern = "MM/dd/yy HH:mm:ss";
         SimpleDateFormat format = new SimpleDateFormat(expectedPattern);
