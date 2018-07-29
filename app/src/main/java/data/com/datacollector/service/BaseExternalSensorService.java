@@ -30,10 +30,21 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
  * use the provided methods to save the data into files
  *
  * The user has to define a model for the type of data that is being saved
+ *
+ * IMPORTANT NOTE FOR USAGE:
+ * 1.- Any service that extends this class must be registered in the Manifest
+ * 2.- Any service that extends this class must be added to the REGISTERED_SENSOR_SERVICES constant
+ * 3.- Any service that extends this class must have an attribute
+ *                  public static boolean isServiceRunning = false;
+ *     It must be properly handled to indicate the status of the service. It should be set to true
+ *     inside the mainCode method and should be set to false in the onDestroy method
+ * 4.- Any service that extends this class must implement the interface ServiceStatusInterface and
+ *     return the attribute isServiceRunning in the method implementation
+ *
  */
 public abstract class BaseExternalSensorService extends Service {
 
-    public final String TAG = "BaseExternalSensorServ";
+    public String TAG = "BaseExternalSensorServ";
 
     //Holds the sensor information (Timestamp, value, etc) Anything defined by the model that the user
     //defines
@@ -42,6 +53,11 @@ public abstract class BaseExternalSensorService extends Service {
     //Service worker thread variables based on android guidelines
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
+
+    // We do not implement this in the parent class since causes conflicts when multiple classes
+    // extend this class since the value is changed globaly for the parend. Therefore, if one of the
+    // children changes the state, the others' attribute is also change, which we don't want!
+    //public static boolean isServiceRunning = false
 
     //NOTE: Uncomment all the comments that have "wakelock" on the right
     //      if you app presents gaps on data. Android turns off the device for energy saving and it might cause some issues. If
