@@ -25,6 +25,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
+import data.com.datacollector.interfaces.ServiceStatusInterface;
 import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
@@ -40,7 +41,7 @@ import android.os.Process;
 /**
  * Service to carry out BLE Scan in the background
  */
-public class LeBLEService extends Service {
+public class LeBLEService extends Service implements ServiceStatusInterface {
     private final String TAG = "DC_LeBLEService";
 
     /**
@@ -126,8 +127,15 @@ public class LeBLEService extends Service {
     }
 
     @Override
+    public boolean isServiceRunning() {
+       return isServiceRunning;
+    }
+
+
+    @Override
     public IBinder onBind(Intent intent) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        // We don't provide binding, so return null
+        return null;
     }
 
     @Override

@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
+import data.com.datacollector.interfaces.ServiceStatusInterface;
 import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
@@ -42,7 +43,7 @@ import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
  * This implementation can be further extended to collect ddata related to other sensors
  * supported by SensorManager.
  */
-public class SensorService extends Service implements SensorEventListener{
+public class SensorService extends Service implements SensorEventListener, ServiceStatusInterface {
     private final String TAG = "DC_SensorService";
 
     /** Android SensorManager, to access data for Accelerometer, Gyroscope and Heart rate sensors*/
@@ -97,6 +98,11 @@ public class SensorService extends Service implements SensorEventListener{
     }
 
     public SensorService() {
+    }
+
+    @Override
+    public boolean isServiceRunning() {
+        return isServiceRunning;
     }
 
     @Override
@@ -228,7 +234,8 @@ public class SensorService extends Service implements SensorEventListener{
 
     @Override
     public IBinder onBind(Intent intent) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        // We don't provide binding, so return null
+        return null;
     }
 
     @Override
