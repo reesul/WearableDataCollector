@@ -35,6 +35,7 @@ import data.com.datacollector.utility.Notifications;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.REGISTERED_SENSOR_SERVICES;
 import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.SET_LOADING_HOME_ACTIVITY;
 import static data.com.datacollector.model.Const.START_SERVICES;
@@ -197,12 +198,15 @@ public class HomeActivity extends WearableActivity {
             return;
 
         //TODO: reenable check for sensor service (IMU) once BLE working
-        if(LeBLEService.isServiceRunning ||  SensorService.isServiceRunning){
-            btnStartStop.setText("STOP");
-            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
-        }else{
-            btnStartStop.setText("START");
-            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+        try {
+            if (DataCollectReceiver.areServicesRunning()) {
+                btnStartStop.setText("STOP");
+            } else {
+                btnStartStop.setText("START");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "handleStartStopBtnClick: There was an error instantiating the services: " + e.getMessage());
+            e.printStackTrace();
         }
 
         //while making changes an trying to add a list
@@ -217,28 +221,20 @@ public class HomeActivity extends WearableActivity {
     private void handleStartStopBtnClick(){
         //TODO: reenable check for sensor service (IMU) once BLE working
 
-        if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
-            startBgService();
-            confirmationsReceived = 0;
-            btnStartStop.setText("STOP");
-            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
-        }else{
-            requestSaveBeforeStop();
+        Log.d(TAG, "startBgService::");
+        try {
+            if(!DataCollectReceiver.areServicesRunning()){
+                startBgService();
+                confirmationsReceived = 0;
+                btnStartStop.setText("STOP");
+            }else{
+                requestSaveBeforeStop();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "handleStartStopBtnClick: There was an error instantiating the services: " + e.getMessage());
+            e.printStackTrace();
         }
-    }
 
-    /**
-     * Start Sensor Service to collect data related to Acceleromter, Gyroscope and Heart Rate
-     */
-    private void startSensorService(){
-        startForegroundService(new Intent(this, SensorService.class));
-    }
-
-    /**
-     * start BLe data collection service in the background.
-     */
-    private void startBLEService(){
-        startForegroundService(new Intent(this, LeBLEService.class));
     }
 
     /**
@@ -298,17 +294,19 @@ public class HomeActivity extends WearableActivity {
      */
     private void startBgService(){
         Log.d(TAG, "startBgService::");
-        startSensorService();
-        startBLEService();
+        for (int i = 0;i<REGISTERED_SENSOR_SERVICES.length;i++){
+            startService(new Intent(this, REGISTERED_SENSOR_SERVICES[i]));
+        }
     }
 
     /**
      * Stop all background service once the data has been saved
      */
     public void stopBgService(){
-
-        stopService(new Intent(this, SensorService.class));
-        stopService(new Intent(this, LeBLEService.class));
+        Log.d(TAG, "stopBgService::");
+        for (int i = 0;i<REGISTERED_SENSOR_SERVICES.length;i++){
+            stopService(new Intent(this, REGISTERED_SENSOR_SERVICES[i]));
+        }
         btnStartStop.setText("START");
         //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         setLoading(false);

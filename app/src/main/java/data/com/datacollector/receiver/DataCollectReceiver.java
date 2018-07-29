@@ -9,6 +9,7 @@ import android.os.AsyncTask;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import data.com.datacollector.interfaces.ServiceStatusInterface;
 import data.com.datacollector.network.BluetoothFileTransfer;
 import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.service.LeBLEService;
@@ -19,6 +20,7 @@ import static android.content.Context.ALARM_SERVICE;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.REGISTERED_SENSOR_SERVICES;
 import static data.com.datacollector.model.Const.START_SERVICES;
 import static data.com.datacollector.model.Const.STOP_SERVICES;
 import static data.com.datacollector.model.Const.TM_HTTP;
@@ -69,9 +71,14 @@ public class DataCollectReceiver extends BroadcastReceiver {
             if(!SensorService.isServiceRunning)
                 Log.d(TAG, "OnReceive: Sensor service is not running, but BLE service is");
 
-            if(!LeBLEService.isServiceRunning && !SensorService.isServiceRunning){
-                Log.d(TAG, "Service not running so not saving the data");
-                return;
+            try{
+                if(!DataCollectReceiver.areServicesRunning()){
+                    Log.d(TAG, "Service not running so not saving the data");
+                    return;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "onReceive:: There was an error instantiating the services: " + e.getMessage());
+                e.printStackTrace();
             }
 
 
@@ -81,16 +88,12 @@ public class DataCollectReceiver extends BroadcastReceiver {
             //service something. In our case, we ask the service to save the data. We handle in the
             //onStart method what the service should do depending on the extra values from the intent
             //if not save_data, then we start our processes using the working tree
-            Intent serviceIntent = new Intent(context, SensorService.class);
-            serviceIntent.putExtra("save_data", true);
-            //If we were asked to stop after saving, pass this parameter to the service intent
-            serviceIntent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
-            context.startService(serviceIntent);
-
-            Intent leBleServiceIntent = new Intent(context, LeBLEService.class);
-            leBleServiceIntent.putExtra("save_data", true);
-            leBleServiceIntent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
-            context.startService(leBleServiceIntent);
+            for (int i = 0;i<REGISTERED_SENSOR_SERVICES.length;i++){
+                Intent serviceIntent = new Intent(context, REGISTERED_SENSOR_SERVICES[i]);
+                serviceIntent.putExtra("save_data", true);
+                serviceIntent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));//If we were asked to stop after saving, pass this parameter to the service intent
+                context.startService(serviceIntent);
+            }
 
         }
 
@@ -183,6 +186,25 @@ public class DataCollectReceiver extends BroadcastReceiver {
             uploadBTData(currentContext);
         }
     }*/
+
+    /**
+     * Checks among all the registered services if they are running or not
+     * @return A boolean that indicates whether the services are running or not
+     * @throws Exception Since we are casting, there might be exceptions while doing so. Especially
+     *         if the service has not used the interface ServiceStatusInterface
+     */
+    public static boolean areServicesRunning() throws Exception{
+        boolean areRunning = false;
+        for (int i = 0; i<REGISTERED_SENSOR_SERVICES.length; i++){
+            Object servClass = REGISTERED_SENSOR_SERVICES[i].newInstance();
+            ServiceStatusInterface serviceStatus = (ServiceStatusInterface)servClass;
+            areRunning = areRunning || serviceStatus.isServiceRunning();
+            Log.d("DataCollectReceiver", "areServicesRunning: service - " +
+            REGISTERED_SENSOR_SERVICES[i].getName() + " is running? " +
+            serviceStatus.isServiceRunning());
+        }
+        return areRunning;
+    }
 
     /**
      * Transfers the collected data asynchronously

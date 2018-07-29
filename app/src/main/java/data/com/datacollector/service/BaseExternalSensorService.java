@@ -17,6 +17,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
+import data.com.datacollector.interfaces.ServiceStatusInterface;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.view.HomeActivity;
@@ -37,12 +38,14 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
  * 3.- Any service that extends this class must have an attribute
  *                  public static boolean isServiceRunning = false;
  *     It must be properly handled to indicate the status of the service. It should be set to true
- *     inside the mainCode method and should be set to false in the onDestroy method
+ *     inside the mainCode method and should be set to false in the onDestroy method.
+ *     Also, this attribute should be returned by the method isServiceRunning from
+ *     ServiceStatusInterface
  * 4.- Any service that extends this class must implement the interface ServiceStatusInterface and
  *     return the attribute isServiceRunning in the method implementation
  *
  */
-public abstract class BaseExternalSensorService extends Service {
+public abstract class BaseExternalSensorService extends Service implements ServiceStatusInterface {
 
     public String TAG = "BaseExternalSensorServ";
 
