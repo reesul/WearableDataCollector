@@ -16,7 +16,8 @@ import data.com.datacollector.service.SensorService;
 
 public class Const {
 
-    //IMPORTANT: ALL REGISTERED SERVICES MUST IMPLEMENT ServiceStatusInterface
+    //IMPORTANT: All the services that are to be used by the application should be declared here and in the manifest
+    // Also, this services MUST IMPLEMENT ServiceStatusInterface
     public static final Class []REGISTERED_SENSOR_SERVICES = {SensorService.class, LeBLEService.class};
 
     //Determines how will the system attempt to transfer the data
