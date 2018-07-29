@@ -45,6 +45,14 @@ public class UserFeedbackGroundTruth extends WearableActivity {
     private NotificationManager notificationManager;
     public static boolean isInProgress = false;
 
+    /**
+     * This class shows the UI feedback to request from the user and its managed by the Notifications utility on the requestFeedback method.
+     * This will store the ground truth label from the user. Currently shows all the list of activities.
+     *  TODO: A potential improvement is to suggest some activities that might be the ones to be chosen as GT. For example show only 3 instead of 10
+     *  TODO: these labels might be the next 3 closers in probability to the one that its wrong
+     *  TODO: Store the required information in the format expected by the actual model (feedback, features, etc)
+     *  TODO: Make notes and documentation about this. If the model changes, this format of saving should also change (features, saving format, etc)
+     */
     private BroadcastReceiver mLocalReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {

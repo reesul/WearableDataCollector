@@ -27,6 +27,10 @@ import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_START
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_QUESTION;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_VIBRATE;
 
+/**
+ * This class shows the UI feedback to request from the user and its managed by the Notifications utility on the requestFeedback method.
+ * This is a yes no answer, if subject answers yes, no further action is required. If subject answers no, then the ground truth its to be collected (real label)
+ */
 public class UserFeedbackQuestion extends WearableActivity {
 
     private String TAG = "UserFeedbackQuestion";
