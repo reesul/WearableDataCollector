@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
@@ -36,6 +37,8 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEI
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.SET_LOADING_HOME_ACTIVITY;
+import static data.com.datacollector.model.Const.START_SERVICES;
+import static data.com.datacollector.model.Const.STOP_SERVICES;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
@@ -82,6 +85,19 @@ public class HomeActivity extends WearableActivity {
             } else if(action.equals(SET_LOADING_HOME_ACTIVITY)) {
                 Log.d(TAG, "onReceive: Received SET_LOADING_HOME_ACTIVITY confirmation");
                 setLoading(intent.getBooleanExtra(SET_LOADING,false));
+            } else if(action.equals(START_SERVICES)){
+                Log.d(TAG, "onReceive: Requested to start services");
+                //NOTE: It is safer to not use handleStartStopBtnClick(); because this might turn off the device if is on, we only want to start it.
+                if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
+                    startBgService();
+                    confirmationsReceived = 0;
+                    btnStartStop.setText("STOP");
+                }
+            } else if(action.equals(STOP_SERVICES)){
+                Log.d(TAG, "onReceive: Requested to stop services");
+                if(LeBLEService.isServiceRunning && SensorService.isServiceRunning) {
+                    requestSaveBeforeStop();
+                }
             }
         }
     };
@@ -96,10 +112,12 @@ public class HomeActivity extends WearableActivity {
         IntentFilter confirmationIntent = new IntentFilter();
         confirmationIntent.addAction(BROADCAST_DATA_SAVE_DATA_AND_STOP);
         confirmationIntent.addAction(SET_LOADING_HOME_ACTIVITY);
+        confirmationIntent.addAction(START_SERVICES);
+        confirmationIntent.addAction(STOP_SERVICES);
         LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
-        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
+        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(Environment.getExternalStorageDirectory().getAbsolutePath()));
         //Finish custom
 
         setContentView(R.layout.activity_main);
@@ -250,6 +268,20 @@ public class HomeActivity extends WearableActivity {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
                     requestPermissions(new String[]{Manifest.permission.BODY_SENSORS}, PERMISSION_REQUEST_BODY_SENSOR);
+                }
+            });
+            builder.show();
+        }
+
+        if(this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs to sensor information");
+            builder.setMessage("Please grant write permission to external storage");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_BODY_SENSOR);
                 }
             });
             builder.show();

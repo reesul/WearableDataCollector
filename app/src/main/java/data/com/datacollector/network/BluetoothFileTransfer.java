@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
@@ -235,7 +236,7 @@ public class BluetoothFileTransfer {
         public void run() {
             try {
                 Log.d(TAG, "InputStreamThread: Waiting for data...");
-                final File dir = new File(context.getFilesDir() + "/DC");
+                final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC");
                 final File fileModel = new File(dir, "latest_model.txt");
                 FileOutputStream fos = new FileOutputStream(fileModel, false); //Overwrite the file
 

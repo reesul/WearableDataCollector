@@ -16,7 +16,8 @@ public class Const {
     //Determines how will the system attempt to transfer the data
     public static final int TM_HTTP = 1; //HTTP transfer files
     public static final int TM_BT = 2; //Bluetooth transfer files
-    public static final int SELECTED_TRANSFER_METHOD = TM_BT;
+    public static final int TM_USB = 3; //Bluetooth transfer files
+    public static final int SELECTED_TRANSFER_METHOD = TM_USB;
 
     //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold
     public static final float EPSILON_GYRO = 3.0f;
@@ -73,6 +74,8 @@ public class Const {
     public static final String SET_LOADING_USER_FEEDBACK_QUESTION = "SET_LOADING_USER_FEEDBACK_QUESTION"; //Enables the loading view on the feedback question activity
     public static final String SET_LOADING = "SET_LOADING"; //Enables the loading view
     public static final String DISMISS_FEEDBACK_QUESTION_ACTIVITY = "DISMISS_FEEDBACK_QUESTION_ACTIVITY";
+    public static final String START_SERVICES = "START_SERVICES";
+    public static final String STOP_SERVICES = "STOP_SERVICES";
 
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */

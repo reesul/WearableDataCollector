@@ -1,6 +1,7 @@
 package data.com.datacollector.utility;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -446,7 +447,7 @@ public class FileUtil {
      * @return
      */
     public static File getAccelerometerFile(Context context){
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
         final File fileAccel = new File(dir, FILE_NAME_ACCELEROMETER);
         if(!fileAccel.exists()) {
@@ -466,7 +467,7 @@ public class FileUtil {
      * @return
      */
     public static File getGyroScopeFile(Context context){
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
         final File fileGyro = new File(dir, FILE_NAME_GYROSCOPE);
         if(!fileGyro.exists()) {
@@ -488,7 +489,7 @@ public class FileUtil {
     public static File getBLEFile(Context context){
 
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ble_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
         final File fileBLE = new File(dir, FILE_NAME_BLE);
 
         if(!fileBLE.exists()) {
@@ -509,7 +510,7 @@ public class FileUtil {
      */
     public static File getPPGFile(Context context){
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ppg_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
         final File filePPG = new File(dir, FILE_NAME_PPG);
         if(!filePPG.exists()) {
@@ -530,7 +531,7 @@ public class FileUtil {
      */
     public static File getActFile(Context context){
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
         final File fileAct = new File(dir, FILE_NAME_ACTIVITY);
 
         if(!fileAct.exists()) {
@@ -546,7 +547,7 @@ public class FileUtil {
 
     public static File getFeedbackFile(Context context){
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
         final File fileFeedback = new File(dir, FILE_NAME_FEEDBACK);
 
         if(!fileFeedback.exists()) {
@@ -575,17 +576,17 @@ public class FileUtil {
 
         switch(folderID) {
             case BLE_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/BLE/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/BLE/");
             case ACC_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/ACC/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/ACC/");
             case GYRO_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/GYRO/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/GYRO/");
             case PPG_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/PPG/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/PPG/");
 
             default:
                 //in this case just return the default folder (one level up);
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/");
 
         }
     }

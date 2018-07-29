@@ -122,6 +122,7 @@ public class Notifications {
 
         viewIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); //Bring activity to top
 
+        //TODO: We might requiere the flag UPDATE_CURRENT
         PendingIntent viewPendingIntent = PendingIntent.getActivity(context, 0, viewIntent, 0);
 
         NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID_FEEDBACK, "Datacollector feedback", NotificationManager.IMPORTANCE_HIGH);
