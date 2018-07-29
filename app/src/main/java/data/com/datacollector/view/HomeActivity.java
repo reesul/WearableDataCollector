@@ -10,14 +10,18 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.RecyclerView;
 import android.support.wear.widget.WearableLinearLayoutManager;
+import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.support.wear.widget.WearableRecyclerView;
+import android.widget.FrameLayout;
 
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
@@ -27,18 +31,23 @@ import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
-import data.com.datacollector.utility.Util;
+import data.com.datacollector.utility.Notifications;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.SET_LOADING;
+import static data.com.datacollector.model.Const.SET_LOADING_HOME_ACTIVITY;
+import static data.com.datacollector.model.Const.START_SERVICES;
+import static data.com.datacollector.model.Const.STOP_SERVICES;
 
 /**
  * Application's Home activity. This is also the launcher activity for the application
  */
-public class HomeActivity extends Activity   {
+public class HomeActivity extends WearableActivity {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
     private WearableRecyclerView recActivitiesList;
+    private FrameLayout progressBar;
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -46,11 +55,12 @@ public class HomeActivity extends Activity   {
     private static final int PERMISSION_READ_PHONE_STATE = 3;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
     private int confirmationsReceived = 0; //The number of confirmations received so far
+    private int previousEvent = MotionEvent.ACTION_UP;
 
     private ActivitiesList activities;
     private ActivitiesAdapter adapterList;
 
-    private BroadcastReceiver mStopServicesReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mLocalReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "mStopServicesReceiver onReceive: called");
@@ -59,7 +69,7 @@ public class HomeActivity extends Activity   {
             //Action that tells us to stop our services
             if(action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)){
 
-                Log.d(TAG, "onReceive: Received confirmation");
+                Log.d(TAG, "onReceive: Received BROADCAST_DATA_SAVE_DATA_AND_STOP confirmation");
                 confirmationsReceived++;
 
                 if(confirmationsReceived >= CONFIRMATIONS_EXPECTED){
@@ -72,6 +82,22 @@ public class HomeActivity extends Activity   {
                     stopBgService();
                 }
 
+            } else if(action.equals(SET_LOADING_HOME_ACTIVITY)) {
+                Log.d(TAG, "onReceive: Received SET_LOADING_HOME_ACTIVITY confirmation");
+                setLoading(intent.getBooleanExtra(SET_LOADING,false));
+            } else if(action.equals(START_SERVICES)){
+                Log.d(TAG, "onReceive: Requested to start services");
+                //NOTE: It is safer to not use handleStartStopBtnClick(); because this might turn off the device if is on, we only want to start it.
+                if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
+                    startBgService();
+                    confirmationsReceived = 0;
+                    btnStartStop.setText("STOP");
+                }
+            } else if(action.equals(STOP_SERVICES)){
+                Log.d(TAG, "onReceive: Requested to stop services");
+                if(LeBLEService.isServiceRunning && SensorService.isServiceRunning) {
+                    requestSaveBeforeStop();
+                }
             }
         }
     };
@@ -83,11 +109,15 @@ public class HomeActivity extends Activity   {
         Log.d(TAG, "onCreate: called");
 
         //Registering a local broadcast receiver to listen for data save confirmation
-        IntentFilter confirmationIntent = new IntentFilter(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-        LocalBroadcastManager.getInstance(this).registerReceiver(mStopServicesReceiver, confirmationIntent);
+        IntentFilter confirmationIntent = new IntentFilter();
+        confirmationIntent.addAction(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+        confirmationIntent.addAction(SET_LOADING_HOME_ACTIVITY);
+        confirmationIntent.addAction(START_SERVICES);
+        confirmationIntent.addAction(STOP_SERVICES);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         //Custom uncaught exception handling
-        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(this.getFilesDir().toString()));
+        Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(Environment.getExternalStorageDirectory().getAbsolutePath()));
         //Finish custom
 
         setContentView(R.layout.activity_main);
@@ -95,6 +125,7 @@ public class HomeActivity extends Activity   {
         initView();
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
+        setAmbientEnabled();
     }
 
     /**
@@ -127,6 +158,34 @@ public class HomeActivity extends Activity   {
         adapterList = new ActivitiesAdapter(activities.getList());
         recActivitiesList.setAdapter(adapterList);
 
+        //We intercept multiple touches and prevent any other after the first one arrives
+        recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                // return
+                // true: consume touch event
+                // false: dispatch touch event
+
+                View childView = rv.findChildViewUnder(e.getX(), e.getY());
+
+                //It could be the case on which the user touches in a portion of the UI where there is NO children. That's why our ui was being froze
+                //therefore we first verify we are touching on a child
+                if(childView != null){
+
+                    //We first determine if we touched the label and not only moved
+                    if(previousEvent == MotionEvent.ACTION_DOWN && e.getAction() == MotionEvent.ACTION_UP) {
+                        setLoading(true);// This prevents user from submitting multiple labels when touching quickly
+                    }
+                    //else ignore
+                    previousEvent = e.getAction();
+                }
+
+                return false;
+            }
+        });
+
+        progressBar = findViewById(R.id.progressBar);
+
     }
 
     /**
@@ -140,8 +199,10 @@ public class HomeActivity extends Activity   {
         //TODO: reenable check for sensor service (IMU) once BLE working
         if(LeBLEService.isServiceRunning ||  SensorService.isServiceRunning){
             btnStartStop.setText("STOP");
+            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         }else{
             btnStartStop.setText("START");
+            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         }
 
         //while making changes an trying to add a list
@@ -160,6 +221,7 @@ public class HomeActivity extends Activity   {
             startBgService();
             confirmationsReceived = 0;
             btnStartStop.setText("STOP");
+            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         }else{
             requestSaveBeforeStop();
         }
@@ -211,6 +273,20 @@ public class HomeActivity extends Activity   {
             builder.show();
         }
 
+        if(this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs to sensor information");
+            builder.setMessage("Please grant write permission to external storage");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_BODY_SENSOR);
+                }
+            });
+            builder.show();
+        }
+
         //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
 
     }
@@ -233,7 +309,8 @@ public class HomeActivity extends Activity   {
         stopService(new Intent(this, SensorService.class));
         stopService(new Intent(this, LeBLEService.class));
         btnStartStop.setText("START");
-        btnStartStop.setEnabled(true);
+        //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+        setLoading(false);
     }
 
     /**
@@ -250,8 +327,7 @@ public class HomeActivity extends Activity   {
 
         //We send the broadcast to the receiver that coordinates the services to save their data
         HomeActivity.this.sendBroadcast(intent);
-        btnStartStop.setEnabled(false);
-
+        setLoading(true);
     }
 
     @Override
@@ -267,12 +343,29 @@ public class HomeActivity extends Activity   {
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume: called");
+        setLoading(false);
+        //TODO: IMPORTANT ---- This should be uncomment whenever we are using the feedback feature (Notifications.requestFeedback) ----
+        //Notifications.openFeedbackIfNotificationActive(HomeActivity.this.getApplicationContext());
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy: called");
+    }
+
+    public void setLoading(boolean b){
+        if(b){
+            Log.d(TAG, "setLoading: true");
+            btnStartStop.setVisibility(View.GONE);
+            recActivitiesList.setVisibility(View.GONE);
+            progressBar.setVisibility(View.VISIBLE);
+        }else{
+            Log.d(TAG, "setLoading: false");
+            btnStartStop.setVisibility(View.VISIBLE);
+            recActivitiesList.setVisibility(View.VISIBLE);
+            progressBar.setVisibility(View.GONE);
+        }
     }
 
 }

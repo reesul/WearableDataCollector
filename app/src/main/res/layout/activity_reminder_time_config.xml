@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_grey"
+    android:padding="@dimen/box_inset_layout_padding"
+    tools:context=".view.ReminderTimeConfigActivity"
+    tools:deviceIds="wear">
+
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:padding="5dp">
+
+        <TextView
+            android:id="@+id/txtRemindMe"
+            android:layout_width="match_parent"
+            android:layout_height="106dp"
+            android:gravity="center"
+            android:text="Remind me every"
+            android:textSize="26dp"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/btn5min"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|start"
+            android:background="@drawable/custom_blue_circle"
+            android:onClick="onClickMinutesButton"
+            android:text="5"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+
+        <Button
+            android:id="@+id/btn10min"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|center"
+            android:background="@drawable/custom_blue_circle"
+            android:onClick="onClickMinutesButton"
+            android:text="10"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+
+        <Button
+            android:id="@+id/btn20min"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/custom_blue_circle"
+            android:onClick="onClickMinutesButton"
+            android:text="20"
+            android:textStyle="bold"
+            android:layout_marginBottom="10dp"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+
+    </FrameLayout>
+</android.support.wear.widget.BoxInsetLayout>

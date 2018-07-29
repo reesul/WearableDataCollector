@@ -1,6 +1,7 @@
 package data.com.datacollector.utility;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -26,6 +27,7 @@ import data.com.datacollector.model.SensorData;
 import static data.com.datacollector.model.Const.DEVICE_ID;
 import static data.com.datacollector.model.Const.FILE_NAME_ACCELEROMETER;
 import static data.com.datacollector.model.Const.FILE_NAME_BLE;
+import static data.com.datacollector.model.Const.FILE_NAME_FEEDBACK;
 import static data.com.datacollector.model.Const.FILE_NAME_GYROSCOPE;
 import static data.com.datacollector.model.Const.FILE_NAME_PPG;
 import static data.com.datacollector.model.Const.FILE_NAME_ACTIVITY;
@@ -44,6 +46,7 @@ public class FileUtil {
     private static boolean gyroFileAlreadyExists;
     private static boolean ppgFileAlreadyExists;
     private static boolean actFileAlreadyExists;
+    private static boolean feedbackFileAlreadyExists;
 
     //Used to be in NetworkIO. Now here since it can be set by any of the transfer methods
     //Set by either NetworkIO or BluetoothFileTransfer
@@ -280,9 +283,11 @@ public class FileUtil {
      * Stores the tag selected by the user from the recycler view
      * @param timeStamp The time stamp created when the user touches the tag
      * @param activity The activity selected by the user
+     * @param status can be end or start and indicates the beginning or ending of an activity
      */
-    public static synchronized void saveActivityDataToFile(Context context, String timeStamp, String activity) throws IOException{
+    public static synchronized void saveActivityDataToFile(Context context, String timeStamp, String activity, String status) throws IOException{
         if(fileUploadInProgress){
+            //This means that no label its saved if the watch is uploading (connected to power)
             //TODO: Think how to solve this issue. If this fails to upload, the activity will not hold the tag for so long
             //maybe it would be required to create a service or something that will wait until it is possible to write and then write the tag
             //to file. For now this tag is lost.
@@ -311,7 +316,7 @@ public class FileUtil {
                 fos.write(DEVICE_ID.getBytes());
             }
             fos.write("\r\n".getBytes());
-            fos.write((timeStamp + "," + activity).getBytes());
+            fos.write((timeStamp + "," + activity + "," + status).getBytes());
             fos.close();
             Log.d(TAG, "saveActivityDataToFile:: Activity data saved successfully");
         } catch (IOException e) {
@@ -319,6 +324,49 @@ public class FileUtil {
         }
 
     }
+
+    /**
+     * Stores the feedback information provided by the user
+     * @param timeStamp The time stamp created when the user submits the answer
+     * @param predictedLabel The label that was predicted by the model
+     * @param correctLabel The actual label provided by the user
+     */
+    public static synchronized void saveFeedbackDataToFile(Context context, String timeStamp, String predictedLabel, String correctLabel, String predictionStartTs, String predictionEndTs) throws IOException{
+        if(fileUploadInProgress){
+            //TODO: Verify how could this affect our collection process if the data is being transfered and the user disconnects the watch and uses it within the nuc range
+            //TODO: Should we add a loading screen when the data is being transferred?
+            Log.d(TAG, "saveActivityDataToFile:: fileUploadInProgress, will save data in the next call");
+            return;
+        }
+
+        final File fileFeedback = getFeedbackFile(context);
+
+        Log.d(TAG, "saveFeedbackDataToFile:  absolute path: fileFeedback: " + fileFeedback.getAbsolutePath());
+
+        boolean fileFeedbackExists = fileFeedback.exists();
+        try {
+            if(!fileFeedbackExists) {
+                fileFeedback.getParentFile().mkdirs();
+                fileFeedback.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(fileFeedback, true);
+
+            if(!feedbackFileAlreadyExists) {
+                fos.write(DEVICE_ID.getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            fos.write((timeStamp + "," + predictedLabel + "," + correctLabel + "," + predictionStartTs + "," + predictionEndTs).getBytes());
+            fos.close();
+            Log.d(TAG, "saveFeedbackDataToFile:: Feedback data saved successfully");
+        } catch (IOException e) {
+            throw e;
+        }
+
+    }
+
     /**
      * Clears data from one file
      * @param file: file from which data is to be cleared
@@ -399,7 +447,7 @@ public class FileUtil {
      * @return
      */
     public static File getAccelerometerFile(Context context){
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
         final File fileAccel = new File(dir, FILE_NAME_ACCELEROMETER);
         if(!fileAccel.exists()) {
@@ -419,7 +467,7 @@ public class FileUtil {
      * @return
      */
     public static File getGyroScopeFile(Context context){
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
         final File fileGyro = new File(dir, FILE_NAME_GYROSCOPE);
         if(!fileGyro.exists()) {
@@ -441,7 +489,7 @@ public class FileUtil {
     public static File getBLEFile(Context context){
 
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ble_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
         final File fileBLE = new File(dir, FILE_NAME_BLE);
 
         if(!fileBLE.exists()) {
@@ -462,7 +510,7 @@ public class FileUtil {
      */
     public static File getPPGFile(Context context){
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ppg_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
 
         final File filePPG = new File(dir, FILE_NAME_PPG);
         if(!filePPG.exists()) {
@@ -483,7 +531,7 @@ public class FileUtil {
      */
     public static File getActFile(Context context){
         //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
-        final File dir = new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
         final File fileAct = new File(dir, FILE_NAME_ACTIVITY);
 
         if(!fileAct.exists()) {
@@ -495,6 +543,22 @@ public class FileUtil {
         }
         else actFileAlreadyExists = true;
         return fileAct;
+    }
+
+    public static File getFeedbackFile(Context context){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File fileFeedback = new File(dir, FILE_NAME_FEEDBACK);
+
+        if(!fileFeedback.exists()) {
+            try {
+                fileFeedback.getParentFile().mkdirs();
+                fileFeedback.createNewFile();
+                feedbackFileAlreadyExists = false;
+            }catch(IOException e){}
+        }
+        else feedbackFileAlreadyExists = true;
+        return fileFeedback;
     }
 
 
@@ -512,17 +576,17 @@ public class FileUtil {
 
         switch(folderID) {
             case BLE_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/BLE/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/BLE/");
             case ACC_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/ACC/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/ACC/");
             case GYRO_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/GYRO/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/GYRO/");
             case PPG_DIR:
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/PPG/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/PPG/");
 
             default:
                 //in this case just return the default folder (one level up);
-                return new File(context.getFilesDir() + "/DC/" + DEVICE_ID + "/");
+                return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/");
 
         }
     }

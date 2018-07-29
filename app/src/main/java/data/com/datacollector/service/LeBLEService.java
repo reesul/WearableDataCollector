@@ -12,34 +12,26 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.os.PowerManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
-import data.com.datacollector.utility.ServiceNotification;
+import data.com.datacollector.utility.Notifications;
+import data.com.datacollector.view.HomeActivity;
 
-import static data.com.datacollector.model.Const.BLE_SCAN_START_TIME;
-import static data.com.datacollector.model.Const.BLE_SCAN_STOP_TIME;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
-import static data.com.datacollector.model.Const.NUM_BLE_CYCLES;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import android.os.HandlerThread;
@@ -65,7 +57,6 @@ public class LeBLEService extends Service {
     //used for the alarm, so that data from the scanner is written to files every few seconds
     private AlarmManager alarmManagerData;
     private PendingIntent pendingIntentData;
-    private DataCollectReceiver mReceiver;
 
     public static boolean mScanning;
     public static boolean isServiceRunning = false;
@@ -102,11 +93,9 @@ public class LeBLEService extends Service {
         public void handleMessage(Message msg) {
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread with ID: " + msg.arg1);
 
-            //When the service is killed by the OS, the alarm may not be killed, we verify that there is no alarm running already
-            //setup the broadcast receiver to receive ACTION_POWER_CONNECTED for transferring files
-            //TODO: This along with the alarm logic can be moved to its own service to have a cleaner implementation
-            registerFileTransferAction();
+            alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
 
+            //TODO: This can be moved to its own service to have a cleaner implementation
             //remove the alarm if it exists
             cancelAlarm();
             setRepeatingAlarm();
@@ -212,10 +201,8 @@ public class LeBLEService extends Service {
      * @param startId
      */
     public void startService(int startId) {
-        //Start due STICKY property
-
         //TODO: Make sure the notification is visible and that when touched it opens up our app
-        startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
+        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
         sendMessageToWorkerThread(startId);
         /* Might not be necessary since we are doing this inside the message handling
         if (mReceiver == null) {
@@ -288,7 +275,6 @@ public class LeBLEService extends Service {
      */
     public boolean isBTAvailable() {
         BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-
         return (btAdapter != null &&
                 btAdapter.isEnabled() &&
                 btAdapter.getState() == BluetoothAdapter.STATE_ON);
@@ -371,7 +357,7 @@ public class LeBLEService extends Service {
         scanLeDevice(false);
         mScanning = false;
         //mWakeLock.release(); Uncomment if the BT data has missing data. The system might be putting this to sleep
-        unregisterReceiver(mReceiver);
+        cancelAlarm();
     }
 
     /**
@@ -395,7 +381,7 @@ public class LeBLEService extends Service {
         btDeviceList.clear();
         macList.clear(); //Simply clean it without copy since we do not use it to save data to file
 
-        SaveDataInBackground backgroundSave = new SaveDataInBackground(stop);
+        SaveDataInBackground backgroundSave = new SaveDataInBackground(LeBLEService.this, stop);
         backgroundSave.execute(copyBtDeviceList);
         Log.d(TAG, "saveDataToFile: Saving files asynchronously");
 
@@ -406,12 +392,19 @@ public class LeBLEService extends Service {
      */
     private void cancelAlarm(){
         Log.d(TAG, "OnCreate:: Existing repeating alarm - Removing.");
-        Intent intent = new Intent(LeBLEService.this, DataCollectReceiver.class);
+        Intent intent = new Intent(this.getApplicationContext(), DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                LeBLEService.this.getApplicationContext(), 234324243, intent, 0);
-        if (pendingIntent != null && alarmManagerData != null) {
-            alarmManagerData.cancel(pendingIntent);
+                this.getApplicationContext(), 234324243, intent, 0);
+        if(alarmManagerData == null){
+            alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
+        }
+        if(pendingIntentData!=null){
+            alarmManagerData.cancel(pendingIntentData);
+        } else {
+            if (pendingIntent != null) {
+                alarmManagerData.cancel(pendingIntent);
+            }
         }
     }
 
@@ -424,57 +417,52 @@ public class LeBLEService extends Service {
      */
     private void setRepeatingAlarm() {
         Log.d(TAG, "setRepeatingAlarm: ");
-        Intent intent = new Intent(this, DataCollectReceiver.class);
+        Intent intent = new Intent(this.getApplicationContext(), DataCollectReceiver.class);
         intent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
         pendingIntentData = PendingIntent.getBroadcast(
                 this.getApplicationContext(), 234324243, intent, 0);
-
-        alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
-
+        if(alarmManagerData == null){
+            alarmManagerData = (AlarmManager) getSystemService(ALARM_SERVICE);
+        }
         //start timer, start time is earlier than current
         //trigger on interval ALARM_SENSOR_DATA_SAVE INTERVAL
-        alarmManagerData.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
-                + ALARM_SENSOR_DATA_SAVE_INTERVAL, ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
+        alarmManagerData.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                + ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntentData);
     }
 
-    /***
-     * Android > 8.0 requirement
-     * Registers the action (ACTION_POWER_CONNECTED) to this activity, so that the Broadcast Receiver
-     * can recognize when the watch is plugged in
-     */
-    private void registerFileTransferAction() {
-        Log.d(TAG, "registerFileTransferAction: setup Broadcast Receiver");
-        mReceiver = new DataCollectReceiver();
-        IntentFilter filter = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
-        registerReceiver(mReceiver, filter);
-
-    }
-
-    private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
+    public static class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
 
         boolean stopServiceAfterFinish;
+        private WeakReference<LeBLEService> bleService;
 
 
-        public SaveDataInBackground(boolean stop){
+        SaveDataInBackground(LeBLEService context, boolean stop){
+            bleService = new WeakReference<>(context);
             stopServiceAfterFinish = stop;
         }
 
         protected Void doInBackground(List... lists) {
-
-            Log.d(TAG, "doInBackground: About to save BLE files in background");
-            FileUtil.saveBLEDataToFile(LeBLEService.this.getApplicationContext(), (List<BTDevice>)lists[0]);
-            //clear local copy of data after it has been saved
-            ((List<BTDevice>)lists[0]).clear();
+            LeBLEService service = bleService.get();
+            if (service != null) {
+                Log.d(service.TAG, "doInBackground: About to save BLE files in background");
+                FileUtil.saveBLEDataToFile(service, (List<BTDevice>) lists[0]);
+                //clear local copy of data after it has been saved
+                ((List<BTDevice>) lists[0]).clear();
+            }
             return null;
         }
 
         protected void onPostExecute(Void v) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
-            //Once, we have finished saving the files, we send the broadcast message to stop the services
-            if(stopServiceAfterFinish){
-                Log.d(TAG, "onPostExecute: Stopping after save. Broadcasting message");
-                Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-                LocalBroadcastManager.getInstance(LeBLEService.this).sendBroadcast(intent);
+
+            LeBLEService service = bleService.get();
+            if (service != null) {
+                Log.d(service.TAG, "onPostExecute: Saved the files asynchronously");
+                //Once, we have finished saving the files, we send the broadcast message to stop the services
+                if (stopServiceAfterFinish) {
+                    Log.d(service.TAG, "onPostExecute: Stopping after save. Broadcasting message");
+                    Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+                    LocalBroadcastManager.getInstance(service).sendBroadcast(intent);
+                }
             }
         }
     }

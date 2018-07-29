@@ -19,24 +19,18 @@ import android.os.Process;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
-import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.utility.FileUtil;
-import data.com.datacollector.utility.ServiceNotification;
+import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
+import data.com.datacollector.view.HomeActivity;
 
-import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
-import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
@@ -121,6 +115,7 @@ public class SensorService extends Service implements SensorEventListener{
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
         //initialize the timestamp reference so that sensor events have accurate timestamps
+        //TODO: Is this synchronous? Can we ensure that will this always be executed before getting our actual sensor data?
         Util.initTimeStamps(this);
 
     }
@@ -148,14 +143,12 @@ public class SensorService extends Service implements SensorEventListener{
             }else{
                 //Start from activity
                 Log.d(TAG, "onStartCommand: intent without save_data");
-                startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
-                sendMessageToWorkerThread(startId);
+                startService(startId);
             }
         }else{
             //Start due STICKY property
             Log.d(TAG, "onStartCommand: intent null");
-            startForeground(ServiceNotification.getNotificationId(), ServiceNotification.getNotification(getApplicationContext()));
-            sendMessageToWorkerThread(startId);
+            startService(startId);
 
         }
 
@@ -165,6 +158,17 @@ public class SensorService extends Service implements SensorEventListener{
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
+    }
+
+    /**
+     * Starts our service and creates the notification. This method can be called when the user
+     * starts the service on when it is started by the system
+     *
+     * @param startId
+     */
+    public void startService(int startId) {
+        startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
+        sendMessageToWorkerThread(startId);
     }
 
     /**
@@ -290,7 +294,7 @@ public class SensorService extends Service implements SensorEventListener{
      * @param heartRate
      */
     private void savePPGData(float heartRate, long timestamp){
-        Log.d(TAG, "savePPGData:: heart rate: "+heartRate);
+        //Log.d(TAG, "savePPGData:: heart rate: "+heartRate);
         PPGData ppgData = new PPGData(heartRate, Util.getTimeMillis(timestamp));
         listPPGData.add(ppgData);
     }
@@ -394,7 +398,7 @@ public class SensorService extends Service implements SensorEventListener{
         //Should create right away since we already have a copy to allow for new samples to come
         listGyroData.clear(); listAccelData.clear(); listPPGData.clear();
 
-        SaveDataInBackground backgroundSave = new SaveDataInBackground(stop);
+        SaveDataInBackground backgroundSave = new SaveDataInBackground(SensorService.this, stop);
         backgroundSave.execute(tempAccelerList, tempGyroList, tempPPGList);
         Log.d(TAG, "saveDataToFile: Saving files asynchronously");
     }
@@ -409,30 +413,41 @@ public class SensorService extends Service implements SensorEventListener{
         //alarmManager.cancel(pendingIntent);   //alarm manager now in BLE service
     }
 
-    private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
+    public static class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
 
         boolean stopServiceAfterFinish;
+        private WeakReference<SensorService> serviceReference;
 
-        public SaveDataInBackground(boolean stop){
+        SaveDataInBackground(SensorService context, boolean stop){
+            serviceReference = new WeakReference<>(context);
             stopServiceAfterFinish = stop;
         }
 
         protected Void doInBackground(List... lists) {
-            Log.d(TAG, "doInBackground: About to save IMU files in background");
-            FileUtil.saveGyroNAcceleroDataToFile(SensorService.this, (List<SensorData>)lists[0], (List<SensorData>)lists[1]);
-            FileUtil.savePPGDataToFile(SensorService.this, (List<PPGData>)lists[2]);
+            // get a reference to the activity if it is still there
+            SensorService service = serviceReference.get();
+            if (service != null){
+                Log.d(service.TAG, "doInBackground: About to save IMU files in background");
+                FileUtil.saveGyroNAcceleroDataToFile(service, (List<SensorData>)lists[0], (List<SensorData>)lists[1]);
+                FileUtil.savePPGDataToFile(service, (List<PPGData>)lists[2]);
 
-            ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<SensorData>)lists[2]).clear();
+                ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<SensorData>)lists[2]).clear();
+            }
+
+
             return null;
         }
 
         protected void onPostExecute(Void v) {
-            Log.d(TAG, "onPostExecute: Saved the files asynchronously");
-            //Once, we have finished saving the files, we send the broadcast message to stop the services
-            if(stopServiceAfterFinish){
-                Log.d(TAG, "onPostExecute: Stopping after save. Broadcasting message");
-                Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
-                LocalBroadcastManager.getInstance(SensorService.this).sendBroadcast(intent);
+            SensorService service = serviceReference.get();
+            if (service != null) {
+                Log.d(service.TAG, "onPostExecute: Saved the files asynchronously");
+                //Once, we have finished saving the files, we send the broadcast message to stop the services
+                if (stopServiceAfterFinish) {
+                    Log.d(service.TAG, "onPostExecute: Stopping after save. Broadcasting message");
+                    Intent intent = new Intent(BROADCAST_DATA_SAVE_DATA_AND_STOP);
+                    LocalBroadcastManager.getInstance(service).sendBroadcast(intent);
+                }
             }
         }
     }

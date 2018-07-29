@@ -16,7 +16,8 @@ public class Const {
     //Determines how will the system attempt to transfer the data
     public static final int TM_HTTP = 1; //HTTP transfer files
     public static final int TM_BT = 2; //Bluetooth transfer files
-    public static final int SELECTED_TRANSFER_METHOD = TM_HTTP;
+    public static final int TM_USB = 3; //Bluetooth transfer files
+    public static final int SELECTED_TRANSFER_METHOD = TM_USB;
 
     //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold
     public static final float EPSILON_GYRO = 3.0f;
@@ -34,12 +35,32 @@ public class Const {
     //We assume the paired device that hosts the BT server has this name
     public static String HOST_MACHINE_BT_NAME = "intel-desktop";
 
+    //Current activity label
+    public static final String EXTRA_ACTIVITY_LABEL = "EXTRA_ACTIVITY_LABEL";
+    public static final String EXTRA_ACTIVITY_LABEL_REMINDING_TIME = "EXTRA_ACTIVITY_LABEL_REMINDING_TIME";
+    public static final String ACTION_REMINDER_NOTIFICATION = "ACTION_REMINDER_NOTIFICATION";
+    public static final String ACTION_REMINDER_NOTIFICATION_INTERVAL = "ACTION_REMINDER_NOTIFICATION_INTERVAL";
+
+    //Feedback activity
+    public static final String EXTRA_FEEDBACK_QUESTION = "EXTRA_FEEDBACK_QUESTION";
+    public static final String EXTRA_FEEDBACK_PREDICTED_LABEL = "EXTRA_FEEDBACK_PREDICTED_LABEL";
+    public static final String EXTRA_FEEDBACK_PREDICTION_START_LBL = "EXTRA_FEEDBACK_PREDICTION_START_LBL";
+    public static final String EXTRA_FEEDBACK_PREDICTION_END_LBL = "EXTRA_FEEDBACK_PREDICTION_END_LBL";
+    public static final String EXTRA_FEEDBACK_VIBRATE = "EXTRA_FEEDBACK_VIBRATE";
+
+    //Pending intent IDs
+    public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
+
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
     public static final String FILE_NAME_GYROSCOPE = "gyroscope_data.txt";
     public static final String FILE_NAME_BLE = "ble_data.txt";
     public static final String FILE_NAME_PPG = "ppg_data.txt";
     public static final String FILE_NAME_ACTIVITY = "activity_data.txt";
+    public static final String FILE_NAME_FEEDBACK = "feedback_data.txt";
+
+    //User feedback
+    public static final String[] AVAILABLE_LABELS_TO_PREDICT = DEFAULT_ACTIVITIES_LIST_TEXT; //Change this if needed. Remember that we are not only predicting activities. Also postures for example
 
     /* Take the last 8 digits of the device's serial number as a unique identifier  */
     //TODO: use Build.getSerial() to get serial, as this method is deprecated
@@ -49,6 +70,12 @@ public class Const {
     //Broadcasts
     public static final String BROADCAST_DATA_SAVE_ALARM_RECEIVED = "BROADCAST_DATA_SAVE_ALARM_RECEIVED";
     public static final String BROADCAST_DATA_SAVE_DATA_AND_STOP = "BROADCAST_DATA_SAVE_DATA_AND_STOP";
+    public static final String SET_LOADING_HOME_ACTIVITY = "SET_LOADING_HOME_ACTIVITY"; //Enables the loading view on the home activity
+    public static final String SET_LOADING_USER_FEEDBACK_QUESTION = "SET_LOADING_USER_FEEDBACK_QUESTION"; //Enables the loading view on the feedback question activity
+    public static final String SET_LOADING = "SET_LOADING"; //Enables the loading view
+    public static final String DISMISS_FEEDBACK_QUESTION_ACTIVITY = "DISMISS_FEEDBACK_QUESTION_ACTIVITY";
+    public static final String START_SERVICES = "START_SERVICES";
+    public static final String STOP_SERVICES = "STOP_SERVICES";
 
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */
@@ -68,10 +95,11 @@ public class Const {
     //Sensor data collection constants
 
     /** Min, Interval between two data collection. Esp. Gyro
-     *  and Acceleremoter and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
+     *  and Accelerometer and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
      *  This limit would ensure at the same time limited data is being stored.
      *  Value in milliseconds*/
-    public static final long SENSOR_DATA_MIN_INTERVAL = 40; //25Hz
+    //If we use 40 for 20Hz we might get values as low as 17Hz
+    public static final long SENSOR_DATA_MIN_INTERVAL = 35;//28Hz this actually gives about 25Hz?
     /* Conversion from nanoseconds to milliseconds (SensorEvents have timestamp in ns that is used for downsampling) */
     public static final long NANOS_TO_MILLIS = 1000000;
     /* Min interval between sensor (Acc, Gyro, and heart rate) samples that are saved in ns*/

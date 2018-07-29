@@ -4,16 +4,18 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.os.Parcel;
-import android.os.ParcelUuid;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Set;
+
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Util;
 
@@ -24,8 +26,6 @@ import static data.com.datacollector.model.Const.MY_UUID;
 
 /**
  * Created by ROGER on 3/11/2018.
- * TODO: Verify control variables like "is uploading". It might be required to implement this code under NetworkIO.java
- * TODO: Only one thread should be attempting to upload data. Http OR Bluetooth.
  */
 
 public class BluetoothFileTransfer {
@@ -34,15 +34,16 @@ public class BluetoothFileTransfer {
     private BluetoothDevice device = null;
     private BluetoothSocket btSocket = null;
     private OutputStream out = null;
+    private InputStream socketInputStream = null;
     private BluetoothAdapter mBluetoothAdapter;
+    private boolean IS_THE_OTHER_STREAM_READY = false; //Used to determine when to close the sockets
 
     public BluetoothFileTransfer(){
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
     }
 
-    public void sendData(final Context context){
-
+    public void sendData(final Context context) throws Exception{
 
         //zip contents of folder holding all BLE files, returns the path to the file
         final File dir = FileUtil.getCollectedDataDir(context, FileUtil.BASE_DIR);
@@ -76,13 +77,18 @@ public class BluetoothFileTransfer {
             File file = new File(destPath);
 
             Log.d(TAG, "sendData: Attempt to send " + file.getName() + " of size " + FileUtil.fileSize(file) + " bytes");
+            if(!mBluetoothAdapter.isEnabled()){
+                Log.d(TAG, "sendData: Enabling BT");
+                mBluetoothAdapter.enable();
+            }
 
             if (!mBluetoothAdapter.isEnabled()) {
                 //The bluetooth is off. Do not send data.
-                Log.d(TAG, "The bluetooth is off. Data transfer cancelled.");
-                //TODO: Handle this, should we turn it on?
+                Log.d(TAG, "The bluetooth is off and we could not turn it on. Data transfer cancelled.");
                 FileUtil.lastUploadResult = false;
                 FileUtil.fileUploadInProgress = false;
+                Exception btOff = new Exception("BT is off");
+                throw btOff;
             } else {
                 try {
                     String BTServerAddress = getPairedAddress();
@@ -91,9 +97,11 @@ public class BluetoothFileTransfer {
                         Log.d(TAG, "The bluetooth server device has not been paired. Data transfer cancelled.");
                         FileUtil.lastUploadResult = false;
                         FileUtil.fileUploadInProgress = false;
+                        Exception deviceNotPaired = new Exception("Device is not paired");
+                        throw deviceNotPaired; //This is captured by the Asynctask who called this method
                     } else {
                         //We found the address, and we are ready to open the socket
-                        openSocket(BTServerAddress);
+                        openSocket(context, BTServerAddress);
                         send(file);
                         Log.d(TAG, "uploadData:: successful:: Now Removing the data");
 
@@ -107,38 +115,45 @@ public class BluetoothFileTransfer {
 
                         FileUtil.lastUploadResult = true;
                         FileUtil.fileUploadInProgress = false;
-
                     }
                 } catch (IOException e){
                     Log.e(TAG,"There was an error while trying to send data through the BT: " + e.getMessage());
                     e.printStackTrace();
                     FileUtil.lastUploadResult = false;
                     FileUtil.fileUploadInProgress = false;
-                    if(btSocket != null) {
-                        //Prevents sockets from remaining open
-                        try {
-                            Log.d(TAG, "sendData: Closing the socket on fallback");
-                            // We just make sure we are not trying to close an already closed socket
-                            // which has been observed to cause segmentation fault errors
-                            if(btSocket.isConnected()){
-                                btSocket.close();
-                            }
-                        } catch (IOException e1) {
-                            Log.e(TAG,"There was an error trying to close the socket after IOException " + e1.getMessage());
-                            e1.printStackTrace();
-                        }
-                        btSocket = null;
-                    }
+                    closeSocket();
+                    throw e;
                 } catch (InterruptedException e) {
                     Log.e(TAG, "There was an error while creating a timer before closing the socket: " + e.getMessage());
                     e.printStackTrace();
                     FileUtil.lastUploadResult = false;
                     FileUtil.fileUploadInProgress = false;
-
+                    closeSocket();
+                    throw e;
                 }
+
             }
         }
 
+    }
+
+    private void closeSocket(){
+        Log.d(TAG, "closeSocket: Closing the socket");
+        if(btSocket != null) {
+            //Prevents sockets from remaining open
+            try {
+                //Log.d(TAG, "sendData: Closing the socket on fallback");
+                // We just make sure we are not trying to close an already closed socket
+                // which has been observed to cause segmentation fault errors
+                if(btSocket.isConnected()){
+                    btSocket.close();
+                }
+            } catch (IOException e1) {
+                Log.e(TAG,"There was an error trying to close the socket after IOException " + e1.getMessage());
+                e1.printStackTrace();
+            }
+            btSocket = null;
+        }
     }
 
     /*
@@ -168,22 +183,27 @@ public class BluetoothFileTransfer {
     /*
      * Attempts to open the BT socket for data transfer
      */
-    private void openSocket(String btMacAddress) throws IOException{
+    private void openSocket(Context context, String btMacAddress) throws IOException{
         device = mBluetoothAdapter.getRemoteDevice(btMacAddress);
+        IS_THE_OTHER_STREAM_READY = false;
         Log.d(TAG, "openSocket: About to create socket");
         btSocket = device.createRfcommSocketToServiceRecord(MY_UUID); //IOException
         Log.d(TAG, "openSocket: Created socket");
         mBluetoothAdapter.cancelDiscovery();
         Log.d(TAG, "openSocket: About to connect socket");
+
+        InputStreamThread iss = null;
         try {
             btSocket.connect(); //IOException
             Log.d(TAG, "openSocket: Connected");
             out = btSocket.getOutputStream(); //IOException
+            socketInputStream = btSocket.getInputStream();
+            iss = new InputStreamThread(context, socketInputStream); //For receiving the model
+            iss.start();
             Log.d(TAG, "The BT connection was successful");
         } catch(IOException e) {
             Log.e(TAG,"Error connecting socket" + e.getMessage());
             try {
-                //TODO: Since even this fallback may fall, set up an alarm that will attempt to send the files again ONLY if stills connected\
                 //we could broadcast a message to our receiver and make him launch this again
 
                 Log.e(TAG,"Trying fallback");
@@ -192,6 +212,9 @@ public class BluetoothFileTransfer {
                 btSocket.connect();
                 Log.d(TAG, "openSocket: Connected");
                 out = btSocket.getOutputStream(); //IOException
+                socketInputStream = btSocket.getInputStream();
+                iss = new InputStreamThread(context, socketInputStream);
+                iss.start();
                 Log.d(TAG, "The BT connection was successful");
             } catch (Exception e2) {
                 Log.e(TAG, "Couldn't establish Bluetooth connection! " + e2.getMessage());
@@ -200,13 +223,64 @@ public class BluetoothFileTransfer {
         }
     }
 
+    private class InputStreamThread extends Thread  {
+        private InputStream inputStream;
+        private Context context;
+
+        public InputStreamThread(Context context, InputStream inputStream) {
+            this.inputStream = inputStream;
+            this.context = context;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Log.d(TAG, "InputStreamThread: Waiting for data...");
+                final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC");
+                final File fileModel = new File(dir, "latest_model.txt");
+                FileOutputStream fos = new FileOutputStream(fileModel, false); //Overwrite the file
+
+                byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
+                int count;
+
+                while ((count = inputStream.read(buf)) > 0) {
+                    Log.d(TAG, "InputStreamThread: Received " + String.valueOf(count));
+                    byte[] msg = Arrays.copyOfRange(buf, 0, count);
+                    String message = new String(msg, "UTF-8");
+
+                    // Since we cannot close the stream in order to stop the while .read since the
+                    // other stream might still be used, we send a message to stop the while
+                    if(message.equals("STOP_MODEL_TRANSFER")) {
+                        Log.d(TAG, "InputStreamThread: Stop receiving model information");
+                        break;
+                    }
+
+                    Log.d(TAG, "InputStreamThread: Received: " + message );
+                    fos.write(buf,0,count);//Writing to our model file
+                }
+
+                //NOTE: It is important to notice that when the model is not available in the nuc, it will
+                //send null and null will be saved on the file, therefore, validation on the file content
+                //should be performed before using its information
+                fos.close();
+                Log.d(TAG, "InputStreamThread: The model has been received");
+                closeSocketAfterStreams();
+            }catch (Exception e){
+                Log.d(TAG, "InputStreamThread: Error getting data from input stream NUC " + e.getMessage());
+                e.printStackTrace();
+                closeSocket(); //If closing the socket after stream fails. This might close the socket while we are receiving
+                //  data from the nuc but its an expected behavior since we expect all the data to be transferred successfully
+            }
+        }
+
+    }
+
     /*
      * Sends the data after a successful BT connection
      */
     private void send(File file) throws IOException, InterruptedException{
         Log.d(TAG,"send: Preparing file to send");
 
-        long length = file.length();
         byte[] bytes = new byte[DEFAULT_BUFFER_SIZE];
         InputStream in = new FileInputStream(file);
         int count;
@@ -215,23 +289,8 @@ public class BluetoothFileTransfer {
             out.write(bytes, 0, count);
         }
 
-        Log.d(TAG, "send: Waiting a second before closing the socket");
-        // We wait for a second just to make sure everything its been written. This shouldn't be
-        // necessary since the flush handles this, however, sometimes id did not handle it properly
-        // therefore, this second wait is just in case
-        Thread.sleep(1000);
-
         in.close();
-
-        /*To avoid a possible segmentation fault that is sometimes caused by closiing a socket twice
-        * we first verify the connection is open before closing it.*/
-        if(btSocket.isConnected()){
-            //This ensures everything is written before closing
-            out.flush();
-            //This closes the stream and also the socket
-            out.close();
-        }
-        //btSocket.close() This might cause problems since closing the outputstream also closes the socket
+        closeSocketAfterStreams();
     }
 
     private void clearFilesContent(String path) {
@@ -259,6 +318,31 @@ public class BluetoothFileTransfer {
         }
         else
             file.delete();
+
+    }
+
+    /**
+     * Waits until both the input stream and output stream have finished to close the socket
+     */
+    public void closeSocketAfterStreams() throws IOException, InterruptedException{
+        if (IS_THE_OTHER_STREAM_READY){
+            Log.d(TAG, "closeSocketAfterStreams: All the streams have finished");
+            //A stream has finished, therefore, we should close this
+            if (btSocket.isConnected()) {
+                Log.d(TAG, "closeSocketAfterStreams: Waiting a second before closing the socket");
+                // We wait for a second just to make sure everything its been written. This shouldn't be
+                // necessary since the flush handles this, however, sometimes id did not handle it properly
+                // therefore, this second wait is just in case
+                Thread.sleep(1000);
+                //This ensures everything is written before closing
+                out.flush();
+                btSocket.close(); //This should close all the streams
+                Log.d(TAG, "closeSocketAfterStreams: The socket has been closed");
+            }
+        }else{
+            Log.d(TAG, "closeSocketAfterStreams: I finished but the other has not finished. IS_THE_OTHER_STREAM_READY=true");
+            IS_THE_OTHER_STREAM_READY = true;
+        }
 
     }
 }

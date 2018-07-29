@@ -1,20 +1,30 @@
 package data.com.datacollector.receiver;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import data.com.datacollector.network.BluetoothFileTransfer;
 import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
+import data.com.datacollector.utility.FileUtil;
 
+import static android.content.Context.ALARM_SERVICE;
+import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.START_SERVICES;
+import static data.com.datacollector.model.Const.STOP_SERVICES;
 import static data.com.datacollector.model.Const.TM_HTTP;
 import static data.com.datacollector.model.Const.TM_BT;
 import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
+import static data.com.datacollector.model.Const.TM_USB;
 
 /**
  * BroadcastReceiver of the applciation.
@@ -24,7 +34,10 @@ import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
 
 public class DataCollectReceiver extends BroadcastReceiver {
     private final String TAG = "DC_Receiver";
-    public static Thread uploadBTThread = null;
+    private static boolean isAsyncTaskRunning = false;//TODO: This static variable might need to be changed to another location or using shared preferences
+    private int retries = 6;//How many times are we going to retry to send the data
+    private int MINUTES_TO_WAIT = 3;
+
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
@@ -33,6 +46,22 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
         // intent received from alarm to save data
         if(intent.getBooleanExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, false)){
+
+            //Since there is no repeating allow while idle we have to manually create the alarm again
+            //once the previous one goes off. Therefore, we first need to validate that this received broadcast
+            //was not a BROADCAST_DATA_SAVE_DATA_AND_STOP broadcast message
+            if(!intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false)) {
+                //If we were triggered by a stop command there is no need to create another alarm
+                Log.d(TAG, "onReceive: Setting up the alarm again (repeat)");
+                Intent alarmIntent = new Intent(context.getApplicationContext(), DataCollectReceiver.class);
+                alarmIntent.putExtra(BROADCAST_DATA_SAVE_ALARM_RECEIVED, true);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                        context.getApplicationContext(), 234324243, alarmIntent, 0);
+                AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                        + ALARM_SENSOR_DATA_SAVE_INTERVAL, pendingIntent);
+            }
+
             Log.d(TAG, "onReceive:: BROADCAST_DATA_SAVE_ALARM_RECEIVED");
 
             if(!LeBLEService.isServiceRunning || !LeBLEService.mScanning)
@@ -70,6 +99,10 @@ public class DataCollectReceiver extends BroadcastReceiver {
             if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
                 Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED");
 
+                //Always turn of the datacollection process
+                Intent homeIntent = new Intent(STOP_SERVICES);
+                LocalBroadcastManager.getInstance(context).sendBroadcast(homeIntent);
+
                 if(SELECTED_TRANSFER_METHOD == TM_HTTP){
                     Log.d(TAG, "onReceive:: sending files through HTTP");
                     //Uploads the data to the HTTP server
@@ -79,7 +112,15 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
                 if(SELECTED_TRANSFER_METHOD == TM_BT){
                     Log.d(TAG, "onReceive:: sending files through Bluetooth");
-                    if(DataCollectReceiver.uploadBTThread == null) {
+                    if(DataCollectReceiver.isAsyncTaskRunning){
+                        Log.d(TAG, "onReceive: BT Asynctask transfer is already running");
+                        return;
+                    }else{
+                        Log.d(TAG, "onReceive: Attempt to send data through BT");
+                        uploadBTData(context, retries);
+                    }
+
+                    /*if(DataCollectReceiver.uploadBTThread == null) {
                         Log.d(TAG, "onReceive: Creating the thread");
                         DataCollectReceiver.uploadBTThread = new Thread(new uploadBTRunnable(context));
                     }
@@ -89,15 +130,18 @@ public class DataCollectReceiver extends BroadcastReceiver {
                         DataCollectReceiver.uploadBTThread.start();
                     }else{
                         Log.d(TAG, "onReceive: It was alive, do nothing");
-                    }
+                    }*/
+                }
+
+                if(SELECTED_TRANSFER_METHOD == TM_USB){
+                    Log.d(TAG, "onReceive: Files will be transfered by USB");
                 }
 
                 //uploadData(context);
             }else if (action.equals(Intent.ACTION_POWER_DISCONNECTED)){
-                Log.d(TAG, "onReceive:: ACTION_POWER_DISCONNECTED");
-                //TODO: Properly close any possible data sending thread
-                //Sometimes, the watch can be connected multiple times in a few seconds creating multiple threads and possible
-                //causing conflicts
+                //Always turn on the datacollection process
+                Intent homeIntent = new Intent(START_SERVICES);
+                LocalBroadcastManager.getInstance(context).sendBroadcast(homeIntent);
             }
         }
     }
@@ -114,9 +158,14 @@ public class DataCollectReceiver extends BroadcastReceiver {
      * call Bluetooth class to upload data
      * @param context : context of the caller.
      */
-    private void uploadBTData(Context context){
-        BluetoothFileTransfer btio = new BluetoothFileTransfer();
-        btio.sendData(context.getApplicationContext());
+    private void uploadBTData(Context context, int retries){
+        //BluetoothFileTransfer btio = new BluetoothFileTransfer();
+        //btio.sendData(context.getApplicationContext());
+        Log.d(TAG, "uploadBTData: Preparing asynctask");
+        DataCollectReceiver.isAsyncTaskRunning = true;
+        TransferBTData backgroundTransfer = new TransferBTData(context, retries);
+        backgroundTransfer.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        //backgroundTransfer.execute();
     }
 
     private class uploadRunnable implements Runnable {
@@ -127,11 +176,64 @@ public class DataCollectReceiver extends BroadcastReceiver {
         }
     }
 
-    private class uploadBTRunnable implements Runnable {
+    /*private class uploadBTRunnable implements Runnable {
         Context currentContext;
         uploadBTRunnable(Context context) {currentContext = context;}
         public void run() {
             uploadBTData(currentContext);
+        }
+    }*/
+
+    /**
+     * Transfers the collected data asynchronously
+     */
+    private class TransferBTData extends AsyncTask<Void, Integer, Boolean> {
+
+        private Context context;
+        private int retriesRemaining;
+
+        public TransferBTData(Context context, int retriesRemaining){
+            this.context = context;
+            this.retriesRemaining = retriesRemaining;
+        }
+
+        protected Boolean doInBackground(Void... lists) {
+            boolean success = false;
+            try {
+                BluetoothFileTransfer btio = new BluetoothFileTransfer();
+                Log.d(TAG, "doInBackground: About to send data");
+                btio.sendData(context.getApplicationContext());
+                Log.d(TAG, "doInBackground: Data is sent");
+                success = true;
+            }catch (Exception e){
+                Log.d(TAG, "doInBackground: Error: " + e.getMessage());
+                success = false;
+            }
+            return success;
+        }
+
+        protected void onPostExecute(Boolean success) {
+            Log.d(TAG, "onPostExecute:");
+            FileUtil.fileUploadInProgress = false;//Just to make sure we have set up this flag
+            if(!success){
+                Log.d(TAG, "onPostExecute: There was a problem with the BT transfer");
+                if((retriesRemaining-1) > 0){
+                    Log.d(TAG, "onPostExecute: Retrying");
+                    try {
+                        Thread.sleep(MINUTES_TO_WAIT*1000*60); //Wait a 10 minutes before retrying
+                        uploadBTData(context, retriesRemaining-1);
+                    } catch (InterruptedException e) {
+                        Log.e(TAG, "onPostExecute: Error while waiting to retry" );
+                        e.printStackTrace();
+                    }
+                }else{
+                    Log.d(TAG, "onPostExecute: No more retries remain");
+                    DataCollectReceiver.isAsyncTaskRunning = false;
+                }
+            }else{
+                Log.d(TAG, "onPostExecute: BT Data transfer successful");
+                DataCollectReceiver.isAsyncTaskRunning = false;
+            }
         }
     }
 
