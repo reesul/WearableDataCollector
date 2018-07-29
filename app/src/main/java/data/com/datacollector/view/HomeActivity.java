@@ -52,7 +52,7 @@ public class HomeActivity extends WearableActivity {
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
-    private static final int PERMISSION_READ_PHONE_STATE = 3;
+    private static final int PERMISSION_REQUEST_WRITE_EXTERNAL = 3;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
     private int confirmationsReceived = 0; //The number of confirmations received so far
     private int previousEvent = MotionEvent.ACTION_UP;
@@ -275,17 +275,18 @@ public class HomeActivity extends WearableActivity {
 
         if(this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("This app needs to sensor information");
+            builder.setTitle("This app needs permission to write data");
             builder.setMessage("Please grant write permission to external storage");
             builder.setPositiveButton(android.R.string.ok, null);
             builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
-                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_BODY_SENSOR);
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_WRITE_EXTERNAL);
                 }
             });
             builder.show();
         }
+
 
         //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
 
