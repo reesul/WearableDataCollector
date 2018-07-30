@@ -33,7 +33,7 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
  * The user has to define a model for the type of data that is being saved
  *
  * IMPORTANT NOTE FOR USAGE:
- * 1.- Any service that extends this class must be registered in the Manifest
+ * 1.- Any service that extends this class must be registered in the Manifest!
  * 2.- Any service that extends this class must be added to the REGISTERED_SENSOR_SERVICES constant
  * 3.- Any service that extends this class must have an attribute
  *                  public static boolean isServiceRunning = false;
@@ -43,11 +43,17 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
  *     ServiceStatusInterface
  * 4.- Any service that extends this class must implement the interface ServiceStatusInterface and
  *     return the attribute isServiceRunning in the method implementation
+ * 5.- This class uses a generic sensorData list of objects. You should feed this list in the main
+ *     method whenever you receive data from your sensor. To do so, you NEED to create your own model
+ *     class extending from BaseSensorDataModel and you MUST create a toString method since thats what
+ *     will be used for our saving method to save its data into files. Therefore, you will have to add
+ *     objects to the sensorData list of the type of the new class you created by extending the base class.
+ * 6.- The sensor's data will be saved in a file with the name of the class that inherited this class
  *
  */
 public abstract class BaseExternalSensorService extends Service implements ServiceStatusInterface {
 
-    public String TAG = "BaseExternalSensorServ";
+    public String TAG = "BaseExternalSensorService";
 
     //Holds the sensor information (Timestamp, value, etc) Anything defined by the model that the user
     //defines
@@ -188,6 +194,7 @@ public abstract class BaseExternalSensorService extends Service implements Servi
      * The actual implementation of the sensor connection. Here goes all the code that the developer
      * needs to connect with the external sensor and handle the incoming information. This mainCode
      * is the method that is called in the worker thread
+     * Here you should create the objects according to your model and add them to the sensorData list
      */
     public abstract void mainCode();
 
@@ -215,14 +222,6 @@ public abstract class BaseExternalSensorService extends Service implements Servi
         mServiceHandler.sendMessage(msg);
         Log.d(TAG, "onStartCommand: Sent start request to working thread");
     }
-
-    //TODO: Finish and test what would happen if overwritten
-    //TODO: Does overwritting one overwrites others?
-    public static synchronized void saveInFile(List<Object> sensorData){
-        //Saving format should contain the variable names that you want to save separated by comma.
-        //TODO: Implement
-    }
-
 
     /**
      * called every minute to save data initially stored in local object to File in memory.
@@ -255,7 +254,7 @@ public abstract class BaseExternalSensorService extends Service implements Servi
             BaseExternalSensorService service = serviceReference.get();
             if (service != null){
                 Log.d(service.TAG, "doInBackground: About to save files in background");
-                saveInFile((List<Object>)lists[0]);
+                FileUtil.baseExternalSensorSaveToFile(service, (List<Object>)lists[0]);
                 ((List<Object>)lists[0]).clear();
             }
 
