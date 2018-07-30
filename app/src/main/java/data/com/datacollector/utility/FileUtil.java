@@ -23,6 +23,7 @@ import java.util.zip.ZipOutputStream;
 import data.com.datacollector.model.BTDevice;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
+import data.com.datacollector.service.BaseExternalSensorService;
 
 import static data.com.datacollector.model.Const.DEVICE_ID;
 import static data.com.datacollector.model.Const.FILE_NAME_ACCELEROMETER;
@@ -722,6 +723,81 @@ public class FileUtil {
         }
         return 0;
     }
+
+
+    public synchronized static void baseExternalSensorSaveToFile(BaseExternalSensorService service, List<Object> sensorData){
+        //Here the toString method from each element on sensorData will return the format on which the row should be saved on the files
+        String fileName = service.getClass().getSimpleName() + ".txt";
+        String TAG = "Saving_Data_" + fileName;
+
+        if(fileUploadInProgress){
+            Log.d(TAG, "baseExternalSensorSaveToFile:: fileUploadInProgress, will save data in the next call");
+            return;
+        }
+
+        final File fileExternalS = getExternalSensorFile(service, fileName);
+
+        Log.d(TAG, "baseExternalSensorSaveToFile::  absolute path: fileExternalS: "+fileExternalS.getAbsolutePath());
+
+        boolean filePPGExists = fileExternalS.exists();
+        try {
+            if(!filePPGExists) {
+                fileExternalS.getParentFile().mkdirs();
+                fileExternalS.createNewFile();
+            }
+        }catch(Exception e){}
+
+        if(sensorData.size() == 0){
+            Log.d(TAG, "baseExternalSensorSaveToFile:: No external sensor data to save");
+            //check if file is empty, if so, delete it
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(fileExternalS));
+                if(br.readLine() == null)
+                    fileExternalS.delete();
+            } catch (Exception e) { Log.e(TAG, "baseExternalSensorSaveToFile:: Error",e); }
+        } else {
+
+            try {
+                FileOutputStream fos = new FileOutputStream(fileExternalS, true);
+
+                if(fileExternalS.length() == 0) {
+                    fos.write(DEVICE_ID.getBytes());
+                }
+                fos.write("\r\n".getBytes());
+                for (int i = 0; i < sensorData.size() ; i++) {
+
+                    fos.write((sensorData.get(i).toString()).getBytes());
+                    if (i != sensorData.size() - 1)
+                        fos.write("\r\n".getBytes());
+                }
+                fos.close();
+                Log.d(TAG, "baseExternalSensorSaveToFile:: External sensor data data saved successfully");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    /**
+     * creates if not already created, and sends to the caller PPG file
+     * @param context
+     * @return
+     */
+    public static File getExternalSensorFile(Context context, String fileName){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/filename.txt
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+
+        final File fileExternalS = new File(dir, fileName);
+        if(!fileExternalS.exists()) {
+            try {
+                fileExternalS.getParentFile().mkdirs();
+                fileExternalS.createNewFile();
+            }catch(IOException e){}
+        }
+        return fileExternalS;
+    }
+
 
 
 }
