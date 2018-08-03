@@ -33,8 +33,8 @@ public class Const {
 
     //Activities configuration
     public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
-    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"New step", "Arm argentometer", "Cycle", "Treadmill", "Elliptical", "Walking",
-            "Eating", "Sitting", "Standing", "Lying down", "Biking"}; //The default list of activities if not obtained from a server
+    //Note: The order here its important since their indexes is what its used to create the label IDs to be used for our modeling
+    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Standing arms down", "Standing arms middle", "Standing arms up", "Sitting arms down", "Sitting arms middle", "Sitting arms up",  "Lying arms sides", "Lying arms up", "Lying arms above head"};
 
     //Bluetooth file transfer
     //This is the SPP UUIS which is also set up on the server
