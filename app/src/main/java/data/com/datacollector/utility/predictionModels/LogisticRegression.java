@@ -84,7 +84,7 @@ public class LogisticRegression {
         this.labels = labels;
     }
 
-    public String predict(double features[]) throws Exception{
+    public double [] predict(double features[]) throws Exception{
         Log.d(TAG, "predict: ");
         if (coefficients == null){
             throw new Exception("Coefficients must be set before predictions are made");
@@ -97,8 +97,8 @@ public class LogisticRegression {
         double []probabilities = new double[LABELS_NUM];
         double probabilitiesTotal = 0;//For normalization
         double p = 0;
-        double higherProb = 0;
-        int higherLblId = 0;
+        //double higherProb = 0;
+        //int higherLblId = 0;
 
         for (int lblId = 0; lblId<LABELS_NUM; lblId++){
             //Checking the prob of every label
@@ -112,18 +112,19 @@ public class LogisticRegression {
         for (int lblId = 0; lblId<LABELS_NUM; lblId++){
             p = probabilities[lblId]/probabilitiesTotal;//Normalization
             probabilities[lblId] = p;
-            if(p>higherProb){
+            /*if(p>higherProb){
                 higherProb = p;
                 // The id of the label with the highest probability.
                 // Validations can be made here for feedback (Threshold, comparing against  others)
                 // For threshold its simply verify the probability is above a threshold
                 // While comparing, verify that there is no other probability from the other labels with a close value.
                 // If so, it might be used for the labeling suggestion on feedback?
-                higherLblId = lblId;
-            }
+                //higherLblId = lblId;
+            }*/
         }
 
-        return labels[higherLblId];
+        //return labels[higherLblId];
+        return probabilities;
     }
 
     double sigmoid(double x){

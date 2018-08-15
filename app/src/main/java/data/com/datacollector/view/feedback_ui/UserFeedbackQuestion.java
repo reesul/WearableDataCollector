@@ -21,9 +21,8 @@ import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 import data.com.datacollector.view.HomeActivity;
 
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_FEATURES;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTED_LABEL;
-import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_END_LBL;
-import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_START_LBL;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_QUESTION;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_VIBRATE;
 
@@ -37,8 +36,7 @@ public class UserFeedbackQuestion extends WearableActivity {
     private TextView txtQuestion;
     private String feedbackQuestion = "";
     private String predictedLabel = "";
-    private String predictionStartTs = "";
-    private String predictionEndTs = "";
+    private double features[];
     private Button btnYes;
     private Button btnNo;
     private NotificationManager notificationManager;
@@ -64,15 +62,12 @@ public class UserFeedbackQuestion extends WearableActivity {
         if(intent != null) {
             feedbackQuestion = intent.getStringExtra(EXTRA_FEEDBACK_QUESTION);
             predictedLabel = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTED_LABEL);
-            predictionStartTs = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTION_START_LBL);
-            predictionEndTs = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTION_END_LBL);
+            features = intent.getDoubleArrayExtra(EXTRA_FEEDBACK_FEATURES);
             if(intent.getBooleanExtra(EXTRA_FEEDBACK_VIBRATE,false)){
                 Notifications.vibrate(UserFeedbackQuestion.this.getApplicationContext());
             }
             Log.d(TAG, "onCreate: feedbackQuestion: " + feedbackQuestion);
             Log.d(TAG, "onCreate: predictedLabel: " + predictedLabel);
-            Log.d(TAG, "onCreate: predictionStartTs: " + predictionStartTs);
-            Log.d(TAG, "onCreate: predictionEndTs: " + predictionEndTs);
         }
 
         txtQuestion.setText(feedbackQuestion);
@@ -115,15 +110,14 @@ public class UserFeedbackQuestion extends WearableActivity {
         if(answer){
             Log.d(TAG, "saveAnswer: The predicted label was correct");
             String timestamp = Util.getTimeMillis(System.currentTimeMillis());
-            SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackQuestion.this);
-            saveData.execute(timestamp, predictedLabel, predictedLabel, predictionStartTs, predictionEndTs); //The predicted was correct so its the actual label
+            SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackQuestion.this, features);
+            saveData.execute(timestamp, predictedLabel, predictedLabel); //The predicted was correct so its the actual label
 
         }else{
             Log.d(TAG, "saveAnswer: The predicted label was incorrect, prompting for the correct one");
             Intent feedbackGt = new Intent(UserFeedbackQuestion.this.getApplicationContext(), UserFeedbackGroundTruth.class);
             feedbackGt.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
-            feedbackGt.putExtra(EXTRA_FEEDBACK_PREDICTION_START_LBL, predictionStartTs);
-            feedbackGt.putExtra(EXTRA_FEEDBACK_PREDICTION_END_LBL, predictionEndTs);
+            feedbackGt.putExtra(EXTRA_FEEDBACK_FEATURES, features);
             startActivity(feedbackGt);
             isInProgress = false;
             UserFeedbackQuestion.this.finish();
@@ -138,16 +132,17 @@ public class UserFeedbackQuestion extends WearableActivity {
     public static class SaveFeedbackDataInBackground extends AsyncTask<String, Integer, Boolean> {
 
         private WeakReference<UserFeedbackQuestion> currentActivity;
-
-        SaveFeedbackDataInBackground(UserFeedbackQuestion context){
+        private double features[];
+        SaveFeedbackDataInBackground(UserFeedbackQuestion context, double features[]){
             currentActivity = new WeakReference<>(context);
+            this.features = features;
         }
 
         protected Boolean doInBackground(String... lists) {
             UserFeedbackQuestion activityRef = currentActivity.get();
             if (activityRef == null || activityRef.isFinishing()) return false;
             try {
-                FileUtil.saveFeedbackDataToFile(activityRef, lists[0], lists[1], lists[2], lists[3], lists[4]);
+                FileUtil.saveFeedbackDataToFile(activityRef, lists[0], lists[1], lists[2], features);
                 Log.d(activityRef.TAG, "doInBackground: Feedback has been saved");
                 return true;
             }catch (IOException e){

@@ -34,6 +34,7 @@ public class Const {
     //Activities configuration
     public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
     //Note: The order here its important since their indexes is what its used to create the label IDs to be used for our modeling
+    //TODO: Add "None", label after proper retraining of the models.
     public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Standing arms down", "Standing arms middle", "Standing arms up", "Sitting arms down", "Sitting arms middle", "Sitting arms up",  "Lying arms sides", "Lying arms up", "Lying arms above head"};
 
     //Bluetooth file transfer
@@ -51,8 +52,7 @@ public class Const {
     //Feedback activity
     public static final String EXTRA_FEEDBACK_QUESTION = "EXTRA_FEEDBACK_QUESTION";
     public static final String EXTRA_FEEDBACK_PREDICTED_LABEL = "EXTRA_FEEDBACK_PREDICTED_LABEL";
-    public static final String EXTRA_FEEDBACK_PREDICTION_START_LBL = "EXTRA_FEEDBACK_PREDICTION_START_LBL";
-    public static final String EXTRA_FEEDBACK_PREDICTION_END_LBL = "EXTRA_FEEDBACK_PREDICTION_END_LBL";
+    public static final String EXTRA_FEEDBACK_FEATURES = "EXTRA_FEEDBACK_FEATURES";
     public static final String EXTRA_FEEDBACK_VIBRATE = "EXTRA_FEEDBACK_VIBRATE";
 
     //Pending intent IDs

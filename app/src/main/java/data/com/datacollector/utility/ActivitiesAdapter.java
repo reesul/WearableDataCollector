@@ -38,8 +38,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
     private final String TAG = "DC_ActivitiesAdapter";
     private String type;
     private String predictedLabel = "";
-    private String predictionStartLbl = "";
-    private String predictionEndLbl = "";
+    private double features[];
 
     // Provide a reference to the views for each data item
     public static class ViewHolder extends WearableRecyclerView.ViewHolder {
@@ -57,12 +56,11 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         this.activitiesList = activitiesList;
     }
 
-    public ActivitiesAdapter(String[] activitiesList, String predictedLabel, String predictionStartLbl, String predictionEndLbl) {
+    public ActivitiesAdapter(String[] activitiesList, String predictedLabel, double features[]) {
         this.type = "FEEDBACK";
         this.activitiesList = activitiesList;
         this.predictedLabel = predictedLabel;
-        this.predictionStartLbl = predictionStartLbl;
-        this.predictionEndLbl = predictionEndLbl;
+        this.features = features;
     }
 
     // Create new views (invoked by the layout manager)
@@ -156,8 +154,8 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
                     Log.d(TAG, "Saving feedback on background: " + activitiesList[listItemPosition]);
                     //Save information to file
                     String timestamp = Util.getTimeMillis(System.currentTimeMillis());
-                    SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(context, TAG);
-                    saveData.execute(timestamp, predictedLabel, activitiesList[listItemPosition], predictionStartLbl, predictionEndLbl); //The predicted was correct so its the actual label
+                    SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(context, features, TAG);
+                    saveData.execute(timestamp, predictedLabel, activitiesList[listItemPosition]); //The predicted was correct so its the actual label
                 }
             });
 
@@ -214,9 +212,11 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
 
         private WeakReference<Context> ctx;
         private String TAG;
+        private double features[];
 
-        SaveFeedbackDataInBackground(Context context, String TAG){
+        SaveFeedbackDataInBackground(Context context, double features[], String TAG){
             ctx = new WeakReference<>(context);
+            this.features = features;
             this.TAG = TAG;
         }
 
@@ -224,7 +224,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
             Context context = ctx.get();
             if (context == null) return false;
             try {
-                FileUtil.saveFeedbackDataToFile(context, lists[0], lists[1], lists[2], lists[3], lists[4]);
+                FileUtil.saveFeedbackDataToFile(context, lists[0], lists[1], lists[2], features);
                 Log.d(TAG, "doInBackground: Feedback has been saved");
                 return true;
             }catch (IOException e){

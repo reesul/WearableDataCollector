@@ -25,9 +25,8 @@ import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.AVAILABLE_LABELS_TO_PREDICT;
 import static data.com.datacollector.model.Const.DISMISS_FEEDBACK_QUESTION_ACTIVITY;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_FEATURES;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTED_LABEL;
-import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_END_LBL;
-import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_START_LBL;
 import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.SET_LOADING_USER_FEEDBACK_QUESTION;
 
@@ -36,8 +35,7 @@ public class UserFeedbackGroundTruth extends WearableActivity {
     private String TAG = "UserFeedbackGroundTruth";
     private TextView mTextView;
     private String predictedLabel = "";
-    private String predictionStartLbl = "";
-    private String predictionEndLbl = "";
+    private double features[];
     private ActivitiesAdapter adapterList;
     private WearableRecyclerView recLabelsList;
     private FrameLayout progressBar;
@@ -79,8 +77,7 @@ public class UserFeedbackGroundTruth extends WearableActivity {
         Intent intent = getIntent();
         if(intent != null) {
             predictedLabel = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTED_LABEL);
-            predictionStartLbl = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTION_START_LBL);
-            predictionEndLbl = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTION_END_LBL);
+            features = intent.getDoubleArrayExtra(EXTRA_FEEDBACK_FEATURES);
         }
 
         //Registering a local broadcast receiver to listen for data save confirmation
@@ -132,7 +129,7 @@ public class UserFeedbackGroundTruth extends WearableActivity {
         recLabelsList.addItemDecoration(dividerItemDecoration);
 
         //Set up recycler view adapter with the obtained list
-        adapterList = new ActivitiesAdapter(AVAILABLE_LABELS_TO_PREDICT, predictedLabel, predictionStartLbl, predictionEndLbl);
+        adapterList = new ActivitiesAdapter(AVAILABLE_LABELS_TO_PREDICT, predictedLabel, features);
         recLabelsList.setAdapter(adapterList);
 
         //We intercept multiple touches and prevent any other after the first one arrives

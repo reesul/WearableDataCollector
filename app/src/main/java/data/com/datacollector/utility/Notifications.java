@@ -25,9 +25,8 @@ import data.com.datacollector.view.feedback_ui.UserFeedbackQuestion;
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
 import static android.content.Context.NOTIFICATION_SERVICE;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_FEATURES;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTED_LABEL;
-import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_END_LBL;
-import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTION_START_LBL;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_QUESTION;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_VIBRATE;
 
@@ -107,18 +106,18 @@ public class Notifications {
     /**
      * This should be used with the method that sends the feedbacknotification
      * @param context
-     * @param question
-     * @param predictedLabel
-     * @return
+     * @param question The question to be asked
+     * @param predictedLabel The label that its believe to be wrong
+     * @param features The features that were used to compute the label
+     * @return Notification
      */
-    public static Notification getFeedbackNotification(Context context, String question, String predictedLabel, String predictionStartTs, String predictionEndTs) {
+    public static Notification getFeedbackNotification(Context context, String question, String predictedLabel, double features[]) {
 
         // Build intent for notification content
         Intent viewIntent = new Intent(context, UserFeedbackQuestion.class);
         viewIntent.putExtra(EXTRA_FEEDBACK_QUESTION, question);
         viewIntent.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
-        viewIntent.putExtra(EXTRA_FEEDBACK_PREDICTION_START_LBL, predictionStartTs);
-        viewIntent.putExtra(EXTRA_FEEDBACK_PREDICTION_END_LBL, predictionEndTs);
+        viewIntent.putExtra(EXTRA_FEEDBACK_FEATURES, features);
 
         viewIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); //Bring activity to top
 
@@ -159,10 +158,11 @@ public class Notifications {
      *  2. the user cannot be in the middle of a labeling process
      *  3. the user cannot be in the middle of another feedback event
      * @param context
-     * @param question
-     * @param predictedLabel
+     * @param question The question to be asked
+     * @param predictedLabel The label that its believe to be wrong
+     * @param features The features that were used to compute the label
      */
-    public static void requestFeedback(Context context, String question, String predictedLabel, String predictionStartTs, String predictionEndTs) {
+    public static void requestFeedback(Context context, String question, String predictedLabel, double features[]) {
         //TODO: Verify what happens on long questions
 
         ActivityManager.RunningAppProcessInfo appProcessInfo = new ActivityManager.RunningAppProcessInfo();
@@ -179,8 +179,7 @@ public class Notifications {
                 Intent intent = new Intent(context, UserFeedbackQuestion.class);
                 intent.putExtra(EXTRA_FEEDBACK_QUESTION, question);
                 intent.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
-                intent.putExtra(EXTRA_FEEDBACK_PREDICTION_START_LBL, predictionStartTs);
-                intent.putExtra(EXTRA_FEEDBACK_PREDICTION_END_LBL, predictionEndTs);
+                intent.putExtra(EXTRA_FEEDBACK_FEATURES, features);
                 intent.putExtra(EXTRA_FEEDBACK_VIBRATE, true);
                 context.startActivity(intent);
                 //vibrate(context);//TODO: Review this
@@ -188,7 +187,7 @@ public class Notifications {
             }else{
                 Log.d(TAG, "requestFeedback: The app is not in the foreground, send notification");
                 NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.notify(Notifications.NOTIFICATION_ID_FEEDBACK, Notifications.getFeedbackNotification(context.getApplicationContext(),question, predictedLabel, predictionStartTs, predictionEndTs));
+                notificationManager.notify(Notifications.NOTIFICATION_ID_FEEDBACK, Notifications.getFeedbackNotification(context.getApplicationContext(),question, predictedLabel, features));
             }
         }else{
             //Do nothing, the services are not running OR the labeling is in progress

@@ -9,6 +9,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -22,6 +23,7 @@ import android.util.Log;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import data.com.datacollector.interfaces.ServiceStatusInterface;
 import data.com.datacollector.model.Const;
@@ -30,9 +32,12 @@ import data.com.datacollector.model.SensorData;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
+import data.com.datacollector.utility.predictionModels.LogisticRegression;
 import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.DEFAULT_ACTIVITIES_LIST_TEXT;
+import static data.com.datacollector.model.Const.DEVICE_ID;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
 
@@ -72,6 +77,87 @@ public class SensorService extends Service implements SensorEventListener, Servi
 
     //We force the app to stay up so we can get sensor data
     private PowerManager.WakeLock mWakeLock = null;
+
+    //Handler that periodically runs code for predictions
+    private Handler predictionHandler = new Handler();
+    //TODO: Verify, if this drains battery, then we can do a check on the sensor average values, if it changes a lot then trigger it, if not do not.
+    private int PREDICTION_INTERVAL = 5000; //Milliseconds between each prediction
+    private LogisticRegression logisticRegression = null;
+    private int FEATURES = 3;
+    private int LABELS = 9;
+    private int WINDOW_SIZE = 2; //In seconds
+    private int AVERAGE_SAMPLING_RATE = 25; //Number of samples being sampled at every second
+    private double THRESHOLD = 0.6;
+    private Random r = new Random();
+    private int percentajeOfTimesForRandomConfirmation = 10;
+
+    /**
+     * Recurrent prediction of activity every given time
+     */
+    private final Runnable predictionRunnable = new Runnable(){//Thread that will run the prediction
+        public void run(){
+            if(logisticRegression == null){
+                Log.d(TAG, "run: There was an error and the logistic regression model is not set, cancelling further predictions");
+            } else {
+                //Make the prediction and determine if we need feedback
+
+                //Get snapshot of data (Previous window)
+                try {
+                    int samplesToUse = WINDOW_SIZE * AVERAGE_SAMPLING_RATE;
+                    if(listAccelData.size() > samplesToUse ) {
+
+                        List<SensorData> windowData = listAccelData.subList(listAccelData.size()-samplesToUse, listAccelData.size());
+
+                        //TODO: Get the three or four highest values and its probability. From that, if the prob of the highest is below a TH then ask for feedback. We could use the other two to show
+                        //TODO: only a few of the labels (the closer)
+                        //TODO: Use two models. With and without context.
+                        //TODO: Think how to store the features (context / no-context) in files
+                        double features[] = logisticRegression.getFeatures(windowData);
+                        double prob[] = logisticRegression.predict(features);
+                        double higherProb = 0;
+                        int higherLblId = 0;
+                        for (int lblId = 0; lblId<LABELS; lblId++){
+                            if(prob[lblId]>higherProb){
+                                higherProb = prob[lblId];
+                                higherLblId = lblId;
+                            }
+                        }
+                        Log.d(TAG, "run: PROBABILITY: " + higherProb);
+                        Log.d(TAG, "run: PREDICTED:   " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId]);
+
+                        //Verifying threshold
+                        if(higherProb<THRESHOLD){
+                            //Request feedback
+                            //TODO: Change this to save the features
+                            //TODO: What happens if multiple notifications are overlapped?
+                            Notifications.requestFeedback(SensorService.this,"Are you " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId] ,DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId],features);
+                            //TODO: Stop predictions until this information is submitted
+                            //TODO: Set up a time limit for the feedback response (If after X seconds no response is given, ignore this feedback session).
+                            //TODO: Add NONE class (none of the postures)
+                        }else{
+                            //Every once in a while prompt for confirmation. Lets say, with 10% of probability we will ask for feedback even if we are above the threshold
+                            int randN = r.nextInt(99)+1;
+                            if(randN<percentajeOfTimesForRandomConfirmation){
+                                Log.d(TAG, "run: Random confirmation needed ");
+                                Notifications.requestFeedback(SensorService.this,"Are you " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId] ,DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId],features);
+                            }
+
+                        }
+
+                    }else{
+                        Log.d(TAG, "run: Not enough data so prediction is not made");
+                    }
+                } catch (Exception e) {
+                    Log.d(TAG, "run: There was an execption so the prediction could not be made: "+e.getMessage());
+                    e.printStackTrace();
+                }
+
+                //TODO: Request feedback if needed
+                predictionHandler.postDelayed(predictionRunnable, PREDICTION_INTERVAL);
+            }
+        }
+    };
+
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -115,6 +201,9 @@ public class SensorService extends Service implements SensorEventListener, Servi
         HandlerThread thread = new HandlerThread("SensorServiceThread", Process.THREAD_PRIORITY_BACKGROUND);
         thread.start();
         Log.d(TAG, "onCreate: Finished creating thread");
+
+        Log.d(TAG, "onCreate: Creating predictive model");
+        initLRModel();
 
         // Get the HandlerThread's Looper and use it for our Handler
         mServiceLooper = thread.getLooper();
@@ -166,6 +255,27 @@ public class SensorService extends Service implements SensorEventListener, Servi
         return START_STICKY;
     }
 
+    public void startPredictionTask() {
+        predictionRunnable.run();
+    }
+
+    public void stopPredictionTask() {
+        predictionHandler.removeCallbacks(predictionRunnable);
+    }
+
+    public void initLRModel(){
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/DCmodels";
+        logisticRegression = new LogisticRegression(FEATURES, LABELS);
+        try {
+            logisticRegression.setCoefficients(path, "latest.txt");
+            logisticRegression.setLabels(DEFAULT_ACTIVITIES_LIST_TEXT);
+        } catch (Exception e) {
+            Log.d(TAG, "onCreate: There was an error setting up the logisticRegression model: " + e.getMessage());
+            logisticRegression = null;
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Starts our service and creates the notification. This method can be called when the user
      * starts the service on when it is started by the system
@@ -175,6 +285,10 @@ public class SensorService extends Service implements SensorEventListener, Servi
     public void startService(int startId) {
         startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
         sendMessageToWorkerThread(startId);
+        startPredictionTask();
+        if(logisticRegression == null){
+            initLRModel();
+        }
     }
 
     /**
@@ -417,6 +531,8 @@ public class SensorService extends Service implements SensorEventListener, Servi
         sensorManager.unregisterListener(this);
         isServiceRunning = false;
         mWakeLock.release();
+        stopPredictionTask();
+        Log.d(TAG, "onDestroy: Finished");
         //alarmManager.cancel(pendingIntent);   //alarm manager now in BLE service
     }
 
