@@ -236,8 +236,16 @@ public class BluetoothFileTransfer {
         public void run() {
             try {
                 Log.d(TAG, "InputStreamThread: Waiting for data...");
-                final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC");
-                final File fileModel = new File(dir, "latest_model.txt");
+                final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DCmodels");
+                final File fileModel = new File(dir, "latest.txt");
+
+                if(!fileModel.exists()) {
+                    try {
+                        fileModel.getParentFile().mkdirs();
+                        fileModel.createNewFile();
+                    }catch(IOException e){}
+                }
+
                 FileOutputStream fos = new FileOutputStream(fileModel, false); //Overwrite the file
 
                 byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
