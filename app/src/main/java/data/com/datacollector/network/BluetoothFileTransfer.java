@@ -236,7 +236,9 @@ public class BluetoothFileTransfer {
         public void run() {
             try {
                 Log.d(TAG, "InputStreamThread: Waiting for data...");
-                final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC");
+                final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DCmodels");
+
+                //TODO: If directory does not exist, create it and add this changes to temple-ui branch
                 final File fileModel = new File(dir, "latest_model.txt");
                 FileOutputStream fos = new FileOutputStream(fileModel, false); //Overwrite the file
 

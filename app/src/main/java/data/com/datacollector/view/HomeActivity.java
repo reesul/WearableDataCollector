@@ -9,36 +9,31 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.SystemClock;
+import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.widget.DividerItemDecoration;
-import android.support.v7.widget.RecyclerView;
-import android.support.wear.widget.WearableLinearLayoutManager;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.support.wear.widget.WearableRecyclerView;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Locale;
+import java.lang.ref.WeakReference;
 
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
@@ -49,7 +44,6 @@ import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
 import data.com.datacollector.utility.FileUtil;
-import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
@@ -66,7 +60,8 @@ public class HomeActivity extends WearableActivity {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
     private Button btnRecord;
-//    private WearableRecyclerView recActivitiesList;
+    private FrameLayout btnStopRecord;
+    //    private WearableRecyclerView recActivitiesList;
     private FrameLayout progressBar;
 
     //Audio recording
@@ -85,13 +80,67 @@ public class HomeActivity extends WearableActivity {
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
     private static final int PERMISSION_REQUEST_WRITE_EXTERNAL = 3;
-    private static final int PERMISSION_REQUEST_RECORD_AUDIO= 4;
+    private static final int PERMISSION_REQUEST_RECORD_AUDIO = 4;
+    private static final int PERMISSION_REQUEST_GPS = 5;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
+    private final int GPS_UPDATE_EXPIRATION = 1000*60*10; //10 minutes
     private int confirmationsReceived = 0; //The number of confirmations received so far
     private int previousEvent = MotionEvent.ACTION_UP;
 
     private ActivitiesList activities;
     private ActivitiesAdapter adapterList;
+    private boolean obtainingGpsLocation = false;
+    private long gpsElapsedTime = 0;
+
+    // Acquire a reference to the system Location Manager
+    private LocationManager locationManager = null;
+
+    Handler gpsExpirationHandler = null;
+
+    // Define a listener that responds to location updates
+    LocationListener locationListener = new LocationListener() {
+
+        //Controls the minimum number of updates to consider a valid location
+        int updatesControl = 0;
+
+        // Called when a new location its available. After the location its requested,
+        // this might take from a few seconds and up to a few minutes.
+        public void onLocationChanged(Location location) {
+            Log.d(TAG, "location onLocationChanged: " + location.toString());
+            updatesControl++;
+            if(updatesControl >= 3){//We wait for 3 updates and keep the last one
+
+                //Removes the handler that automatically stops the updates after a threshold of time
+                if(gpsExpirationHandler!=null){
+                    gpsExpirationHandler.removeCallbacks(gpsRunnable);
+                    Log.d(TAG, "location onLocationChanged: removed callback for expiration");
+                }
+                updatesControl = 0;
+
+                //Stops this updates listener
+                locationManager.removeUpdates(this);
+                obtainingGpsLocation = false;
+                String timestamp = Util.getTimeMillis(System.currentTimeMillis());
+                gpsElapsedTime = System.currentTimeMillis() - gpsElapsedTime;
+
+                //Saving the GPS coords
+                SaveGpsDataInBackground asyncTask = new SaveGpsDataInBackground(HomeActivity.this, timestamp, TAG, gpsElapsedTime);
+                asyncTask.execute(String.valueOf(location.getLatitude()), String.valueOf(location.getLongitude()));
+            }
+        }
+
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.d(TAG, "location onStatusChanged: ");
+        }
+
+        public void onProviderEnabled(String provider) {
+            Log.d(TAG, "location onProviderEnabled: ");
+        }
+
+        public void onProviderDisabled(String provider) {
+            Log.d(TAG, "location onProviderDisabled: ");
+        }
+    };
 
     private BroadcastReceiver mLocalReceiver = new BroadcastReceiver() {
         @Override
@@ -100,12 +149,12 @@ public class HomeActivity extends WearableActivity {
             String action = intent.getAction();
 
             //Action that tells us to stop our services
-            if(action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)){
+            if (action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)) {
 
                 Log.d(TAG, "onReceive: Received BROADCAST_DATA_SAVE_DATA_AND_STOP confirmation");
                 confirmationsReceived++;
 
-                if(confirmationsReceived >= CONFIRMATIONS_EXPECTED){
+                if (confirmationsReceived >= CONFIRMATIONS_EXPECTED) {
                     Log.d(TAG, "onReceive: Safe to restart, everything has been saved");
                     //It is safe to stop the activity
                     confirmationsReceived = 0;
@@ -115,20 +164,20 @@ public class HomeActivity extends WearableActivity {
                     stopBgService();
                 }
 
-            } else if(action.equals(SET_LOADING_HOME_ACTIVITY)) {
+            } else if (action.equals(SET_LOADING_HOME_ACTIVITY)) {
                 Log.d(TAG, "onReceive: Received SET_LOADING_HOME_ACTIVITY confirmation");
-                setLoading(intent.getBooleanExtra(SET_LOADING,false));
-            } else if(action.equals(START_SERVICES)){
+                setLoading(intent.getBooleanExtra(SET_LOADING, false));
+            } else if (action.equals(START_SERVICES)) {
                 Log.d(TAG, "onReceive: Requested to start services");
                 //NOTE: It is safer to not use handleStartStopBtnClick(); because this might turn off the device if is on, we only want to start it.
-                if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
+                if (!LeBLEService.isServiceRunning || !SensorService.isServiceRunning) {
                     startBgService();
                     confirmationsReceived = 0;
                     btnStartStop.setText("STOP");
                 }
-            } else if(action.equals(STOP_SERVICES)){
+            } else if (action.equals(STOP_SERVICES)) {
                 Log.d(TAG, "onReceive: Requested to stop services");
-                if(LeBLEService.isServiceRunning && SensorService.isServiceRunning) {
+                if (LeBLEService.isServiceRunning && SensorService.isServiceRunning) {
                     requestSaveBeforeStop();
                 }
             }
@@ -157,24 +206,27 @@ public class HomeActivity extends WearableActivity {
         requestPermission();
 
         //This might be accomplished while the permission is being granted
-        if(this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+        if (this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             initAudioRecord();
         }
 
         initView();
 
+        //Location manager its initialized for GPS data collection
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
         setAmbientEnabled();
     }
 
-    public void initAudioRecord(){
+    public void initAudioRecord() {
         audioRecord = new AudioRecord(AUDIO_SOURCE, SAMPLE_RATE, CHANNEL_MASK, ENCODING, bufferSize);
     }
 
     /**
      * initialize all views related to the application.
      */
-    private void initView(){
+    private void initView() {
 
 
         //initialize the button that starts and stop the service
@@ -186,9 +238,11 @@ public class HomeActivity extends WearableActivity {
             }
         });
         btnRecord = (ToggleButton) findViewById(R.id.btnRecord);
+        btnStopRecord = (FrameLayout) findViewById(R.id.btnStopRecord);
         setBtnStartStopText();
         setBtnStartStopRecordText();
 
+        //The list of activities is hidden for this experiment
 
         //initialize the list that holds all of the labels
 //        recActivitiesList =  findViewById((R.id.recycler_activities));
@@ -237,15 +291,15 @@ public class HomeActivity extends WearableActivity {
      * Depending on current status of running service, update text on the button
      * to help the user understand what action can be performed currently.
      */
-    private void setBtnStartStopText(){
-        if(btnStartStop == null)
+    private void setBtnStartStopText() {
+        if (btnStartStop == null)
             return;
 
         //TODO: reenable check for sensor service (IMU) once BLE working
-        if(LeBLEService.isServiceRunning ||  SensorService.isServiceRunning){
+        if (LeBLEService.isServiceRunning || SensorService.isServiceRunning) {
             btnStartStop.setText("STOP");
             //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
-        }else{
+        } else {
             btnStartStop.setText("START");
             //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         }
@@ -255,13 +309,13 @@ public class HomeActivity extends WearableActivity {
 
     }
 
-    private void setBtnStartStopRecordText(){
-        if(btnRecord == null)
+    private void setBtnStartStopRecordText() {
+        if (btnRecord == null)
             return;
 
-        if(isAudioRecording){
+        if (isAudioRecording) {
             btnRecord.setText("STOP RECORDING");
-        }else{
+        } else {
             btnRecord.setText("START RECORDING");
         }
     }
@@ -270,15 +324,15 @@ public class HomeActivity extends WearableActivity {
      * Called when Start/Stop button is clicked to trigger start/stop of service
      * for data collection
      */
-    private void handleStartStopBtnClick(){
+    private void handleStartStopBtnClick() {
         //TODO: reenable check for sensor service (IMU) once BLE working
 
-        if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
+        if (!LeBLEService.isServiceRunning || !SensorService.isServiceRunning) {
             startBgService();
             confirmationsReceived = 0;
             btnStartStop.setText("STOP");
             //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
-        }else{
+        } else {
             requestSaveBeforeStop();
         }
     }
@@ -286,21 +340,21 @@ public class HomeActivity extends WearableActivity {
     /**
      * Start Sensor Service to collect data related to Acceleromter, Gyroscope and Heart Rate
      */
-    private void startSensorService(){
+    private void startSensorService() {
         startForegroundService(new Intent(this, SensorService.class));
     }
 
     /**
      * start BLe data collection service in the background.
      */
-    private void startBLEService(){
+    private void startBLEService() {
         startForegroundService(new Intent(this, LeBLEService.class));
     }
 
     /**
      * Request permission for COARSE_LOCATION
      */
-    private void requestPermission(){
+    private void requestPermission() {
         if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("This app needs location access");
@@ -315,7 +369,7 @@ public class HomeActivity extends WearableActivity {
             builder.show();
         }
 
-        if(this.checkSelfPermission(Manifest.permission.BODY_SENSORS) != PackageManager.PERMISSION_GRANTED) {
+        if (this.checkSelfPermission(Manifest.permission.BODY_SENSORS) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("This app needs sensor access ");
             builder.setMessage("Please grant sensor access so this app can detect Heart rate using PPG");
@@ -329,7 +383,7 @@ public class HomeActivity extends WearableActivity {
             builder.show();
         }
 
-        if(this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        if (this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("This app needs permission to write data");
             builder.setMessage("Please grant write permission to external storage");
@@ -343,7 +397,7 @@ public class HomeActivity extends WearableActivity {
             builder.show();
         }
 
-        if(this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("This app needs permission to record");
             builder.setMessage("Please grant recording permission");
@@ -357,24 +411,42 @@ public class HomeActivity extends WearableActivity {
             builder.show();
         }
 
+        //Requesting GPS permission
+        if (this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs permission to get GPS location");
+            builder.setMessage("Please grant GPS permission");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_GPS);
+                }
+            });
+            builder.show();
+        }
+
         //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
 
     }
 
-    public void onClickRecording(View v){
+    public void onClickRecording(View v) {
 
-        if(audioRecord == null){
+        if (audioRecord == null) {
             Log.d(TAG, "onClickRecording: Setting up audioRecord");
             initAudioRecord();
         }
 
-        if(audioRecord == null){
+        if (audioRecord == null) {
             Toast.makeText(this, "Error. Close the app and try again", Toast.LENGTH_SHORT).show();
-        }else{
-            if(!isAudioRecording){
+        } else {
+            if (!isAudioRecording) {
                 Log.d(TAG, "onClickRecording: Starting audio recording");
 
-                try{
+                //GPS location its only obtained when the user starts a recording episode
+                getGpsLocation();
+
+                try {
 
                     setLoading(true);
                     String timestamp = Util.getTimeMillisForFileName(System.currentTimeMillis());
@@ -391,7 +463,7 @@ public class HomeActivity extends WearableActivity {
                             try {
                                 while (isAudioRecording) {
                                     int readBufferSize = audioRecord.read(audioBuffer, 0, bufferSize);
-                                    Log.d(TAG, "run: READING");
+                                    //Log.d(TAG, "run: READING");
                                     for (int i = 0; i < readBufferSize; i++) {
                                         wavOut.write(audioBuffer[i]);
                                     }
@@ -412,6 +484,7 @@ public class HomeActivity extends WearableActivity {
                     btnRecord.setText("STOP RECORDING");
                     btnRecord.setEnabled(true);
                     setLoading(false);
+                    btnStopRecord.setVisibility(View.VISIBLE); //Showing the bigger button
                 }catch (IOException e){
                     Toast.makeText(this, "Error. Close the app and try again", Toast.LENGTH_SHORT).show();
                     stopRecording();
@@ -439,6 +512,7 @@ public class HomeActivity extends WearableActivity {
         btnRecord.setText("START RECORDING");
         btnRecord.setEnabled(true);
         setLoading(false);
+        btnStopRecord.setVisibility(View.GONE);
         Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show();
     }
 
@@ -525,6 +599,78 @@ public class HomeActivity extends WearableActivity {
             btnRecord.setVisibility(View.VISIBLE);
 //            recActivitiesList.setVisibility(View.VISIBLE);
             progressBar.setVisibility(View.GONE);
+        }
+    }
+
+    //This runnable its the one in charge of stopping the GPS after a threshold of time if no data
+    //has yet been detected
+    private Runnable gpsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "location: gps updates expired");
+            locationManager.removeUpdates(locationListener);
+            String timestamp = Util.getTimeMillis(System.currentTimeMillis());
+            SaveGpsDataInBackground asyncTask = new SaveGpsDataInBackground(HomeActivity.this, timestamp, TAG, GPS_UPDATE_EXPIRATION);
+            asyncTask.execute("", "");
+            obtainingGpsLocation = false;
+        }
+    };
+
+    //Obtains the GPS information
+    public void getGpsLocation(){
+        if(!obtainingGpsLocation){
+            Log.d(TAG, "getGpsLocation: Obtaining GPS");
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "location: permission not granted!");
+            }else{
+                Log.d(TAG, "location: Permission granted");
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+
+                //Setting up the handler that will stop this GPS after a few minutes
+                gpsExpirationHandler = new Handler();
+                gpsExpirationHandler.postDelayed(gpsRunnable, GPS_UPDATE_EXPIRATION); //Stop after GPS_UPDATE_EXPIRATION minutes
+                obtainingGpsLocation = true;
+                gpsElapsedTime = System.currentTimeMillis();
+            }
+
+        }else{
+            Log.d(TAG, "getGpsLocation: GPS obtention in progress, skipping this new request");
+        }
+    }
+
+    //Saving GPS data asynctask
+    public static class SaveGpsDataInBackground extends AsyncTask<String, Integer, Boolean> {
+
+        private WeakReference<HomeActivity> ctx;
+        private String TAG;
+        String timestamp;
+        long gpsElapsedTime;
+
+        SaveGpsDataInBackground(HomeActivity context, String timestamp, String TAG, long gpsElapsedTime){
+            ctx = new WeakReference<>(context);
+            this.timestamp = timestamp;
+            this.TAG = TAG;
+            this.gpsElapsedTime = gpsElapsedTime;
+        }
+
+        protected Boolean doInBackground(String... lists) {
+            HomeActivity context = ctx.get();
+            if (context == null) return false;
+            FileUtil.saveGpsDataToFile(context, timestamp, lists[0], lists[1], gpsElapsedTime);
+            return true;
+        }
+
+        protected void onPostExecute(Boolean success) {
+            HomeActivity context = ctx.get();
+            if (context != null ) {
+                Log.d(TAG, "onPostExecute: Saved the files asynchronously");
+                if (success) {
+                    Log.d(TAG, "onPostExecute: Location saved");
+                } else {
+                    Log.d(TAG, "onPostExecute: Location was not successfully saved. Try again");
+                    context.getGpsLocation();
+                }
+            }
         }
     }
 

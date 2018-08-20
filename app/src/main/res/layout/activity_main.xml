@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:background="@color/dark_grey"
     android:padding="@dimen/box_inset_layout_padding"
-    tools:context=".view.CurrentLabelActivity"
+    tools:context=".view.HomeActivity"
     tools:deviceIds="wear">
     <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
@@ -30,8 +30,6 @@
             android:elevation="1dp"
             android:visibility="gone"
             android:scrollbars="vertical" />
-
-
 
         <Button
             android:id="@+id/btn_start"
@@ -65,8 +63,31 @@
                 android:layout_gravity="center" />
         </FrameLayout>
 
+        <FrameLayout
+            android:id="@+id/btnStopRecord"
+            android:animateLayoutChanges="true"
+            android:visibility="gone"
+            android:alpha="1"
+            android:background="#000000"
+            android:layout_width="match_parent"
+            android:elevation="10dp"
+            android:layout_height="match_parent">
+
+            <Button
+                android:id="@+id/btnStopRecord2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:textAppearance="@android:style/TextAppearance.DeviceDefault.Medium"
+                android:textStyle="bold"
+                android:drawableBottom="@drawable/ic_mic_stop"
+                android:onClick="onClickRecording"
+                android:text="STOP RECORDING" />
+        </FrameLayout>
+
         <ToggleButton
             android:id="@+id/btnRecord"
+            android:drawableBottom="@drawable/ic_mic_start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"

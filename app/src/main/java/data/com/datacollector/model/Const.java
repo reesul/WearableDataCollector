@@ -58,6 +58,7 @@ public class Const {
     public static final String FILE_NAME_PPG = "ppg_data.txt";
     public static final String FILE_NAME_ACTIVITY = "activity_data.txt";
     public static final String FILE_NAME_FEEDBACK = "feedback_data.txt";
+    public static final String FILE_NAME_GPS = "gps_data.txt";
 
     //User feedback
     public static final String[] AVAILABLE_LABELS_TO_PREDICT = DEFAULT_ACTIVITIES_LIST_TEXT; //Change this if needed. Remember that we are not only predicting activities. Also postures for example

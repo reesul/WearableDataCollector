@@ -33,6 +33,7 @@ import static data.com.datacollector.model.Const.DEVICE_ID;
 import static data.com.datacollector.model.Const.FILE_NAME_ACCELEROMETER;
 import static data.com.datacollector.model.Const.FILE_NAME_BLE;
 import static data.com.datacollector.model.Const.FILE_NAME_FEEDBACK;
+import static data.com.datacollector.model.Const.FILE_NAME_GPS;
 import static data.com.datacollector.model.Const.FILE_NAME_GYROSCOPE;
 import static data.com.datacollector.model.Const.FILE_NAME_PPG;
 import static data.com.datacollector.model.Const.FILE_NAME_ACTIVITY;
@@ -52,6 +53,7 @@ public class FileUtil {
     private static boolean ppgFileAlreadyExists;
     private static boolean actFileAlreadyExists;
     private static boolean feedbackFileAlreadyExists;
+    private static boolean gpsFileAlreadyExists;
 
     //Used to be in NetworkIO. Now here since it can be set by any of the transfer methods
     //Set by either NetworkIO or BluetoothFileTransfer
@@ -372,6 +374,39 @@ public class FileUtil {
 
     }
 
+    public static synchronized void saveGpsDataToFile(Context context, String timeStamp, String latitude, String longitude, long elapsedTime){
+        if(fileUploadInProgress){
+            Log.d(TAG, "saveGpsDataToFile:: fileUploadInProgress, will save data in the next call");
+            return;
+        }
+
+        final File fileGps = getGpsFile(context);
+
+        Log.d(TAG, "saveGpsDataToFile::  absolute path: filePPG: "+fileGps.getAbsolutePath());
+
+        boolean fileGpsExists = fileGps.exists();
+        try {
+            if(!fileGpsExists) {
+                fileGps.getParentFile().mkdirs();
+                fileGps.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(fileGps, true);
+
+            if(!gpsFileAlreadyExists) {
+                fos.write(DEVICE_ID.getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            fos.write((timeStamp + "," + latitude + "," + longitude + "," + String.valueOf(elapsedTime)).getBytes());
+            fos.close();
+            Log.d(TAG, "saveGpsDataToFile:: PPG data saved successfully");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Clears data from one file
      * @param file: file from which data is to be cleared
@@ -527,6 +562,22 @@ public class FileUtil {
         }
         else ppgFileAlreadyExists = true;
         return filePPG;
+    }
+
+    public static File getGpsFile(Context context){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/ppg_data.txt
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+
+        final File fileGps = new File(dir, FILE_NAME_GPS);
+        if(!fileGps.exists()) {
+            try {
+                fileGps.getParentFile().mkdirs();
+                fileGps.createNewFile();
+                gpsFileAlreadyExists = false;
+            }catch(IOException e){}
+        }
+        else gpsFileAlreadyExists = true;
+        return fileGps;
     }
 
     /**
