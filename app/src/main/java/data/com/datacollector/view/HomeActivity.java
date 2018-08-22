@@ -84,6 +84,7 @@ public class HomeActivity extends WearableActivity {
     private static final int PERMISSION_REQUEST_GPS = 5;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
     private final int GPS_UPDATE_EXPIRATION = 1000*60*10; //10 minutes
+    private final int MIC_UPDATE_EXPIRATION = 1000*60*1; //One minute
     private int confirmationsReceived = 0; //The number of confirmations received so far
     private int previousEvent = MotionEvent.ACTION_UP;
 
@@ -96,6 +97,7 @@ public class HomeActivity extends WearableActivity {
     private LocationManager locationManager = null;
 
     Handler gpsExpirationHandler = null;
+    Handler micExpirationHandler = null;
 
     // Define a listener that responds to location updates
     LocationListener locationListener = new LocationListener() {
@@ -112,7 +114,7 @@ public class HomeActivity extends WearableActivity {
 
                 //Removes the handler that automatically stops the updates after a threshold of time
                 if(gpsExpirationHandler!=null){
-                    gpsExpirationHandler.removeCallbacks(gpsRunnable);
+                    gpsExpirationHandler.removeCallbacks(gpsStopRunnable);
                     Log.d(TAG, "location onLocationChanged: removed callback for expiration");
                 }
                 updatesControl = 0;
@@ -485,6 +487,8 @@ public class HomeActivity extends WearableActivity {
                     btnRecord.setEnabled(true);
                     setLoading(false);
                     btnStopRecord.setVisibility(View.VISIBLE); //Showing the bigger button
+                    micExpirationHandler = new Handler();
+                    micExpirationHandler.postDelayed(micStopRunnable, MIC_UPDATE_EXPIRATION); //Stop after MIC_UPDATE_EXPIRATION minutes
                 }catch (IOException e){
                     Toast.makeText(this, "Error. Close the app and try again", Toast.LENGTH_SHORT).show();
                     stopRecording();
@@ -501,6 +505,11 @@ public class HomeActivity extends WearableActivity {
     }
 
     public void stopRecording(){
+        //Removes the handler that automatically stops the updates after a threshold of time
+        if(micExpirationHandler!=null){
+            micExpirationHandler.removeCallbacks(micStopRunnable);
+            Log.d(TAG, "stopRecording: removed micStopRunnable callback for expiration");
+        }
         isAudioRecording = false;
         setLoading(true);
         btnRecord.setEnabled(false);
@@ -604,7 +613,7 @@ public class HomeActivity extends WearableActivity {
 
     //This runnable its the one in charge of stopping the GPS after a threshold of time if no data
     //has yet been detected
-    private Runnable gpsRunnable = new Runnable() {
+    private Runnable gpsStopRunnable = new Runnable() {
         @Override
         public void run() {
             Log.d(TAG, "location: gps updates expired");
@@ -613,6 +622,22 @@ public class HomeActivity extends WearableActivity {
             SaveGpsDataInBackground asyncTask = new SaveGpsDataInBackground(HomeActivity.this, timestamp, TAG, GPS_UPDATE_EXPIRATION);
             asyncTask.execute("", "");
             obtainingGpsLocation = false;
+        }
+    };
+
+    private Runnable micStopRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "run: Force MIC recording to stop");
+            if (audioRecord == null) {
+                Log.d(TAG, "run: audiorecord instance is null");
+            } else {
+                if (isAudioRecording) {
+                    Log.d(TAG, "run: Issuing stop recording");
+                    stopRecording();
+                    Log.d(TAG, "run: Recording has stopped");
+                }
+            }
         }
     };
 
@@ -628,7 +653,7 @@ public class HomeActivity extends WearableActivity {
 
                 //Setting up the handler that will stop this GPS after a few minutes
                 gpsExpirationHandler = new Handler();
-                gpsExpirationHandler.postDelayed(gpsRunnable, GPS_UPDATE_EXPIRATION); //Stop after GPS_UPDATE_EXPIRATION minutes
+                gpsExpirationHandler.postDelayed(gpsStopRunnable, GPS_UPDATE_EXPIRATION); //Stop after GPS_UPDATE_EXPIRATION minutes
                 obtainingGpsLocation = true;
                 gpsElapsedTime = System.currentTimeMillis();
             }
