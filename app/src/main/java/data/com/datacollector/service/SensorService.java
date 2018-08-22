@@ -80,31 +80,36 @@ public class SensorService extends Service implements SensorEventListener, Servi
 
     //Handler that periodically runs code for predictions
     private Handler predictionHandler = new Handler();
+
     //TODO: Verify, if this drains battery, then we can do a check on the sensor average values, if it changes a lot then trigger it, if not do not.
     private int PREDICTION_INTERVAL = 5000; //Milliseconds between each prediction
-    private LogisticRegression logisticRegression = null;
-    private int FEATURES = 3;
-    private int LABELS = 9;
-    private int WINDOW_SIZE = 2; //In seconds
-    private int AVERAGE_SAMPLING_RATE = 25; //Number of samples being sampled at every second
-    private double THRESHOLD = 0.6;
+    private LogisticRegression logisticRegression = null; //The model to be used
+    private int FEATURES = 3; //The number of features to be computed
+    private int LABELS = 9; //Labels to be predicted
+    private int WINDOW_SIZE = 2; //Window size for prediction
+    private int AVERAGE_SAMPLING_RATE = 25; //Average number of samples being sampled at every second
+    private double MODEL_PROB_THRESHOLD_FOR_FEEDBACK = 0.6; //The minimum probability that the model has to get in a prediction
     private Random r = new Random();
-    private int percentajeOfTimesForRandomConfirmation = 10;
-
+    private int percentageOfTimesForRandomConfirmation = 10; //When the prediction is above the threshold, with what probability will we request feedback anyways
+    private double features[];
+    double prob[];
+    double higherProb = 0;
+    int higherLblId = 0;
     /**
-     * Recurrent prediction of activity every given time
+     * Thread that issues the prediction task every PREDICTION_INTERVAL seconds
      */
+
+    //TODO: If the app is minimized, etc. is this still running?
     private final Runnable predictionRunnable = new Runnable(){//Thread that will run the prediction
         public void run(){
             if(logisticRegression == null){
                 Log.d(TAG, "run: There was an error and the logistic regression model is not set, cancelling further predictions");
             } else {
                 //Make the prediction and determine if we need feedback
-
-                //Get snapshot of data (Previous window)
                 try {
+                    //Get snapshot of data (Previous window)
                     int samplesToUse = WINDOW_SIZE * AVERAGE_SAMPLING_RATE;
-                    if(listAccelData.size() > samplesToUse ) {
+                    if(listAccelData.size() > samplesToUse) {
 
                         List<SensorData> windowData = listAccelData.subList(listAccelData.size()-samplesToUse, listAccelData.size());
 
@@ -112,10 +117,11 @@ public class SensorService extends Service implements SensorEventListener, Servi
                         //TODO: only a few of the labels (the closer)
                         //TODO: Use two models. With and without context.
                         //TODO: Think how to store the features (context / no-context) in files
-                        double features[] = logisticRegression.getFeatures(windowData);
-                        double prob[] = logisticRegression.predict(features);
-                        double higherProb = 0;
-                        int higherLblId = 0;
+
+                        features = logisticRegression.getFeatures(windowData);
+                        prob = logisticRegression.predict(features);
+                        higherProb = 0;
+                        higherLblId = 0;
                         for (int lblId = 0; lblId<LABELS; lblId++){
                             if(prob[lblId]>higherProb){
                                 higherProb = prob[lblId];
@@ -126,7 +132,8 @@ public class SensorService extends Service implements SensorEventListener, Servi
                         Log.d(TAG, "run: PREDICTED:   " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId]);
 
                         //Verifying threshold
-                        if(higherProb<THRESHOLD){
+                        if(higherProb<MODEL_PROB_THRESHOLD_FOR_FEEDBACK){
+                            Log.d(TAG, "run: Model's probability output below threshold. Requesting feedback");
                             //Request feedback
                             //TODO: Change this to save the features
                             //TODO: What happens if multiple notifications are overlapped?
@@ -137,7 +144,7 @@ public class SensorService extends Service implements SensorEventListener, Servi
                         }else{
                             //Every once in a while prompt for confirmation. Lets say, with 10% of probability we will ask for feedback even if we are above the threshold
                             int randN = r.nextInt(99)+1;
-                            if(randN<percentajeOfTimesForRandomConfirmation){
+                            if(randN<percentageOfTimesForRandomConfirmation){
                                 Log.d(TAG, "run: Random confirmation needed ");
                                 Notifications.requestFeedback(SensorService.this,"Are you " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId] ,DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId],features);
                             }
@@ -152,7 +159,7 @@ public class SensorService extends Service implements SensorEventListener, Servi
                     e.printStackTrace();
                 }
 
-                //TODO: Request feedback if needed
+                //This issues another prediction task
                 predictionHandler.postDelayed(predictionRunnable, PREDICTION_INTERVAL);
             }
         }
