@@ -34,8 +34,20 @@ public class Const {
     //Activities configuration
     public static final ActivitiesList.ActivitiesSource ACTIVITIES_LIST_SOURCE = ActivitiesList.ActivitiesSource.DEFAULT; //Determines Where should the app look for the list activities.
     //Note: The order here its important since their indexes is what its used to create the label IDs to be used for our modeling
-    //TODO: Add "None", label after proper retraining of the models.
-    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Standing arms down", "Standing arms middle", "Standing arms up", "Sitting arms down", "Sitting arms middle", "Sitting arms up",  "Lying arms sides", "Lying arms up", "Lying arms above head"};
+    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"None", "Standing arms down", "Standing arms middle", "Standing arms up", "Sitting arms down", "Sitting arms middle", "Sitting arms up",  "Lying arms sides", "Lying arms up", "Lying arms above head"};
+
+    //Prediction constants
+    public static final boolean REQUEST_FEEDBACK = true; //This should be set to false if no feedback will be asked
+    public static int PREDICTION_INTERVAL = 5000; //Milliseconds between each prediction
+    public static int FEATURES = 3; //The number of features to be computed
+    public static int LABELS = 10; //Labels to be predicted
+    public static int WINDOW_SIZE = 2; //Window size for prediction
+    public static int AVERAGE_SAMPLING_RATE = 25; //Average number of samples being sampled at every second
+    public static double MODEL_PROB_THRESHOLD_FOR_FEEDBACK = 0.65; //The minimum probability that the model has to get in a prediction
+    public static int MIN_TIME_INTERVAL_BETWEEN_REQUESTS = 30; //In minutes
+    public static int MAX_TIME_INTERVAL_WITH_NO_REQUESTS = 120; //In minutes
+    public static int FEEDBACK_NOTIFICATION_EXPIRATION_TIME = 2*60*1000; //In millis
+    public static int RANDOM_REQUEST_PROBABILITY = 10; //When the prediction is above the threshold, with what probability will we request feedback anyways
 
     //Bluetooth file transfer
     //This is the SPP UUIS which is also set up on the server
@@ -54,10 +66,13 @@ public class Const {
     public static final String EXTRA_FEEDBACK_PREDICTED_LABEL = "EXTRA_FEEDBACK_PREDICTED_LABEL";
     public static final String EXTRA_FEEDBACK_FEATURES = "EXTRA_FEEDBACK_FEATURES";
     public static final String EXTRA_FEEDBACK_VIBRATE = "EXTRA_FEEDBACK_VIBRATE";
+    public static final String EXTRA_FEEDBACK_TIMESTAMP = "EXTRA_FEEDBACK_TIMESTAMP";
+    public static final String EXTRA_FEEDBACK_LBLS_ORDER = "EXTRA_FEEDBACK_LBLS_ORDER";
+    public static final String EXTRA_FEEDBACK_NOTIFICATION_TIMEOUT = "EXTRA_FEEDBACK_NOTIFICATION_TIME_OUT";
 
     //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
-
+    public static final int PENDING_INTENT_CODE_FEEDBACK_NOTIFICATION_TIMEOUT = 293513798;
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
     public static final String FILE_NAME_GYROSCOPE = "gyroscope_data.txt";
@@ -65,6 +80,7 @@ public class Const {
     public static final String FILE_NAME_PPG = "ppg_data.txt";
     public static final String FILE_NAME_ACTIVITY = "activity_data.txt";
     public static final String FILE_NAME_FEEDBACK = "feedback_data.txt";
+    public static final String FILE_NAME_PREDICTIONS = "predictions_data.txt";
 
     //User feedback
     public static final String[] AVAILABLE_LABELS_TO_PREDICT = DEFAULT_ACTIVITIES_LIST_TEXT; //Change this if needed. Remember that we are not only predicting activities. Also postures for example

@@ -1,6 +1,7 @@
 package data.com.datacollector.utility;
 
 import android.app.ActivityManager;
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -15,8 +16,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import data.com.datacollector.R;
-import data.com.datacollector.service.LeBLEService;
-import data.com.datacollector.service.SensorService;
+import data.com.datacollector.receiver.DataCollectReceiver;
 import data.com.datacollector.view.CurrentLabelActivity;
 import data.com.datacollector.view.ReminderTimeConfigActivity;
 import data.com.datacollector.view.feedback_ui.UserFeedbackGroundTruth;
@@ -24,11 +24,17 @@ import data.com.datacollector.view.feedback_ui.UserFeedbackQuestion;
 
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
+import static android.content.Context.ALARM_SERVICE;
 import static android.content.Context.NOTIFICATION_SERVICE;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_FEATURES;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_LBLS_ORDER;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_NOTIFICATION_TIMEOUT;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTED_LABEL;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_QUESTION;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_TIMESTAMP;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_VIBRATE;
+import static data.com.datacollector.model.Const.FEEDBACK_NOTIFICATION_EXPIRATION_TIME;
+import static data.com.datacollector.model.Const.PENDING_INTENT_CODE_FEEDBACK_NOTIFICATION_TIMEOUT;
 
 public class Notifications {
     public static final String TAG = "Notifications";
@@ -111,18 +117,22 @@ public class Notifications {
      * @param features The features that were used to compute the label
      * @return Notification
      */
-    public static Notification getFeedbackNotification(Context context, String question, String predictedLabel, double features[]) {
+    public static Notification getFeedbackNotification(Context context, String question, String predictedLabel, double features[], String timestamp, int [] orderedIndexes) {
 
         // Build intent for notification content
         Intent viewIntent = new Intent(context, UserFeedbackQuestion.class);
         viewIntent.putExtra(EXTRA_FEEDBACK_QUESTION, question);
         viewIntent.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
         viewIntent.putExtra(EXTRA_FEEDBACK_FEATURES, features);
+        viewIntent.putExtra(EXTRA_FEEDBACK_TIMESTAMP, timestamp);
+        viewIntent.putExtra(EXTRA_FEEDBACK_LBLS_ORDER, orderedIndexes);
 
+
+        //TODO: Verify this is actually working
         viewIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); //Bring activity to top
 
         //TODO: We might requiere the flag UPDATE_CURRENT
-        PendingIntent viewPendingIntent = PendingIntent.getActivity(context, 0, viewIntent, 0);
+        PendingIntent viewPendingIntent = PendingIntent.getActivity(context, 0, viewIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID_FEEDBACK, "Datacollector feedback", NotificationManager.IMPORTANCE_HIGH);
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
@@ -162,36 +172,56 @@ public class Notifications {
      * @param predictedLabel The label that its believe to be wrong
      * @param features The features that were used to compute the label
      */
-    public static void requestFeedback(Context context, String question, String predictedLabel, double features[]) {
+    public static void requestFeedback(Context context, String question, String predictedLabel, double features[], String timestamp, int[] orderedIndexes) {
         //TODO: Verify what happens on long questions
 
         ActivityManager.RunningAppProcessInfo appProcessInfo = new ActivityManager.RunningAppProcessInfo();
         ActivityManager.getMyMemoryState(appProcessInfo);
+        try {
+            if (DataCollectReceiver.areServicesRunning() &&
+                    !ReminderTimeConfigActivity.isInProgress && !CurrentLabelActivity.isInProgress &&
+                    !UserFeedbackQuestion.isInProgress && !UserFeedbackGroundTruth.isInProgress) {
+                Log.d(TAG, "requestFeedback: All the conditions are met, we can prompt for feedback");
+                if (appProcessInfo.importance == IMPORTANCE_FOREGROUND || appProcessInfo.importance == IMPORTANCE_VISIBLE) {
+                    Log.d(TAG, "requestFeedback: The app is in the foreground, simply show the new activity");
+                    //The app is on the foreground
+                    Intent intent = new Intent(context, UserFeedbackQuestion.class);
+                    intent.putExtra(EXTRA_FEEDBACK_QUESTION, question);
+                    intent.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
+                    intent.putExtra(EXTRA_FEEDBACK_FEATURES, features);
+                    intent.putExtra(EXTRA_FEEDBACK_TIMESTAMP, timestamp);
+                    intent.putExtra(EXTRA_FEEDBACK_VIBRATE, true);
+                    intent.putExtra(EXTRA_FEEDBACK_LBLS_ORDER, orderedIndexes);
+                    context.startActivity(intent);
+                    //vibrate(context);//TODO: Review this
 
-        //TODO: This should be changed if more services are added
-        if(SensorService.isServiceRunning && LeBLEService.isServiceRunning &&
-                !ReminderTimeConfigActivity.isInProgress && !CurrentLabelActivity.isInProgress &&
-                !UserFeedbackQuestion.isInProgress && !UserFeedbackGroundTruth.isInProgress){
-            Log.d(TAG, "requestFeedback: All the conditions are met, we can prompt for feedback");
-            if(appProcessInfo.importance == IMPORTANCE_FOREGROUND || appProcessInfo.importance == IMPORTANCE_VISIBLE){
-                Log.d(TAG, "requestFeedback: The app is in the foreground, simply show the new activity");
-                //The app is on the foreground
-                Intent intent = new Intent(context, UserFeedbackQuestion.class);
-                intent.putExtra(EXTRA_FEEDBACK_QUESTION, question);
-                intent.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
-                intent.putExtra(EXTRA_FEEDBACK_FEATURES, features);
-                intent.putExtra(EXTRA_FEEDBACK_VIBRATE, true);
-                context.startActivity(intent);
-                //vibrate(context);//TODO: Review this
+                } else {
+                    Log.d(TAG, "requestFeedback: The app is not in the foreground, send notification");
+                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                    notificationManager.notify(Notifications.NOTIFICATION_ID_FEEDBACK, Notifications.getFeedbackNotification(context.getApplicationContext(), question, predictedLabel, features, timestamp, orderedIndexes));
 
-            }else{
-                Log.d(TAG, "requestFeedback: The app is not in the foreground, send notification");
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.notify(Notifications.NOTIFICATION_ID_FEEDBACK, Notifications.getFeedbackNotification(context.getApplicationContext(),question, predictedLabel, features));
+                    //TODO: Create cancel notification
+                    AlarmManager alarmManagerData = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+                    Log.d(TAG, "requestFeedback: setting time limit alarm");
+                    Intent intent = new Intent(context.getApplicationContext(), DataCollectReceiver.class);
+                    intent.putExtra(EXTRA_FEEDBACK_NOTIFICATION_TIMEOUT, true);
+                    PendingIntent pendingIntentData = PendingIntent.getBroadcast(
+                            context.getApplicationContext(), PENDING_INTENT_CODE_FEEDBACK_NOTIFICATION_TIMEOUT, intent, 0);
+                    if(alarmManagerData != null){
+                        Log.d(TAG, "requestFeedback: Alarm manager not null, setting it up");
+                        alarmManagerData.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                                + FEEDBACK_NOTIFICATION_EXPIRATION_TIME, pendingIntentData);
+                    }
+                    
+
+                }
+            } else {
+                //Do nothing, the services are not running OR the labeling is in progress
+                Log.d(TAG, "requestFeedback: We cannot prompt for feedback because the user is doing another thing");
             }
-        }else{
-            //Do nothing, the services are not running OR the labeling is in progress
-            Log.d(TAG, "requestFeedback: We cannot prompt for feedback because the user is doing another thing");
+        } catch (Exception e) {
+            Log.e(TAG, "handleStartStopBtnClick: There was an error instantiating the services: " + e.getMessage());
+            e.printStackTrace();
         }
 
     }
@@ -240,6 +270,24 @@ public class Notifications {
         }else{
             Log.d(TAG, "isFeedbackNotificationActive: No notifications active");
         }
+    }
+
+    public static boolean isNoficiationActive(Context context, int id){
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        StatusBarNotification[] activeNotifications = notificationManager.getActiveNotifications();
+        if(activeNotifications != null){
+            Log.d(TAG, "isFeedbackNotificationActive: Notifications found");
+            for (StatusBarNotification notif : activeNotifications) {
+                Log.d(TAG, "isFeedbackNotificationActive: ID: " + String.valueOf(notif.getId()));
+                if(notif.getId() == id){
+                    return true;
+                }
+            }
+        }else{
+            Log.d(TAG, "isFeedbackNotificationActive: No notifications active");
+            return false;
+        }
+        return false;
     }
 
 }

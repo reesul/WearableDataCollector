@@ -1,7 +1,8 @@
 package data.com.datacollector.utility.predictionModels;
 
-import android.os.Environment;
 import android.util.Log;
+
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -157,8 +158,27 @@ public class LogisticRegression {
         Log.d(TAG, "getFeatures: ");
         //TODO: If number of features changes, this should be considered here and the features must be concatenated in a single feature array
 //        double features[] = new double[FEATURES_NUM];
-        double minFeatures[] = getFeatureMin(accData);
-        return minFeatures;
+        double meanFeatures[] = getFeatureMean(accData);
+        return meanFeatures;
+    }
+    //Returns the mean values on each axis
+    public double[] getFeatureMean(List<SensorData> accData){
+        Log.d(TAG, "getFeatureMean: ");
+
+        double accx[] = new double[accData.size()];
+        double accy[] = new double[accData.size()];
+        double accz[] = new double[accData.size()];
+
+        for (int i=0; i<accData.size(); i++){
+            accx[i] =  accData.get(i).getX();
+            accy[i] =  accData.get(i).getY();
+            accz[i] =  accData.get(i).getZ();
+        }
+
+        Mean m = new Mean();
+
+        double []f = {m.evaluate(accx), m.evaluate(accy), m.evaluate(accz)};
+        return f;
     }
 
     //Returns the minimum values on each axis

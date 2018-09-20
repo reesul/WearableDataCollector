@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
@@ -16,15 +17,18 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 
 import data.com.datacollector.R;
+import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
-import data.com.datacollector.utility.Util;
 import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_FEATURES;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_LBLS_ORDER;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTED_LABEL;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_QUESTION;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_TIMESTAMP;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_VIBRATE;
+import static data.com.datacollector.model.Const.FEEDBACK_NOTIFICATION_EXPIRATION_TIME;
 
 /**
  * This class shows the UI feedback to request from the user and its managed by the Notifications utility on the requestFeedback method.
@@ -36,11 +40,14 @@ public class UserFeedbackQuestion extends WearableActivity {
     private TextView txtQuestion;
     private String feedbackQuestion = "";
     private String predictedLabel = "";
+    private String timestamp = "";
+    private int[] orderedIndexes;
     private double features[];
     private Button btnYes;
     private Button btnNo;
     private NotificationManager notificationManager;
     public static boolean isInProgress = false;
+    private Handler timelimitHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +70,8 @@ public class UserFeedbackQuestion extends WearableActivity {
             feedbackQuestion = intent.getStringExtra(EXTRA_FEEDBACK_QUESTION);
             predictedLabel = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTED_LABEL);
             features = intent.getDoubleArrayExtra(EXTRA_FEEDBACK_FEATURES);
+            timestamp = intent.getStringExtra(EXTRA_FEEDBACK_TIMESTAMP);
+            orderedIndexes = intent.getIntArrayExtra(EXTRA_FEEDBACK_LBLS_ORDER);
             if(intent.getBooleanExtra(EXTRA_FEEDBACK_VIBRATE,false)){
                 Notifications.vibrate(UserFeedbackQuestion.this.getApplicationContext());
             }
@@ -79,6 +88,7 @@ public class UserFeedbackQuestion extends WearableActivity {
 
         // Enables Always-on
         setAmbientEnabled();
+        timelimitHandler.postDelayed(timeLimitRunnable, FEEDBACK_NOTIFICATION_EXPIRATION_TIME);
     }
 
     @Override
@@ -109,15 +119,18 @@ public class UserFeedbackQuestion extends WearableActivity {
         enableButtons(false);
         if(answer){
             Log.d(TAG, "saveAnswer: The predicted label was correct");
-            String timestamp = Util.getTimeMillis(System.currentTimeMillis());
+            timelimitHandler.removeCallbacks(timeLimitRunnable);
             SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackQuestion.this, features);
             saveData.execute(timestamp, predictedLabel, predictedLabel); //The predicted was correct so its the actual label
-
+            SensorService.previousFeedbackRequestTimestamp = System.currentTimeMillis();
         }else{
             Log.d(TAG, "saveAnswer: The predicted label was incorrect, prompting for the correct one");
+            timelimitHandler.removeCallbacks(timeLimitRunnable);
             Intent feedbackGt = new Intent(UserFeedbackQuestion.this.getApplicationContext(), UserFeedbackGroundTruth.class);
             feedbackGt.putExtra(EXTRA_FEEDBACK_PREDICTED_LABEL, predictedLabel);
             feedbackGt.putExtra(EXTRA_FEEDBACK_FEATURES, features);
+            feedbackGt.putExtra(EXTRA_FEEDBACK_TIMESTAMP, timestamp);
+            feedbackGt.putExtra(EXTRA_FEEDBACK_LBLS_ORDER, orderedIndexes);
             startActivity(feedbackGt);
             isInProgress = false;
             UserFeedbackQuestion.this.finish();
@@ -156,7 +169,6 @@ public class UserFeedbackQuestion extends WearableActivity {
             UserFeedbackQuestion activityRef = currentActivity.get();
             if (activityRef != null && !activityRef.isFinishing()) {
                 Log.d(activityRef.TAG, "onPostExecute: Saved the files asynchronously");
-
                 if (success) {
                     UserFeedbackQuestion.isInProgress = false;
                     activityRef.clearNotification(Notifications.NOTIFICATION_ID_FEEDBACK);
@@ -164,6 +176,8 @@ public class UserFeedbackQuestion extends WearableActivity {
                 } else {
                     Toast.makeText(activityRef, "Error saving, try again", Toast.LENGTH_LONG);
                     activityRef.enableButtons(true);
+                    //TODO: Verify that this works
+                    activityRef.timelimitHandler.postDelayed(activityRef.timeLimitRunnable, FEEDBACK_NOTIFICATION_EXPIRATION_TIME);
                 }
             }
         }
@@ -174,4 +188,16 @@ public class UserFeedbackQuestion extends WearableActivity {
         notificationManager.cancel(id);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this,HomeActivity.class));
     }
+
+    private void cancelFeedbackEvent(){
+        SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackQuestion.this, features); //This cancels the notif and closes this activity
+        saveData.execute(timestamp, predictedLabel, ""); //NO feedback was provided, that's why is left blank
+    }
+
+    private final Runnable timeLimitRunnable = new Runnable(){//Thread that will run the prediction
+        public void run(){
+            Log.d(TAG, "run: Expiration time is over");
+            cancelFeedbackEvent();
+        }
+    };
 }

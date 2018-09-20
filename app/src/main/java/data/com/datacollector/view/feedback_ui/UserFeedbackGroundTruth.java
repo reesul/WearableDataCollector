@@ -5,7 +5,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
@@ -18,15 +20,23 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+
 import data.com.datacollector.R;
+import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
+import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.AVAILABLE_LABELS_TO_PREDICT;
 import static data.com.datacollector.model.Const.DISMISS_FEEDBACK_QUESTION_ACTIVITY;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_FEATURES;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_LBLS_ORDER;
 import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_PREDICTED_LABEL;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_TIMESTAMP;
+import static data.com.datacollector.model.Const.FEEDBACK_NOTIFICATION_EXPIRATION_TIME;
 import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.SET_LOADING_USER_FEEDBACK_QUESTION;
 
@@ -35,13 +45,16 @@ public class UserFeedbackGroundTruth extends WearableActivity {
     private String TAG = "UserFeedbackGroundTruth";
     private TextView mTextView;
     private String predictedLabel = "";
+    private String timestamp = "";
     private double features[];
+    private int orderedIndexes[];
     private ActivitiesAdapter adapterList;
     private WearableRecyclerView recLabelsList;
     private FrameLayout progressBar;
     private int previousEvent = MotionEvent.ACTION_UP;
     private NotificationManager notificationManager;
     public static boolean isInProgress = false;
+    private Handler timelimitHandler = new Handler();
 
     /**
      * This class shows the UI feedback to request from the user and its managed by the Notifications utility on the requestFeedback method.
@@ -61,7 +74,9 @@ public class UserFeedbackGroundTruth extends WearableActivity {
                 Log.d(TAG, "onReceive: Received SET_LOADING_USER_FEEDBACK_QUESTION confirmation");
                 if(intent.getBooleanExtra(DISMISS_FEEDBACK_QUESTION_ACTIVITY,false)){ //TODO: Verify this default works well
                     Log.d(TAG, "onReceive: DISMISS_FEEDBACK_QUESTION_ACTIVITY, dismissing this activity");
+                    SensorService.previousFeedbackRequestTimestamp = System.currentTimeMillis();
                     isInProgress = false;
+                    timelimitHandler.removeCallbacks(timeLimitRunnable);
                     clearNotification(Notifications.NOTIFICATION_ID_FEEDBACK);
                     UserFeedbackGroundTruth.this.finish();
                 }else {
@@ -73,11 +88,12 @@ public class UserFeedbackGroundTruth extends WearableActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         Intent intent = getIntent();
         if(intent != null) {
             predictedLabel = intent.getStringExtra(EXTRA_FEEDBACK_PREDICTED_LABEL);
             features = intent.getDoubleArrayExtra(EXTRA_FEEDBACK_FEATURES);
+            timestamp = intent.getStringExtra(EXTRA_FEEDBACK_TIMESTAMP);
+            orderedIndexes = intent.getIntArrayExtra(EXTRA_FEEDBACK_LBLS_ORDER);
         }
 
         //Registering a local broadcast receiver to listen for data save confirmation
@@ -103,6 +119,7 @@ public class UserFeedbackGroundTruth extends WearableActivity {
 
         // Enables Always-on
         setAmbientEnabled();
+        timelimitHandler.postDelayed(timeLimitRunnable, FEEDBACK_NOTIFICATION_EXPIRATION_TIME);
     }
 
     @Override
@@ -129,7 +146,7 @@ public class UserFeedbackGroundTruth extends WearableActivity {
         recLabelsList.addItemDecoration(dividerItemDecoration);
 
         //Set up recycler view adapter with the obtained list
-        adapterList = new ActivitiesAdapter(AVAILABLE_LABELS_TO_PREDICT, predictedLabel, features);
+        adapterList = new ActivitiesAdapter(AVAILABLE_LABELS_TO_PREDICT, predictedLabel, features, timestamp, orderedIndexes);
         recLabelsList.setAdapter(adapterList);
 
         //We intercept multiple touches and prevent any other after the first one arrives
@@ -178,4 +195,57 @@ public class UserFeedbackGroundTruth extends WearableActivity {
         notificationManager.cancel(id);
         notificationManager.notify(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(this, HomeActivity.class));
     }
+
+    private void cancelFeedbackEvent(){
+        SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(UserFeedbackGroundTruth.this, features); //This cancels the notif and closes this activity
+        saveData.execute(timestamp, predictedLabel, ""); //NO feedback was provided, that's why is left blank
+    }
+
+    private final Runnable timeLimitRunnable = new Runnable(){//Thread that will run the prediction
+        public void run(){
+            Log.d(TAG, "run: Expiration time is over");
+            cancelFeedbackEvent();
+        }
+    };
+
+    public static class SaveFeedbackDataInBackground extends AsyncTask<String, Integer, Boolean> {
+
+        private WeakReference<UserFeedbackGroundTruth> currentActivity;
+        private double features[];
+        SaveFeedbackDataInBackground(UserFeedbackGroundTruth context, double features[]){
+            currentActivity = new WeakReference<>(context);
+            this.features = features;
+        }
+
+        protected Boolean doInBackground(String... lists) {
+            UserFeedbackGroundTruth activityRef = currentActivity.get();
+            if (activityRef == null || activityRef.isFinishing()) return false;
+            try {
+                FileUtil.saveFeedbackDataToFile(activityRef, lists[0], lists[1], lists[2], features);
+                Log.d(activityRef.TAG, "doInBackground: Feedback has been saved");
+                return true;
+            }catch (IOException e){
+                Log.e(activityRef.TAG,"Error while saving feedback: " + e.getMessage());
+                return false;
+            }
+        }
+
+        protected void onPostExecute(Boolean success) {
+
+            UserFeedbackGroundTruth activityRef = currentActivity.get();
+            if (activityRef != null && !activityRef.isFinishing()) {
+                Log.d(activityRef.TAG, "onPostExecute: Saved the files asynchronously");
+                if (success) {
+                    UserFeedbackQuestion.isInProgress = false;
+                    activityRef.clearNotification(Notifications.NOTIFICATION_ID_FEEDBACK);
+                    activityRef.finish();
+                } else {
+                    Log.d(activityRef.TAG, "onPostExecute: Error saving on force. Trying again");
+                    //TODO: Verify that this works
+                    activityRef.timelimitHandler.postDelayed(activityRef.timeLimitRunnable, FEEDBACK_NOTIFICATION_EXPIRATION_TIME);
+                }
+            }
+        }
+    }
+
 }

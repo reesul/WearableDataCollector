@@ -19,9 +19,14 @@ import android.os.PowerManager;
 import android.os.Process;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.Toast;
 
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
+
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -34,12 +39,22 @@ import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 import data.com.datacollector.utility.predictionModels.LogisticRegression;
 import data.com.datacollector.view.HomeActivity;
+import data.com.datacollector.view.feedback_ui.UserFeedbackGroundTruth;
+import data.com.datacollector.view.feedback_ui.UserFeedbackQuestion;
 
+import static data.com.datacollector.model.Const.AVERAGE_SAMPLING_RATE;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.DEFAULT_ACTIVITIES_LIST_TEXT;
-import static data.com.datacollector.model.Const.DEVICE_ID;
+import static data.com.datacollector.model.Const.FEATURES;
+import static data.com.datacollector.model.Const.LABELS;
+import static data.com.datacollector.model.Const.MAX_TIME_INTERVAL_WITH_NO_REQUESTS;
+import static data.com.datacollector.model.Const.MIN_TIME_INTERVAL_BETWEEN_REQUESTS;
+import static data.com.datacollector.model.Const.MODEL_PROB_THRESHOLD_FOR_FEEDBACK;
+import static data.com.datacollector.model.Const.PREDICTION_INTERVAL;
+import static data.com.datacollector.model.Const.RANDOM_REQUEST_PROBABILITY;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
+import static data.com.datacollector.model.Const.WINDOW_SIZE;
 
 /**
  * Service to enable SensorManager's sensor data collection
@@ -63,6 +78,7 @@ public class SensorService extends Service implements SensorEventListener, Servi
     List<SensorData> listAccelData = new ArrayList<>();
     List<PPGData> listPPGData = new ArrayList<>();
     /** local object for list of data of concerned type; ends*/
+    private ArrayList<String> predictions = new ArrayList<>();
 
     private AlarmManager alarmManager;
 
@@ -81,20 +97,17 @@ public class SensorService extends Service implements SensorEventListener, Servi
     //Handler that periodically runs code for predictions
     private Handler predictionHandler = new Handler();
 
-    //TODO: Verify, if this drains battery, then we can do a check on the sensor average values, if it changes a lot then trigger it, if not do not.
-    private int PREDICTION_INTERVAL = 5000; //Milliseconds between each prediction
+    //Prediction variables
     private LogisticRegression logisticRegression = null; //The model to be used
-    private int FEATURES = 3; //The number of features to be computed
-    private int LABELS = 9; //Labels to be predicted
-    private int WINDOW_SIZE = 2; //Window size for prediction
-    private int AVERAGE_SAMPLING_RATE = 25; //Average number of samples being sampled at every second
-    private double MODEL_PROB_THRESHOLD_FOR_FEEDBACK = 0.6; //The minimum probability that the model has to get in a prediction
     private Random r = new Random();
-    private int percentageOfTimesForRandomConfirmation = 10; //When the prediction is above the threshold, with what probability will we request feedback anyways
     private double features[];
-    double prob[];
-    double higherProb = 0;
-    int higherLblId = 0;
+    private double prob[];
+    private double sortedArray[];
+    private double highestProb = 0;
+    private int predictedLblId = 0;
+    public static double previousFeedbackRequestTimestamp = 0;
+    //Whenever the subject is asked for feedback, if no feedback is provided within 1 minute then the notification will be dismissed
+
     /**
      * Thread that issues the prediction task every PREDICTION_INTERVAL seconds
      */
@@ -102,68 +115,166 @@ public class SensorService extends Service implements SensorEventListener, Servi
     //TODO: If the app is minimized, etc. is this still running?
     private final Runnable predictionRunnable = new Runnable(){//Thread that will run the prediction
         public void run(){
+            Log.d(TAG, "run: predictionRunnable called");
             if(logisticRegression == null){
                 Log.d(TAG, "run: There was an error and the logistic regression model is not set, cancelling further predictions");
+                Toast.makeText(SensorService.this,"There was an unexpected error with the model prediction. Please, contact the researcher",Toast.LENGTH_LONG).show();
             } else {
                 //Make the prediction and determine if we need feedback
                 try {
                     //Get snapshot of data (Previous window)
                     int samplesToUse = WINDOW_SIZE * AVERAGE_SAMPLING_RATE;
                     if(listAccelData.size() > samplesToUse) {
+                        //If we have enough data, then we start the predictions
 
                         List<SensorData> windowData = listAccelData.subList(listAccelData.size()-samplesToUse, listAccelData.size());
-
-                        //TODO: Get the three or four highest values and its probability. From that, if the prob of the highest is below a TH then ask for feedback. We could use the other two to show
-                        //TODO: only a few of the labels (the closer)
-                        //TODO: Use two models. With and without context.
-                        //TODO: Think how to store the features (context / no-context) in files
-
-                        features = logisticRegression.getFeatures(windowData);
-                        prob = logisticRegression.predict(features);
-                        higherProb = 0;
-                        higherLblId = 0;
-                        for (int lblId = 0; lblId<LABELS; lblId++){
-                            if(prob[lblId]>higherProb){
-                                higherProb = prob[lblId];
-                                higherLblId = lblId;
-                            }
-                        }
-                        Log.d(TAG, "run: PROBABILITY: " + higherProb);
-                        Log.d(TAG, "run: PREDICTED:   " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId]);
-
-                        //Verifying threshold
-                        if(higherProb<MODEL_PROB_THRESHOLD_FOR_FEEDBACK){
-                            Log.d(TAG, "run: Model's probability output below threshold. Requesting feedback");
-                            //Request feedback
-                            //TODO: Change this to save the features
-                            //TODO: What happens if multiple notifications are overlapped?
-                            Notifications.requestFeedback(SensorService.this,"Are you " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId] ,DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId],features);
-                            //TODO: Stop predictions until this information is submitted
-                            //TODO: Set up a time limit for the feedback response (If after X seconds no response is given, ignore this feedback session).
-                            //TODO: Add NONE class (none of the postures)
-                        }else{
-                            //Every once in a while prompt for confirmation. Lets say, with 10% of probability we will ask for feedback even if we are above the threshold
-                            int randN = r.nextInt(99)+1;
-                            if(randN<percentageOfTimesForRandomConfirmation){
-                                Log.d(TAG, "run: Random confirmation needed ");
-                                Notifications.requestFeedback(SensorService.this,"Are you " + DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId] ,DEFAULT_ACTIVITIES_LIST_TEXT[higherLblId],features);
-                            }
-
-                        }
+                        makePrediction(windowData);
 
                     }else{
                         Log.d(TAG, "run: Not enough data so prediction is not made");
                     }
                 } catch (Exception e) {
-                    Log.d(TAG, "run: There was an execption so the prediction could not be made: "+e.getMessage());
+                    Log.d(TAG, "run: There was an exception so the prediction could not be made: "+e.getMessage());
                     e.printStackTrace();
                 }
 
-                //This issues another prediction task
+                //This issues another prediction task within the interval
                 predictionHandler.postDelayed(predictionRunnable, PREDICTION_INTERVAL);
             }
         }
     };
+
+    /**
+     * Computes the features and obtains a prediction
+     * @param windowData The data to take the features from
+     * @throws Exception
+     */
+    private void makePrediction(List<SensorData> windowData) throws Exception{
+
+        features = logisticRegression.getFeatures(windowData);//Obtain the features that will be used for the training of our models
+        String timestamp = windowData.get(windowData.size()-1).getTimestamp();
+        prob = logisticRegression.predict(features); //We get the probabilities of this features belonging to each label
+        sortedArray = new double[prob.length];
+        //TODO: Sort this and display this order to the user. Do not limit it to 4 only, so we do not have to handle the case were the label was not found in the list
+
+        //We have sorted the labels according to their probabilities
+        Util.ArrayIndexComparator comparator = new Util.ArrayIndexComparator(prob);
+        Integer[] orderedIndexes = comparator.createIndexArray();
+        Arrays.sort(orderedIndexes, comparator);
+        int[] orderedIndexesPrim= new int[orderedIndexes.length];
+        for (int i=0;i<orderedIndexes.length;i++){
+            orderedIndexesPrim[i] = orderedIndexes[i];
+        }
+        //Creating the ordered array
+        for (int i=0; i<prob.length; i++){
+            sortedArray[i] = prob[orderedIndexes[i]];
+        }
+
+        highestProb = sortedArray[0];
+        predictedLblId = orderedIndexes[0];
+
+        Log.d(TAG, "makePrediction: PROBABILITY: " + highestProb);
+        Log.d(TAG, "makePrediction: PREDICTED:   " + DEFAULT_ACTIVITIES_LIST_TEXT[predictedLblId]);
+
+        //If the label is "None" the question structure should change
+        String question = predictedLblId == 0 ? "No posture?":"Are you " + DEFAULT_ACTIVITIES_LIST_TEXT[predictedLblId] + "?";
+
+        //Adding prediction to save afterwards
+        String prediction = timestamp + ",";
+        for (int i = 0; i < prob.length; i++) {
+            prediction += String.valueOf(prob[i]);
+            if (i + 1 < prob.length) {
+                prediction += ",";
+            }
+        }
+        predictions.add(prediction);
+        //SavePredictionDataInBackground backgroundSave = new SavePredictionDataInBackground(SensorService.this, timestamp, prob);
+        //backgroundSave.execute();
+        requestFeedback(highestProb < MODEL_PROB_THRESHOLD_FOR_FEEDBACK, question, timestamp, orderedIndexesPrim);
+
+    }
+
+    /**
+     * This method manages the feedback requests following our rules
+     */
+    private void requestFeedback(boolean isBelowThreshold, String question, String timestamp, int[] orderedIndexesPrim){
+        boolean shouldWeAsk = false;
+        double minutesElapsed = ((System.currentTimeMillis()-previousFeedbackRequestTimestamp)/1000)/60;
+        Log.d(TAG, "requestFeedback: MinutesElapsed: " + String.valueOf(minutesElapsed));
+
+        if(isBelowThreshold){
+            Log.d(TAG, "requestFeedback: Model's probability output below threshold");
+            if(minutesElapsed>MIN_TIME_INTERVAL_BETWEEN_REQUESTS){
+                Log.d(TAG, "requestFeedback: The minimum time between feedback has passed");
+                shouldWeAsk = true;
+            }
+
+        }else{
+            if (isVarianceHigh()){
+                //Since the high variance could be because of exercise or, a change in posture, we will randomly ask
+                int randN = r.nextInt(99)+1;
+                if(randN<RANDOM_REQUEST_PROBABILITY){
+                    Log.d(TAG, "requestFeedback: Random confirmation needed");
+                    if(minutesElapsed>MIN_TIME_INTERVAL_BETWEEN_REQUESTS){
+                        Log.d(TAG, "requestFeedback: The minimum time between feedback has passed");
+                        shouldWeAsk = true;
+                    }
+                }else{
+
+                    //Make sure that, if MAX_TIME_INTERVAL_WITH_NO_REQUESTS minutes with no feedback have passed, we force a request
+                    if(minutesElapsed>MAX_TIME_INTERVAL_WITH_NO_REQUESTS){
+                        Log.d(TAG, "requestFeedback: A lot of time passed without feedback. Forcing request");
+                        shouldWeAsk = true;
+                    }
+                }
+            }
+
+        }
+        //If the notification is not already active, we request it. Remember the notification expires so its safe to do this
+        if (shouldWeAsk && !Notifications.isNoficiationActive(SensorService.this,Notifications.NOTIFICATION_ID_FEEDBACK) &&
+                !UserFeedbackQuestion.isInProgress && !UserFeedbackGroundTruth.isInProgress){
+            Log.d(TAG, "requestFeedback: Feedback is needed");
+            //Notifications.requestFeedback(SensorService.this, question, DEFAULT_ACTIVITIES_LIST_TEXT[predictedLblId], features, timestamp);
+            Log.d(TAG, "requestFeedback: REQUESTED!" + DEFAULT_ACTIVITIES_LIST_TEXT[predictedLblId]);
+            Notifications.requestFeedback(SensorService.this, question, DEFAULT_ACTIVITIES_LIST_TEXT[predictedLblId], features, timestamp, orderedIndexesPrim);
+        }
+    }
+
+    public boolean isVarianceHigh(){
+        //Get snapshot of data (Previous window)
+        int samplesToUse = 10 * AVERAGE_SAMPLING_RATE; //We consider the previous 10 seconds
+        double accxV = 0;
+        double accyV = 0;
+        double acczV = 0;
+
+        if(listAccelData.size() > samplesToUse) {
+            //If we have enough data, then we start the predictions
+
+            List<SensorData> windowData = listAccelData.subList(listAccelData.size()-samplesToUse, listAccelData.size());
+
+            double accx[] = new double[windowData.size()];
+            double accy[] = new double[windowData.size()];
+            double accz[] = new double[windowData.size()];
+
+            for (int i=0; i<windowData.size(); i++){
+                accx[i] =  windowData.get(i).getX();
+                accy[i] =  windowData.get(i).getY();
+                accz[i] =  windowData.get(i).getZ();
+            }
+            Variance v = new Variance();
+            accxV = v.evaluate(accx);
+            accyV = v.evaluate(accy);
+            acczV = v.evaluate(accz);
+
+            Log.d(TAG, "requestFeedback: Variances: x=" + String.valueOf(accxV) + ", y=" + String.valueOf(accyV) + ", z=" + String.valueOf(acczV));
+        }
+
+        if(accxV>6||accyV>6||acczV>6){
+            return true;
+        }else{
+            return false;
+        }
+    }
 
 
     // Handler that receives messages from the thread
@@ -522,12 +633,13 @@ public class SensorService extends Service implements SensorEventListener, Servi
         List<SensorData> tempGyroList = new ArrayList<>(listGyroData);
         List<SensorData> tempAccelerList = new ArrayList<>(listAccelData);
         List<PPGData> tempPPGList = new ArrayList<>(listPPGData);
+        List<String> tempPredictions = new ArrayList<>(predictions);
 
         //Should create right away since we already have a copy to allow for new samples to come
-        listGyroData.clear(); listAccelData.clear(); listPPGData.clear();
+        listGyroData.clear(); listAccelData.clear(); listPPGData.clear(); predictions.clear();
 
         SaveDataInBackground backgroundSave = new SaveDataInBackground(SensorService.this, stop);
-        backgroundSave.execute(tempAccelerList, tempGyroList, tempPPGList);
+        backgroundSave.execute(tempAccelerList, tempGyroList, tempPPGList, tempPredictions);
         Log.d(TAG, "saveDataToFile: Saving files asynchronously");
     }
 
@@ -560,10 +672,15 @@ public class SensorService extends Service implements SensorEventListener, Servi
                 Log.d(service.TAG, "doInBackground: About to save IMU files in background");
                 FileUtil.saveGyroNAcceleroDataToFile(service, (List<SensorData>)lists[0], (List<SensorData>)lists[1]);
                 FileUtil.savePPGDataToFile(service, (List<PPGData>)lists[2]);
+                try {
+                    FileUtil.savePredictionsToFile(service, (List<String>)lists[3]);
+                } catch (IOException e) {
+                    Log.d(service.TAG, "doInBackground: Error saving predictions to file");
+                    e.printStackTrace();
+                }
 
-                ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<SensorData>)lists[2]).clear();
+                ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<PPGData>)lists[2]).clear();((List<String>)lists[3]).clear();
             }
-
 
             return null;
         }

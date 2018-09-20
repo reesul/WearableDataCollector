@@ -38,7 +38,9 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
     private final String TAG = "DC_ActivitiesAdapter";
     private String type;
     private String predictedLabel = "";
+    private String timestamp = "";
     private double features[];
+    private int orderedIndexes[];
 
     // Provide a reference to the views for each data item
     public static class ViewHolder extends WearableRecyclerView.ViewHolder {
@@ -56,11 +58,13 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         this.activitiesList = activitiesList;
     }
 
-    public ActivitiesAdapter(String[] activitiesList, String predictedLabel, double features[]) {
+    public ActivitiesAdapter(String[] activitiesList, String predictedLabel, double features[], String timestamp, int[] orderedIndexes) {
         this.type = "FEEDBACK";
         this.activitiesList = activitiesList;
         this.predictedLabel = predictedLabel;
         this.features = features;
+        this.timestamp = timestamp;
+        this.orderedIndexes = orderedIndexes;
     }
 
     // Create new views (invoked by the layout manager)
@@ -82,7 +86,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         }else if (type.equals("FEEDBACK")){
             //Used for dinamically get dimensions in DP rather than plain pixels
             DisplayMetrics dm = parent.getContext().getResources().getDisplayMetrics();
-            float myTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14F, dm);
+            float myTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 17F, dm);
             int paddLeftRight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 2F, dm);
             int paddTopBottom = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 4F, dm);
 
@@ -100,11 +104,13 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
     public void onBindViewHolder(final ViewHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        holder.mTextView.setText(activitiesList[position]);
-        holder.mTextView.setTextColor(Color.WHITE);
+
         final int listItemPosition = position;
 
+
         if(type.equals("LABELING")){
+            holder.mTextView.setText(activitiesList[listItemPosition]);
+            holder.mTextView.setTextColor(Color.WHITE);
 
             holder.mTextView.setOnClickListener(new View.OnClickListener() {
                 //Context ctx = holder.mTextView.getContext();
@@ -139,6 +145,9 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
 
         }else if (type.equals("FEEDBACK")){
 
+            holder.mTextView.setText(activitiesList[orderedIndexes[listItemPosition]]);
+            holder.mTextView.setTextColor(Color.WHITE);
+
             holder.mTextView.setOnClickListener(new View.OnClickListener() {
                 //Context ctx = holder.mTextView.getContext();
                 TextView txtView = holder.mTextView;
@@ -151,11 +160,10 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
                 public void onClick(View v) {
                     Log.d(TAG, "onClick label feedback");
                     Context context = txtView.getContext();
-                    Log.d(TAG, "Saving feedback on background: " + activitiesList[listItemPosition]);
+                    Log.d(TAG, "Saving feedback on background: " + activitiesList[orderedIndexes[listItemPosition]]);
                     //Save information to file
-                    String timestamp = Util.getTimeMillis(System.currentTimeMillis());
                     SaveFeedbackDataInBackground saveData = new SaveFeedbackDataInBackground(context, features, TAG);
-                    saveData.execute(timestamp, predictedLabel, activitiesList[listItemPosition]); //The predicted was correct so its the actual label
+                    saveData.execute(timestamp, predictedLabel, activitiesList[orderedIndexes[listItemPosition]]); //The predicted was correct so its the actual label
                 }
             });
 

@@ -36,6 +36,7 @@ import data.com.datacollector.utility.Notifications;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.REGISTERED_SENSOR_SERVICES;
+import static data.com.datacollector.model.Const.REQUEST_FEEDBACK;
 import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.SET_LOADING_HOME_ACTIVITY;
 import static data.com.datacollector.model.Const.START_SERVICES;
@@ -59,46 +60,51 @@ public class HomeActivity extends WearableActivity {
     private int previousEvent = MotionEvent.ACTION_UP;
 
     private ActivitiesList activities;
-    private ActivitiesAdapter adapterList;
+    //private ActivitiesAdapter adapterList;
 
     private BroadcastReceiver mLocalReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "mStopServicesReceiver onReceive: called");
             String action = intent.getAction();
+            try {
+                //Action that tells us to stop our services
+                if (action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)) {
 
-            //Action that tells us to stop our services
-            if(action.equals(BROADCAST_DATA_SAVE_DATA_AND_STOP)){
+                    Log.d(TAG, "onReceive: Received BROADCAST_DATA_SAVE_DATA_AND_STOP confirmation");
+                    confirmationsReceived++;
 
-                Log.d(TAG, "onReceive: Received BROADCAST_DATA_SAVE_DATA_AND_STOP confirmation");
-                confirmationsReceived++;
+                    if (confirmationsReceived >= CONFIRMATIONS_EXPECTED) {
+                        Log.d(TAG, "onReceive: Safe to restart, everything has been saved");
+                        //It is safe to stop the activity
+                        confirmationsReceived = 0;
 
-                if(confirmationsReceived >= CONFIRMATIONS_EXPECTED){
-                    Log.d(TAG, "onReceive: Safe to restart, everything has been saved");
-                    //It is safe to stop the activity
-                    confirmationsReceived = 0;
+                        //A previous alarm issued a restart request. Once we have received confirmation
+                        //that all the data has been saved, we now force the activity to restart
+                        stopBgService();
+                    }
 
-                    //A previous alarm issued a restart request. Once we have received confirmation
-                    //that all the data has been saved, we now force the activity to restart
-                    stopBgService();
+                } else if (action.equals(SET_LOADING_HOME_ACTIVITY)) {
+                    Log.d(TAG, "onReceive: Received SET_LOADING_HOME_ACTIVITY confirmation");
+                    setLoading(intent.getBooleanExtra(SET_LOADING, false));
+                } else if (action.equals(START_SERVICES)) {
+                    Log.d(TAG, "onReceive: Requested to start services");
+                    //NOTE: It is safer to not use handleStartStopBtnClick(); because this might turn off the device if is on, we only want to start it.
+                    if (!DataCollectReceiver.areServicesRunning()) {
+                        startBgService();
+                        confirmationsReceived = 0;
+                        btnStartStop.setText("STOP");
+                        btnStartStop.setBackgroundResource(R.drawable.custom_red_circle);
+                    }
+                } else if (action.equals(STOP_SERVICES)) {
+                    Log.d(TAG, "onReceive: Requested to stop services");
+                    if (DataCollectReceiver.areServicesRunning()) {
+                        requestSaveBeforeStop();
+                    }
                 }
-
-            } else if(action.equals(SET_LOADING_HOME_ACTIVITY)) {
-                Log.d(TAG, "onReceive: Received SET_LOADING_HOME_ACTIVITY confirmation");
-                setLoading(intent.getBooleanExtra(SET_LOADING,false));
-            } else if(action.equals(START_SERVICES)){
-                Log.d(TAG, "onReceive: Requested to start services");
-                //NOTE: It is safer to not use handleStartStopBtnClick(); because this might turn off the device if is on, we only want to start it.
-                if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
-                    startBgService();
-                    confirmationsReceived = 0;
-                    btnStartStop.setText("STOP");
-                }
-            } else if(action.equals(STOP_SERVICES)){
-                Log.d(TAG, "onReceive: Requested to stop services");
-                if(LeBLEService.isServiceRunning && SensorService.isServiceRunning) {
-                    requestSaveBeforeStop();
-                }
+            } catch (Exception e) {
+                Log.e(TAG, "handleStartStopBtnClick: There was an error instantiating the services: " + e.getMessage());
+                e.printStackTrace();
             }
         }
     };
@@ -156,11 +162,11 @@ public class HomeActivity extends WearableActivity {
         //Get activities list
         activities = new ActivitiesList();
         //Set up recycler view adapter with the obtained list
-        adapterList = new ActivitiesAdapter(activities.getList());
-        recActivitiesList.setAdapter(adapterList);
+        //adapterList = new ActivitiesAdapter(activities.getList());
+        //recActivitiesList.setAdapter(adapterList);
 
         //We intercept multiple touches and prevent any other after the first one arrives
-        recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+        /*recActivitiesList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
                 // return
@@ -183,7 +189,7 @@ public class HomeActivity extends WearableActivity {
 
                 return false;
             }
-        });
+        });*/
 
         progressBar = findViewById(R.id.progressBar);
 
@@ -201,8 +207,10 @@ public class HomeActivity extends WearableActivity {
         try {
             if (DataCollectReceiver.areServicesRunning()) {
                 btnStartStop.setText("STOP");
+                btnStartStop.setBackgroundResource(R.drawable.custom_red_circle);
             } else {
                 btnStartStop.setText("START");
+                btnStartStop.setBackgroundResource(R.drawable.custom_circle);
             }
         } catch (Exception e) {
             Log.e(TAG, "handleStartStopBtnClick: There was an error instantiating the services: " + e.getMessage());
@@ -227,6 +235,7 @@ public class HomeActivity extends WearableActivity {
                 startBgService();
                 confirmationsReceived = 0;
                 btnStartStop.setText("STOP");
+                btnStartStop.setBackgroundResource(R.drawable.custom_red_circle);
             }else{
                 requestSaveBeforeStop();
             }
@@ -297,6 +306,8 @@ public class HomeActivity extends WearableActivity {
         for (int i = 0;i<REGISTERED_SENSOR_SERVICES.length;i++){
             startService(new Intent(this, REGISTERED_SENSOR_SERVICES[i]));
         }
+
+        btnStartStop.setBackgroundResource(R.drawable.custom_red_circle);
     }
 
     /**
@@ -308,7 +319,7 @@ public class HomeActivity extends WearableActivity {
             stopService(new Intent(this, REGISTERED_SENSOR_SERVICES[i]));
         }
         btnStartStop.setText("START");
-        //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+        btnStartStop.setBackgroundResource(R.drawable.custom_circle);
         setLoading(false);
     }
 
@@ -344,7 +355,9 @@ public class HomeActivity extends WearableActivity {
         Log.d(TAG, "onResume: called");
         setLoading(false);
         //TODO: IMPORTANT ---- This should be uncomment whenever we are using the feedback feature (Notifications.requestFeedback) ----
-        Notifications.openFeedbackIfNotificationActive(HomeActivity.this.getApplicationContext());
+        if (REQUEST_FEEDBACK == true) {
+            Notifications.openFeedbackIfNotificationActive(HomeActivity.this.getApplicationContext());
+        }
     }
 
     @Override
