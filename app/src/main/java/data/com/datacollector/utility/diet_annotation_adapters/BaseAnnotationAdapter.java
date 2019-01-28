@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 public class BaseAnnotationAdapter extends WearableRecyclerView.Adapter<BaseAnnotationAdapter.ViewHolder>{
     public String[] itemsList;
+    public boolean[] itemsListChecks;
     private final String TAG = "DC_BaseAnnotationAdapter";
 
     // Provide a reference to the views for each data item

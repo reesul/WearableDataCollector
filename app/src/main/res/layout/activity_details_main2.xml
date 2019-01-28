@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/dark_grey"
     android:padding="@dimen/box_inset_layout_padding"
-    tools:context=".view.diet_annotation_ui.DetailsMainActivity"
+    tools:context=".view.diet_annotation_ui.DetailsMainActivity2"
     tools:deviceIds="wear">
 
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -15,9 +15,8 @@
         android:layout_height="fill_parent"
         android:padding="5dp">
 
-
         <android.support.wear.widget.WearableRecyclerView
-            android:id="@+id/recMainDetailActivityList"
+            android:id="@+id/recMainDetail2ActivityList"
             android:layout_width="match_parent"
             android:layout_height="106dp"
             android:layout_gravity="top|center"
@@ -25,19 +24,19 @@
             android:scrollbars="vertical" />
 
         <Button
-            android:id="@+id/btnDetailActivityNext"
+            android:id="@+id/btnDetailActivity2Next"
             android:layout_width="70dp"
             android:layout_height="40dp"
             android:layout_gravity="bottom|center"
             android:text="Next"
-            android:onClick="onClickDetailsNext"
+            android:onClick="onClickDetails2Next"
             android:textSize="10dp" />
 
     </FrameLayout>
 
 
     <FrameLayout
-        android:id="@+id/mainDetailAnnotationProgress"
+        android:id="@+id/mainDetailAnnotation2Progress"
         android:animateLayoutChanges="true"
         android:visibility="gone"
         android:alpha="0.7"

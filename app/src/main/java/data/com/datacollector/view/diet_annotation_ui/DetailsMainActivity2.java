@@ -1,6 +1,5 @@
 package data.com.datacollector.view.diet_annotation_ui;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
@@ -11,46 +10,44 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.TextView;
 
 import data.com.datacollector.R;
-import data.com.datacollector.utility.diet_annotation_adapters.MainActivityDetailsAdapter;
+import data.com.datacollector.utility.diet_annotation_adapters.MainActivityDetails2Adapter;
 
-public class DetailsMainActivity extends WearableActivity {
+public class DetailsMainActivity2 extends WearableActivity {
 
     private String TAG = "AnnotationMainActivity";
-    private MainActivityDetailsAdapter adapterList;
+    private MainActivityDetails2Adapter adapterList;
     private WearableRecyclerView recMainDetailActivityList;
     private FrameLayout progressBar;
     private int previousEvent = MotionEvent.ACTION_UP;
     public static boolean isInProgress = false;
 
+
     String activitiesList[] = {
-            "Did you use your right hand to eat?",
-            "Did you finish your plate?",
-            "Did you get full?",
-            "Did you order any extra?",
-            "Did you like it?",
-            "Where you in a rush?",
-            "Would you have eaten something else if you had opportunity?",
-            "Did you like your meal?",
-            "What you ate was a snack?"
-            };
+            "What did you eat?",
+            "Where did you eat?",
+            "What did you drink?",
+            "What dessert did you have?",
+            "How often do you eat this",
+            "What were you doing while eating?"
+    };
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_details_main);
+        setContentView(R.layout.activity_details_main2);
 
         // Enables Always-on
         setAmbientEnabled();
-
         setRecyclerView();
     }
 
     public void setRecyclerView(){
         //initialize the list that holds all of the labels
-        recMainDetailActivityList =  findViewById((R.id.recMainDetailActivityList));
+        recMainDetailActivityList =  findViewById((R.id.recMainDetail2ActivityList));
         //recActivitiesList.setCircularScrollingGestureEnabled(true); Consider if this might be easier for the user
         recMainDetailActivityList.setLayoutManager(new WearableLinearLayoutManager((this)));
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recMainDetailActivityList.getContext(), DividerItemDecoration.VERTICAL);
@@ -58,7 +55,7 @@ public class DetailsMainActivity extends WearableActivity {
 
         //Set up recycler view adapter with the obtained list
 
-        adapterList = new MainActivityDetailsAdapter(activitiesList);
+        adapterList = new MainActivityDetails2Adapter(activitiesList);
         recMainDetailActivityList.setAdapter(adapterList);
 
         //We intercept multiple touches and prevent any other after the first one arrives
@@ -90,16 +87,10 @@ public class DetailsMainActivity extends WearableActivity {
         progressBar = findViewById(R.id.mainAnnotationProgress);
     }
 
-    public void onClickDetailsNext(View v){
-        Log.d(TAG, "onClickDetailsNext: ");
-        String t = "";
-        for (int i=0;i<adapterList.itemsListChecks.length;i++){
-            t+= adapterList.itemsListChecks[i]? "Checked\n":"Not Checked\n";
-        }
-        Log.d(TAG, "onClickDetailsDone: " + t);
+    public void onClickDetails2Next(View v){
+        Log.d(TAG, "onClickDetails2Next: ");
+        //TODO: This button should be disabled until all the radios are selected
 
-        Intent intent = new Intent(DetailsMainActivity.this, DetailsMainActivity2.class);
-        DetailsMainActivity.this.startActivity(intent);
     }
 
 }

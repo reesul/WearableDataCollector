@@ -86,7 +86,10 @@
             android:label="@string/title_activity_annotation_activity" />
         <activity
             android:name=".view.diet_annotation_ui.DetailsMainActivity"
-            android:label="@string/title_activity_details_main"></activity>
+            android:label="@string/title_activity_details_main" />
+        <activity
+            android:name=".view.diet_annotation_ui.DetailsMainActivity2"
+            android:label="@string/title_activity_details_main2"></activity>
     </application>
 
 </manifest>
