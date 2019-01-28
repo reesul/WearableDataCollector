@@ -21,6 +21,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.wear.widget.WearableRecyclerView;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -59,12 +60,14 @@ import static data.com.datacollector.model.Const.STOP_SERVICES;
 public class HomeActivity extends WearableActivity {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
+    /*Audio
     private Button btnRecord;
-    private FrameLayout btnStopRecord;
-    //    private WearableRecyclerView recActivitiesList;
+    private FrameLayout btnStopRecord;*/
+    private WearableRecyclerView recActivitiesList;
     private FrameLayout progressBar;
 
     //Audio recording
+    /*Audio
     private int bufferSize = 640;
     private byte[] audioBuffer = new byte[bufferSize];
     private AudioRecord audioRecord = null;
@@ -74,7 +77,7 @@ public class HomeActivity extends WearableActivity {
     private static final int SAMPLE_RATE = 11025; // Hz
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int CHANNEL_MASK = AudioFormat.CHANNEL_IN_MONO;
-
+    */
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -90,6 +93,7 @@ public class HomeActivity extends WearableActivity {
 
     private ActivitiesList activities;
     private ActivitiesAdapter adapterList;
+    /*Audio
     private boolean obtainingGpsLocation = false;
     private long gpsElapsedTime = 0;
 
@@ -100,6 +104,7 @@ public class HomeActivity extends WearableActivity {
     Handler micExpirationHandler = null;
 
     // Define a listener that responds to location updates
+
     LocationListener locationListener = new LocationListener() {
 
         //Controls the minimum number of updates to consider a valid location
@@ -142,7 +147,7 @@ public class HomeActivity extends WearableActivity {
         public void onProviderDisabled(String provider) {
             Log.d(TAG, "location onProviderDisabled: ");
         }
-    };
+    };*/
 
     private BroadcastReceiver mLocalReceiver = new BroadcastReceiver() {
         @Override
@@ -206,24 +211,25 @@ public class HomeActivity extends WearableActivity {
 
         setContentView(R.layout.activity_main);
         requestPermission();
-
+        /*Audio
         //This might be accomplished while the permission is being granted
         if (this.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             initAudioRecord();
-        }
+        }*/
 
         initView();
-
+        /*Audio
         //Location manager its initialized for GPS data collection
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        */
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
         setAmbientEnabled();
     }
-
+    /*Audio
     public void initAudioRecord() {
         audioRecord = new AudioRecord(AUDIO_SOURCE, SAMPLE_RATE, CHANNEL_MASK, ENCODING, bufferSize);
-    }
+    }*/
 
     /**
      * initialize all views related to the application.
@@ -239,11 +245,13 @@ public class HomeActivity extends WearableActivity {
                 handleStartStopBtnClick();
             }
         });
+        /*Audio
         btnRecord = (ToggleButton) findViewById(R.id.btnRecord);
-        btnStopRecord = (FrameLayout) findViewById(R.id.btnStopRecord);
+        btnStopRecord = (FrameLayout) findViewById(R.id.btnStopRecord);*/
         setBtnStartStopText();
+        /*Audio
         setBtnStartStopRecordText();
-
+        */
         //The list of activities is hidden for this experiment
 
         //initialize the list that holds all of the labels
@@ -310,7 +318,7 @@ public class HomeActivity extends WearableActivity {
         //btnStartStop.setText("null, test");
 
     }
-
+    /*Audio
     private void setBtnStartStopRecordText() {
         if (btnRecord == null)
             return;
@@ -320,7 +328,7 @@ public class HomeActivity extends WearableActivity {
         } else {
             btnRecord.setText("START RECORDING");
         }
-    }
+    }*/
 
     /**
      * Called when Start/Stop button is clicked to trigger start/stop of service
@@ -431,7 +439,7 @@ public class HomeActivity extends WearableActivity {
         //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
 
     }
-
+    /*Audio
     public void onClickRecording(View v) {
 
         if (audioRecord == null) {
@@ -531,7 +539,7 @@ public class HomeActivity extends WearableActivity {
         // Write out the wav file header
         FileUtil.writeWavHeader(wavOut, CHANNEL_MASK, SAMPLE_RATE, ENCODING);
         return wavOut;
-    }
+    }*/
 
     /**
      * Start all background services to collect data
@@ -599,18 +607,20 @@ public class HomeActivity extends WearableActivity {
         if(b){
             Log.d(TAG, "setLoading: true");
             btnStartStop.setVisibility(View.GONE);
-            btnRecord.setVisibility(View.GONE);
+            /*Audio
+            btnRecord.setVisibility(View.GONE);*/
 //            recActivitiesList.setVisibility(View.GONE);
             progressBar.setVisibility(View.VISIBLE);
         }else{
             Log.d(TAG, "setLoading: false");
             btnStartStop.setVisibility(View.VISIBLE);
-            btnRecord.setVisibility(View.VISIBLE);
+            /*Audio
+            btnRecord.setVisibility(View.VISIBLE);*/
 //            recActivitiesList.setVisibility(View.VISIBLE);
             progressBar.setVisibility(View.GONE);
         }
     }
-
+    /*Audio
     //This runnable its the one in charge of stopping the GPS after a threshold of time if no data
     //has yet been detected
     private Runnable gpsStopRunnable = new Runnable() {
@@ -697,6 +707,6 @@ public class HomeActivity extends WearableActivity {
                 }
             }
         }
-    }
+    }*/
 
 }

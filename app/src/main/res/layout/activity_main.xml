@@ -18,8 +18,6 @@
         tools:context="data.com.datacollector.view.HomeActivity"
         tools:deviceIds="wear">
 
-
-
         <android.support.wear.widget.WearableRecyclerView
             android:id="@+id/recycler_activities"
             android:layout_width="match_parent"
@@ -87,6 +85,7 @@
 
         <ToggleButton
             android:id="@+id/btnRecord"
+            android:visibility="gone"
             android:drawableBottom="@drawable/ic_mic_start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -98,6 +97,15 @@
             android:textOff="Start recording"
             android:onClick="onClickRecording"
             android:color="@color/green"/>
+
+        <Button
+            android:id="@+id/btnAnnotate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="30dp"
+            android:text="Annotate" />
 
         <!--<ProgressBar-->
             <!--android:id="@+id/progressBar"-->
@@ -111,9 +119,6 @@
             <!--android:padding="30dp"-->
             <!--android:clickable="false"-->
             <!--android:visibility="gone"/>-->
-
-
-
 
     </RelativeLayout>
 
