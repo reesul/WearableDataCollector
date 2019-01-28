@@ -7,4 +7,5 @@
     <string name="title_activity_user_feedback">UserFeedback</string>
     <string name="title_activity_user_feedback_ground_truth">UserFeedbackGroundTruth</string>
     <string name="title_activity_annotation_activity">annotation_activity</string>
+    <string name="title_activity_details_main">DetailsMainActivity</string>
 </resources>
