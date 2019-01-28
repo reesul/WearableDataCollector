@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.wear.widget.WearableRecyclerView;
 import android.support.wearable.activity.WearableActivity;
@@ -181,6 +182,7 @@ public class HomeActivity extends WearableActivity {
                     startBgService();
                     confirmationsReceived = 0;
                     btnStartStop.setText("STOP");
+                    btnStartStop.setBackground(ContextCompat.getDrawable(context, R.drawable.custom_red_circle) );
                 }
             } else if (action.equals(STOP_SERVICES)) {
                 Log.d(TAG, "onReceive: Requested to stop services");
@@ -308,10 +310,10 @@ public class HomeActivity extends WearableActivity {
         //TODO: reenable check for sensor service (IMU) once BLE working
         if (LeBLEService.isServiceRunning || SensorService.isServiceRunning) {
             btnStartStop.setText("STOP");
-            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
+            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         } else {
             btnStartStop.setText("START");
-            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         }
 
         //while making changes an trying to add a list
@@ -341,7 +343,7 @@ public class HomeActivity extends WearableActivity {
             startBgService();
             confirmationsReceived = 0;
             btnStartStop.setText("STOP");
-            //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
+            btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_red_circle) );
         } else {
             requestSaveBeforeStop();
         }
@@ -558,7 +560,7 @@ public class HomeActivity extends WearableActivity {
         stopService(new Intent(this, SensorService.class));
         stopService(new Intent(this, LeBLEService.class));
         btnStartStop.setText("START");
-        //btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
+        btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         setLoading(false);
     }
 
