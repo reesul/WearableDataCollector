@@ -22,6 +22,9 @@ import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.RecyclerView;
+import android.support.wear.widget.WearableLinearLayoutManager;
 import android.support.wear.widget.WearableRecyclerView;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
@@ -47,6 +50,7 @@ import data.com.datacollector.utility.ActivitiesAdapter;
 import data.com.datacollector.utility.CustomizedExceptionHandler;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Util;
+import data.com.datacollector.view.diet_annotation_ui.AnnotationMainActivity;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
@@ -441,6 +445,12 @@ public class HomeActivity extends WearableActivity {
         //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
 
     }
+
+    public void onClickAnnotate(View v){
+        Intent annotationActivity = new Intent(HomeActivity.this.getApplicationContext(), AnnotationMainActivity.class);
+        startActivity(annotationActivity);
+    }
+
     /*Audio
     public void onClickRecording(View v) {
 

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_grey"
+    android:padding="@dimen/box_inset_layout_padding"
+    tools:context=".view.diet_annotation_ui.AnnotationMainActivity"
+    tools:deviceIds="wear">
+
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:padding="5dp">
+
+        <TextView
+            android:id="@+id/annotationMainTitle"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:textSize="14dp"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:text="Are you?"
+            android:background="@drawable/title_back"/>
+
+        <android.support.wear.widget.WearableRecyclerView
+            android:id="@+id/recMainActivityList"
+            android:layout_width="match_parent"
+            android:layout_height="124dp"
+            android:layout_gravity="bottom|center"
+            android:layout_margin="4dp"
+            android:scrollbars="vertical" />
+
+
+    </FrameLayout>
+
+
+    <FrameLayout
+        android:id="@+id/mainAnnotationProgress"
+        android:animateLayoutChanges="true"
+        android:visibility="gone"
+        android:alpha="0.7"
+        android:background="#000000"
+        android:layout_width="match_parent"
+        android:clickable="false"
+        android:elevation="10dp"
+        android:layout_height="match_parent">
+
+        <ProgressBar
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:layout_gravity="center" />
+    </FrameLayout>
+</android.support.wear.widget.BoxInsetLayout>

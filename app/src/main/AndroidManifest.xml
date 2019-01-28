@@ -19,6 +19,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <uses-feature android:name="android.hardware.location.gps" />
 
     <application
@@ -79,7 +80,10 @@
         <activity
             android:name=".view.feedback_ui.UserFeedbackGroundTruth"
             android:label="@string/title_activity_user_feedback_ground_truth"
-            android:theme="@style/Theme.Wearable.Modal" ></activity>
+            android:theme="@style/Theme.Wearable.Modal" />
+        <activity
+            android:name=".view.diet_annotation_ui.AnnotationMainActivity"
+            android:label="@string/title_activity_annotation_activity"></activity>
     </application>
 
 </manifest>
