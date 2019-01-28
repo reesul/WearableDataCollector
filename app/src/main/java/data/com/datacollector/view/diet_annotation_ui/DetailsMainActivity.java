@@ -25,7 +25,17 @@ public class DetailsMainActivity extends WearableActivity {
     public static boolean isInProgress = false;
 
 
-    String activitiesList[] = {"Detail1", "Detail2", "Detail3"};
+    String activitiesList[] = {
+            "Did you use your right hand to eat?",
+            "Did you finish your plate?",
+            "Did you get full?",
+            "Did you order any extra?",
+            "Did you like it?",
+            "Where you in a rush?",
+            "Would you have eaten something else if you had opportunity?",
+            "Did you like your meal?",
+            "What you ate was a snack?",
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +90,7 @@ public class DetailsMainActivity extends WearableActivity {
         progressBar = findViewById(R.id.mainAnnotationProgress);
     }
 
-    public void onClickDetailsDone(View v){
+    public void onClickDetailsNext(View v){
         Log.d(TAG, "onClickDetailsDone: ");
         String t = "";
         for (int i=0;i<adapterList.itemsListChecks.length;i++){
@@ -88,6 +98,10 @@ public class DetailsMainActivity extends WearableActivity {
         }
         Log.d(TAG, "onClickDetailsDone: " + t);
 
+        //TODO: Finish this considering the checked ones.
         
+
     }
+
+
 }

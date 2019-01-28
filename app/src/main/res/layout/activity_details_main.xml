@@ -25,12 +25,21 @@
             android:scrollbars="vertical" />
 
         <Button
-            android:id="@+id/btnDetailActivityDone"
-            android:layout_width="wrap_content"
+            android:id="@+id/btnDetailActivityPrev"
+            android:layout_width="70dp"
             android:layout_height="40dp"
-            android:layout_gravity="bottom|center"
-            android:text="Done"
-            android:onClick="onClickDetailsDone"
+            android:layout_gravity="bottom|left"
+            android:text="Prev"
+            android:onClick="onClickDetailsPrev"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnDetailActivityNext"
+            android:layout_width="70dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|right"
+            android:text="Next"
+            android:onClick="onClickDetailsNext"
             android:textSize="10dp" />
 
     </FrameLayout>
