@@ -124,7 +124,7 @@ public class Const {
 
     //Questions
 
-    public static final String FIRST_TIER_ACTIVITIES[] = {"Eating", "Walking", "Exercising", "Sitting", "Biking", "Nothing", "Other"};
+    public static final String FIRST_TIER_ACTIVITIES[] = {"Eating", "Walking", "Exercising", "Sitting", "Nothing", "Other"};
 
     public static final String EATING_ACTIVITY_FIRST_TIER_QUESTIONS[] = {
             "Did you use your right hand to eat?",
@@ -157,9 +157,9 @@ public class Const {
     }};
 
     public static final Map<String, String[]> REMAINING_ACTIVITIES_ANSWERS = new HashMap<String, String[]>() {{
-        put("a0", new String[]{"To work", "To eat", "Just walking"});
-        put("a1", new String[]{"Cardio", "Lifting", "Sports"});
-        put("a2", new String[]{"Working", "Watching TV", "Studying", "In-class"});
+        put("a1", new String[]{"To work", "To eat", "Just walking"});
+        put("a2", new String[]{"Cardio", "Lifting", "Sports"});
+        put("a3", new String[]{"Working", "Watching TV", "Studying", "In-class"});
     }};
 
 }

@@ -29,7 +29,7 @@ import static data.com.datacollector.model.Const.EATING_ACTIVITY_SECOND_TIER_QUE
  */
 public class ListToRadioButtonsActivity extends WearableActivity {
 
-    private String TAG = "DC_AnnotationMainActivity";
+    private String TAG = "DC_ListToRadioButtonsActivity";
     private ListToRadioButtonsAdapter adapterList;
     private WearableRecyclerView recMainDetailActivityList;
     private FrameLayout progressBar;
@@ -143,17 +143,20 @@ public class ListToRadioButtonsActivity extends WearableActivity {
         Log.d(TAG, "onClickDone:");
         if (isComplete()){
             Log.d(TAG, "onClickDone: Is complete");
+            //Make sure we unregister this receiver so the next time
+            //this activity is created we do not stack up receivers and have
+            //multiple calls
+            Intent intent = new Intent();
+            intent.putExtra("RADIO_ANSWER_IDS",answersIds);
+            setResult(RESULT_OK, intent);
+            LocalBroadcastManager.getInstance(ListToRadioButtonsActivity.this).unregisterReceiver(mLocalReceiver);
+            finish();
         }else{
             Toast.makeText(ListToRadioButtonsActivity.this,
                     "Must answer: " + EATING_ACTIVITY_SECOND_TIER_QUESTIONS[incompleteId],
                     Toast.LENGTH_SHORT)
                     .show();
         }
-
-        
-        //TODO: This button should be disabled until all the radios are selected
-        //TODO: Make sure the information is saved into files
-        //TODO: Make sure I finish the images for the paper
     }
 
 }

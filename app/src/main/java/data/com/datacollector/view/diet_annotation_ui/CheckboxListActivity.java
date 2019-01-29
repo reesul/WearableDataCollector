@@ -2,6 +2,7 @@ package data.com.datacollector.view.diet_annotation_ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
 import android.support.wear.widget.WearableLinearLayoutManager;
@@ -19,7 +20,7 @@ import static data.com.datacollector.model.Const.EATING_ACTIVITY_FIRST_TIER_QUES
 
 public class CheckboxListActivity extends WearableActivity {
 
-    private String TAG = "AnnotationMainActivity";
+    private String TAG = "DC_CheckboxListActivity";
     private CheckboxListAdapter adapterList;
     private WearableRecyclerView recMainDetailActivityList;
     private FrameLayout progressBar;
@@ -88,7 +89,22 @@ public class CheckboxListActivity extends WearableActivity {
         Log.d(TAG, "onClickDetailsDone: " + t);
 
         Intent intent = new Intent(CheckboxListActivity.this, ListToRadioButtonsActivity.class);
-        CheckboxListActivity.this.startActivity(intent);
+        startActivityForResult(intent,1);
+//        CheckboxListActivity.this.startActivity(intent);
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 1) {
+            if (resultCode == RESULT_OK) {
+                int[] returnedResult = data.getExtras().getIntArray("RADIO_ANSWER_IDS");
+                Log.d(TAG, "onActivityResult: ");
+                Intent intent = new Intent("SAVE_DETAILED_DATA");
+                intent.putExtra("CHECKBOX_DATA", adapterList.itemsListChecks);
+                intent.putExtra("RADIO_DATA", returnedResult);
+                LocalBroadcastManager.getInstance(CheckboxListActivity.this).sendBroadcast(intent);
+                finish();
+            }
+        }
     }
 
 }

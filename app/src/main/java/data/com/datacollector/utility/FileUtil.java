@@ -54,6 +54,7 @@ public class FileUtil {
     private static boolean actFileAlreadyExists;
     private static boolean feedbackFileAlreadyExists;
     private static boolean gpsFileAlreadyExists;
+    private static boolean annotationFileAlreadyExists;
 
     //Used to be in NetworkIO. Now here since it can be set by any of the transfer methods
     //Set by either NetworkIO or BluetoothFileTransfer
@@ -919,6 +920,60 @@ public class FileUtil {
                 }
             }
         }
+    }
+
+    /**
+     *
+     * @throws IOException
+     */
+    public static synchronized void saveDietAnnotation(Context context, String text, String fileName, String header) throws IOException{
+        if(fileUploadInProgress){
+            Log.d(TAG, "saveDietAnnotation:: fileUploadInProgress, will save data in the next call");
+            return;
+        }
+
+        final File fileAnnotation = getAnnotationFile(context, fileName);
+
+        Log.d(TAG, "saveDietAnnotation::  absolute path: "+fileAnnotation.getAbsolutePath());
+
+        boolean fileAnnotationExists = fileAnnotation.exists();
+        try {
+            if(!fileAnnotationExists) {
+                fileAnnotation.getParentFile().mkdirs();
+                fileAnnotation.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(fileAnnotation, true);
+
+            if(!annotationFileAlreadyExists) {
+                fos.write((DEVICE_ID+"\n" +header).getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            fos.write((text).getBytes());
+            fos.close();
+            Log.d(TAG, "saveDietAnnotation:: Activity data saved successfully");
+        } catch (IOException e) {
+            throw e;
+        }
+
+    }
+
+    public static File getAnnotationFile(Context context, String fileName){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File fileAnnotation = new File(dir, fileName + ".txt");
+
+        if(!fileAnnotation.exists()) {
+            try {
+                fileAnnotation.getParentFile().mkdirs();
+                fileAnnotation.createNewFile();
+                annotationFileAlreadyExists = false;
+            }catch(IOException e){}
+        }
+        else annotationFileAlreadyExists = true;
+        return fileAnnotation;
     }
 
 

@@ -2,6 +2,7 @@ package data.com.datacollector.utility.diet_annotation_adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -33,7 +34,6 @@ public class MainActivityAnnotationAdapter extends BaseAnnotationAdapter {
         } else if(listItemPosition<(FIRST_TIER_ACTIVITIES.length-2)) {
             //TODO: -2 must change if the questions change, since the last two do not require extra, thats why -2
             //Another activity was selected
-            //TODO: Next questions
             Intent intent = new Intent(ctx, RadioButtonsActivity.class);
             intent.putExtra("ANSWERS", REMAINING_ACTIVITIES_ANSWERS.get("a"+listItemPosition));
             intent.putExtra("QUESTION_ID", listItemPosition);
@@ -41,7 +41,10 @@ public class MainActivityAnnotationAdapter extends BaseAnnotationAdapter {
             ctx.startActivity(intent);
         } else {
             Log.d(TAG, "onItemClick: Selected: " + super.itemsList[listItemPosition]);
-            //TODO: Save this
+            Intent intent = new Intent("RADIO_ANSWER_MAIN");
+            intent.putExtra("ANSWER_ID",-1);
+            intent.putExtra("QUESTION_ID",listItemPosition);
+            LocalBroadcastManager.getInstance(v.getContext()).sendBroadcast(intent);
         }
     }
 

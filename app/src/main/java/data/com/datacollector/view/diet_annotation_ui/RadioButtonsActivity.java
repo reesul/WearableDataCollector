@@ -54,6 +54,7 @@ public class RadioButtonsActivity extends WearableActivity {
             });
             radioGroup.addView(rdbtn);
         }
+        Log.d(TAG, "getExtrasAndSetButtons: " + String.valueOf(radioGroup.getChildCount()));
     }
 
     public void onRadioClick(View v, int questionId, boolean mainActivityAnnotation){

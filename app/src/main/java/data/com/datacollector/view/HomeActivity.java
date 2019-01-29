@@ -447,7 +447,9 @@ public class HomeActivity extends WearableActivity {
     }
 
     public void onClickAnnotate(View v){
+        String startTimestamp = Util.getTimeMillis(System.currentTimeMillis());
         Intent annotationActivity = new Intent(HomeActivity.this.getApplicationContext(), AnnotationMainActivity.class);
+        annotationActivity.putExtra("START_TS",startTimestamp);
         startActivity(annotationActivity);
     }
 
