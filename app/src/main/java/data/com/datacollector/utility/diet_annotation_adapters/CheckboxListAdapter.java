@@ -56,16 +56,21 @@ public class CheckboxListAdapter extends WearableRecyclerView.Adapter<CheckboxLi
     // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
+
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         holder.mCheckBox.setText(itemsList[position]);
         holder.mCheckBox.setTextColor(Color.WHITE);
+        holder.mCheckBox.setOnCheckedChangeListener(null);
+        holder.mCheckBox.setChecked(itemsListChecks[position]);
+
 
         final int listItemPosition = position;
 
         holder.mCheckBox.setOnClickListener(new View.OnClickListener() {
             //Context ctx = holder.mTextView.getContext();
             CheckBox checkBox = holder.mCheckBox;
+
             /**
              * Called when the user clicks on an activity label
              * @param v
