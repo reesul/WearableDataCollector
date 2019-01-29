@@ -7,6 +7,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class BaseAnnotationAdapter extends WearableRecyclerView.Adapter<BaseAnnotationAdapter.ViewHolder>{
@@ -35,6 +36,9 @@ public class BaseAnnotationAdapter extends WearableRecyclerView.Adapter<BaseAnno
 
         // create a new view
         TextView v = new TextView(parent.getContext());
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT);
+        v.setLayoutParams(lp);
 
         //Used for dinamically get dimensions in DP rather than plain pixels
         DisplayMetrics dm = parent.getContext().getResources().getDisplayMetrics();

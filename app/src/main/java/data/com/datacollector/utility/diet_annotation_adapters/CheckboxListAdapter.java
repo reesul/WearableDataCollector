@@ -3,14 +3,12 @@ package data.com.datacollector.utility.diet_annotation_adapters;
 import android.graphics.Color;
 import android.support.wear.widget.WearableRecyclerView;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.TextView;
 
-public class MainActivityDetailsAdapter extends WearableRecyclerView.Adapter<MainActivityDetailsAdapter.ViewHolder>{
+public class CheckboxListAdapter extends WearableRecyclerView.Adapter<CheckboxListAdapter.ViewHolder>{
     public String[] itemsList;
     public boolean[] itemsListChecks;
     private final String TAG = "DC_MainActivityDetailsAdapter";
@@ -26,7 +24,7 @@ public class MainActivityDetailsAdapter extends WearableRecyclerView.Adapter<Mai
     }
 
     //Constructor with only a list of strings
-    public MainActivityDetailsAdapter(String[] itemsList) {
+    public CheckboxListAdapter(String[] itemsList) {
         this.itemsList = itemsList;
 
         //Initialize boolean reference for checked box
@@ -38,7 +36,7 @@ public class MainActivityDetailsAdapter extends WearableRecyclerView.Adapter<Mai
 
     // Create new views (invoked by the layout manager)
     @Override
-    public MainActivityDetailsAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public CheckboxListAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
         // create a new view
         CheckBox c = new CheckBox(parent.getContext());

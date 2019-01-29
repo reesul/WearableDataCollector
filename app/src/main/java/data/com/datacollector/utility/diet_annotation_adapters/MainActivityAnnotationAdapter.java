@@ -7,7 +7,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import data.com.datacollector.view.diet_annotation_ui.DetailsMainActivity;
+import data.com.datacollector.view.diet_annotation_ui.CheckboxListActivity;
 
 public class MainActivityAnnotationAdapter extends BaseAnnotationAdapter {
     private final String TAG = "DC_MainActivityAnnotationAdapter";
@@ -24,7 +24,7 @@ public class MainActivityAnnotationAdapter extends BaseAnnotationAdapter {
         Context ctx = txtView.getContext();
         if(listItemPosition == 0){
             //Eating activity has been selected
-            Intent intent = new Intent(ctx, DetailsMainActivity.class);
+            Intent intent = new Intent(ctx, CheckboxListActivity.class);
             ctx.startActivity(intent);
 
         } else {

@@ -15,6 +15,11 @@ import android.widget.TextView;
 import data.com.datacollector.R;
 import data.com.datacollector.utility.diet_annotation_adapters.MainActivityAnnotationAdapter;
 
+import static data.com.datacollector.model.Const.FIRST_TIER_ACTIVITIES;
+
+/**
+ * Main activity where the list of all the possible activities performed by the user are listed
+ */
 public class AnnotationMainActivity extends WearableActivity {
 
     private TextView mTextView;
@@ -24,10 +29,6 @@ public class AnnotationMainActivity extends WearableActivity {
     private FrameLayout progressBar;
     private int previousEvent = MotionEvent.ACTION_UP;
     public static boolean isInProgress = false;
-
-
-    String activitiesList[] = {"Eating", "Walking", "Exercising", "Sitting", "Biking", "Nothing", "Other"};
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +52,7 @@ public class AnnotationMainActivity extends WearableActivity {
 
         //Set up recycler view adapter with the obtained list
 
-        adapterList = new MainActivityAnnotationAdapter(activitiesList);
+        adapterList = new MainActivityAnnotationAdapter(FIRST_TIER_ACTIVITIES);
         recLabelsList.setAdapter(adapterList);
 
         //We intercept multiple touches and prevent any other after the first one arrives

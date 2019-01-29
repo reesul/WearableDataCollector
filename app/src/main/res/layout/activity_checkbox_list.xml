@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/dark_grey"
     android:padding="@dimen/box_inset_layout_padding"
-    tools:context=".view.diet_annotation_ui.DetailsMainActivity"
+    tools:context=".view.diet_annotation_ui.CheckboxListActivity"
     tools:deviceIds="wear">
 
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"

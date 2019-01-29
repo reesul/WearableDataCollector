@@ -2,6 +2,8 @@ package data.com.datacollector.model;
 
 import android.os.Build;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -118,7 +120,40 @@ public class Const {
     /* number of times the LE service will cycle the BLE scan on and off within the save data interval - truncated down to nearest int */
     public static final int NUM_BLE_CYCLES = (int)(ALARM_SENSOR_DATA_SAVE_INTERVAL / (BLE_SCAN_START_TIME + BLE_SCAN_STOP_TIME));
 
+    /* Diet annotation constants */
 
+    //Questions
 
+    public static final String FIRST_TIER_ACTIVITIES[] = {"Eating", "Walking", "Exercising", "Sitting", "Biking", "Nothing", "Other"};
+
+    public static final String EATING_ACTIVITY_FIRST_TIER_QUESTIONS[] = {
+            "Did you use your right hand to eat?",
+            "Did you finish your plate?",
+            "Did you get full?",
+            "Did you order any extra?",
+            "Did you like it?",
+            "Where you in a rush?",
+            "Would you have eaten something else if you had opportunity?",
+            "Did you like your meal?",
+            "What you ate was a snack?"
+    };
+
+    public static final String EATING_ACTIVITY_SECOND_TIER_QUESTIONS[] = {
+            "What did you eat?",
+            "Where did you eat?",
+            "What did you drink?",
+            "What dessert did you have?",
+            "How often do you eat this",
+            "What were you doing while eating?"
+    };
+
+    public static final Map<String, String[]> EATING_SECOND_TIER_ANSWERS = new HashMap<String, String[]>() {{
+        put("a0", new String[]{"Fast food", "Healthy food (veggies, etc.)", "Home made"});
+        put("a1", new String[]{"Home", "Restaurant", "Work"});
+        put("a2", new String[]{"Water", "Soda", "Juice", "Nothing"});
+        put("a3", new String[]{"Icecream", "Cookies", "Cake", "Fruit", "Protein bar", "Nothing"});
+        put("a4", new String[]{"Rarely", "Often", "Regularly"});
+        put("a5", new String[]{"Just eating", "Working", "Studying", "Watching TV", "Chatting"});
+    }};
 
 }

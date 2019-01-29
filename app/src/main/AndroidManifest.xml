@@ -85,11 +85,14 @@
             android:name=".view.diet_annotation_ui.AnnotationMainActivity"
             android:label="@string/title_activity_annotation_activity" />
         <activity
-            android:name=".view.diet_annotation_ui.DetailsMainActivity"
+            android:name=".view.diet_annotation_ui.CheckboxListActivity"
             android:label="@string/title_activity_details_main" />
         <activity
-            android:name=".view.diet_annotation_ui.DetailsMainActivity2"
-            android:label="@string/title_activity_details_main2"></activity>
+            android:name=".view.diet_annotation_ui.ListToRadioButtonsActivity"
+            android:label="@string/title_activity_details_main2" />
+        <activity
+            android:name=".view.diet_annotation_ui.RadioButtonsActivity"
+            android:label="@string/title_activity_details_main_activity2_radio"></activity>
     </application>
 
 </manifest>

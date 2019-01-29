@@ -11,36 +11,25 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.TextView;
 
 import data.com.datacollector.R;
-import data.com.datacollector.utility.diet_annotation_adapters.MainActivityDetailsAdapter;
+import data.com.datacollector.utility.diet_annotation_adapters.CheckboxListAdapter;
 
-public class DetailsMainActivity extends WearableActivity {
+import static data.com.datacollector.model.Const.EATING_ACTIVITY_FIRST_TIER_QUESTIONS;
+
+public class CheckboxListActivity extends WearableActivity {
 
     private String TAG = "AnnotationMainActivity";
-    private MainActivityDetailsAdapter adapterList;
+    private CheckboxListAdapter adapterList;
     private WearableRecyclerView recMainDetailActivityList;
     private FrameLayout progressBar;
     private int previousEvent = MotionEvent.ACTION_UP;
     public static boolean isInProgress = false;
 
-    String activitiesList[] = {
-            "Did you use your right hand to eat?",
-            "Did you finish your plate?",
-            "Did you get full?",
-            "Did you order any extra?",
-            "Did you like it?",
-            "Where you in a rush?",
-            "Would you have eaten something else if you had opportunity?",
-            "Did you like your meal?",
-            "What you ate was a snack?"
-            };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_details_main);
+        setContentView(R.layout.activity_checkbox_list);
 
         // Enables Always-on
         setAmbientEnabled();
@@ -58,7 +47,7 @@ public class DetailsMainActivity extends WearableActivity {
 
         //Set up recycler view adapter with the obtained list
 
-        adapterList = new MainActivityDetailsAdapter(activitiesList);
+        adapterList = new CheckboxListAdapter(EATING_ACTIVITY_FIRST_TIER_QUESTIONS);
         recMainDetailActivityList.setAdapter(adapterList);
 
         //We intercept multiple touches and prevent any other after the first one arrives
@@ -98,8 +87,8 @@ public class DetailsMainActivity extends WearableActivity {
         }
         Log.d(TAG, "onClickDetailsDone: " + t);
 
-        Intent intent = new Intent(DetailsMainActivity.this, DetailsMainActivity2.class);
-        DetailsMainActivity.this.startActivity(intent);
+        Intent intent = new Intent(CheckboxListActivity.this, ListToRadioButtonsActivity.class);
+        CheckboxListActivity.this.startActivity(intent);
     }
 
 }
