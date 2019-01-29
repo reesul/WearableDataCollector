@@ -46,7 +46,7 @@ public class ListToRadioButtonsActivity extends WearableActivity {
             String action = intent.getAction();
 
             //Action that tells us to stop our services
-            if (action.equals("RADIO_ANSWER")) {
+            if (action.equals("RADIO_ANSWER_LIST")) {
 
                 int answerId = intent.getExtras().getInt("ANSWER_ID");
                 int questionId = intent.getExtras().getInt("QUESTION_ID");
@@ -69,7 +69,7 @@ public class ListToRadioButtonsActivity extends WearableActivity {
         setContentView(R.layout.activity_list_to_radio_buttons);
 
         IntentFilter confirmationIntent = new IntentFilter();
-        confirmationIntent.addAction("RADIO_ANSWER");
+        confirmationIntent.addAction("RADIO_ANSWER_LIST");
         LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
         // Enables Always-on

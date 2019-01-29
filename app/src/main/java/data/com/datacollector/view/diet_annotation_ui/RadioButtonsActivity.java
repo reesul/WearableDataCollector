@@ -35,6 +35,9 @@ public class RadioButtonsActivity extends WearableActivity {
         //TODO: Get extras
         String answers[] = getIntent().getStringArrayExtra("ANSWERS");
         questionId = getIntent().getIntExtra("QUESTION_ID",0);
+        final boolean mainActivityAnnotation = getIntent().getBooleanExtra("MAIN_ACTIVITY_ANNOTATION",false);
+        Log.d(TAG, "getExtrasAndSetButtons: " + mainActivityAnnotation);
+        //If called from MainActivityAnnotationAdapter 1<=questionId<=3
 
         for (int i=0; i<answers.length;i++){
             RadioButton rdbtn = new RadioButton(this);
@@ -46,19 +49,30 @@ public class RadioButtonsActivity extends WearableActivity {
             rdbtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onRadioClick(v, questionId);
+                    onRadioClick(v, questionId, mainActivityAnnotation);
                 }
             });
             radioGroup.addView(rdbtn);
         }
     }
 
-    public void onRadioClick(View v, int questionId){
-        //TODO: Close, go back, save, and mark
+    public void onRadioClick(View v, int questionId, boolean mainActivityAnnotation){
         Log.d(TAG, "onRadioClick: ");
-        Intent intent = new Intent("RADIO_ANSWER");
-        intent.putExtra("ANSWER_ID",v.getId());
-        intent.putExtra("QUESTION_ID",questionId);
+        Intent intent;
+        if(mainActivityAnnotation){
+            Log.d(TAG, "onRadioClick: Broadcast to RADIO_ANSWER_MAIN");
+            intent = new Intent("RADIO_ANSWER_MAIN");
+            intent.putExtra("ANSWER_ID",v.getId());
+            intent.putExtra("QUESTION_ID",questionId);
+        }else{
+            Log.d(TAG, "onRadioClick: Broadcast to RADIO_ANSWER_LIST");
+            intent = new Intent("RADIO_ANSWER_LIST");
+            intent.putExtra("ANSWER_ID",v.getId());
+            intent.putExtra("QUESTION_ID",questionId);
+        }
+
+        //TODO: Should we check to whom are we broadcasting back?
+
         LocalBroadcastManager.getInstance(v.getContext()).sendBroadcast(intent);
         finish();
     }

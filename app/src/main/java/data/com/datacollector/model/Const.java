@@ -156,4 +156,10 @@ public class Const {
         put("a5", new String[]{"Just eating", "Working", "Studying", "Watching TV", "Chatting"});
     }};
 
+    public static final Map<String, String[]> REMAINING_ACTIVITIES_ANSWERS = new HashMap<String, String[]>() {{
+        put("a0", new String[]{"To work", "To eat", "Just walking"});
+        put("a1", new String[]{"Cardio", "Lifting", "Sports"});
+        put("a2", new String[]{"Working", "Watching TV", "Studying", "In-class"});
+    }};
+
 }
