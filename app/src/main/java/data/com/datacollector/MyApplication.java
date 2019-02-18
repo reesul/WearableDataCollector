@@ -6,6 +6,9 @@ import android.content.IntentFilter;
 import android.util.Log;
 
 import data.com.datacollector.receiver.DataCollectReceiver;
+import data.com.datacollector.receiver.NotificationReceiver;
+
+import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION;
 
 
 /**
@@ -16,6 +19,7 @@ import data.com.datacollector.receiver.DataCollectReceiver;
  */
 public class MyApplication extends Application {
     private DataCollectReceiver mReceiver;
+    private NotificationReceiver notificationReceiver;
     private String TAG = "MyApplication";
     @Override
     public void onCreate() {
@@ -29,6 +33,10 @@ public class MyApplication extends Application {
         filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
 
         registerReceiver(mReceiver, filter);
+
+        notificationReceiver = new NotificationReceiver();
+        IntentFilter filter2 = new IntentFilter(ACTION_REMINDER_NOTIFICATION);
+        registerReceiver(notificationReceiver, filter2);
 
         Log.d(TAG, "onCreate: Registered receiver");
     }

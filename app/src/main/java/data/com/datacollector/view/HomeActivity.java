@@ -2,7 +2,9 @@ package data.com.datacollector.view;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -33,17 +35,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
-import android.widget.ToggleButton;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.ref.WeakReference;
 
 import data.com.datacollector.R;
 import data.com.datacollector.model.ActivitiesList;
 import data.com.datacollector.model.Const;
 import data.com.datacollector.receiver.DataCollectReceiver;
+import data.com.datacollector.receiver.NotificationReceiver;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.ActivitiesAdapter;
@@ -52,8 +49,12 @@ import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Util;
 import data.com.datacollector.view.diet_annotation_ui.AnnotationMainActivity;
 
+import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION;
+import static data.com.datacollector.model.Const.ACTION_REMINDER_NOTIFICATION_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.DIET_ANNOTATION_REMINDER_INTERVAL;
+import static data.com.datacollector.model.Const.PENDING_INTENT_CODE_NOTIFICATION;
 import static data.com.datacollector.model.Const.SET_LOADING;
 import static data.com.datacollector.model.Const.SET_LOADING_HOME_ACTIVITY;
 import static data.com.datacollector.model.Const.START_SERVICES;
@@ -71,6 +72,9 @@ public class HomeActivity extends WearableActivity {
     private WearableRecyclerView recActivitiesList;
     private FrameLayout progressBar;
 
+    private PendingIntent alarmPendingIntent;
+    private AlarmManager alarmManager;
+//    private NotificationReceiver notificationReceiver = null;
     //Audio recording
     /*Audio
     private int bufferSize = 640;
@@ -211,6 +215,8 @@ public class HomeActivity extends WearableActivity {
         confirmationIntent.addAction(STOP_SERVICES);
         LocalBroadcastManager.getInstance(this).registerReceiver(mLocalReceiver, confirmationIntent);
 
+        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
         //Custom uncaught exception handling
         Thread.setDefaultUncaughtExceptionHandler(new CustomizedExceptionHandler(Environment.getExternalStorageDirectory().getAbsolutePath()));
         //Finish custom
@@ -231,6 +237,12 @@ public class HomeActivity extends WearableActivity {
 
         Log.d(TAG, "ID is " + Const.DEVICE_ID);
         setAmbientEnabled();
+
+//        if (notificationReceiver == null){
+//            notificationReceiver = new NotificationReceiver();
+//        }
+//        IntentFilter filter2 = new IntentFilter(ACTION_REMINDER_NOTIFICATION);
+//        registerReceiver(notificationReceiver, filter2);
     }
     /*Audio
     public void initAudioRecord() {
@@ -447,10 +459,53 @@ public class HomeActivity extends WearableActivity {
     }
 
     public void onClickAnnotate(View v){
-        String startTimestamp = Util.getTimeMillis(System.currentTimeMillis());
-        Intent annotationActivity = new Intent(HomeActivity.this.getApplicationContext(), AnnotationMainActivity.class);
-        annotationActivity.putExtra("START_TS",startTimestamp);
-        startActivity(annotationActivity);
+        if (!LeBLEService.isServiceRunning || !SensorService.isServiceRunning) {
+            Toast.makeText(HomeActivity.this, "The app is not running", Toast.LENGTH_SHORT).show();
+        } else {
+            String startTimestamp = Util.getTimeMillis(System.currentTimeMillis());
+            Intent annotationActivity = new Intent(HomeActivity.this.getApplicationContext(), AnnotationMainActivity.class);
+            annotationActivity.putExtra("START_TS",startTimestamp);
+            startActivity(annotationActivity);
+        }
+
+    }
+
+    private void setReminderAlarmForDietAnnotation() {
+        Log.d(TAG, "setReminderAlarmForDietAnnotation: ");
+
+//        if (notificationReceiver == null){
+//            notificationReceiver = new NotificationReceiver();
+//        }
+//        IntentFilter filter2 = new IntentFilter(ACTION_REMINDER_NOTIFICATION);
+//        registerReceiver(notificationReceiver, filter2);
+
+        Intent intent = new Intent(this.getApplicationContext(), NotificationReceiver.class);
+        intent.setAction(ACTION_REMINDER_NOTIFICATION);
+        intent.putExtra(ACTION_REMINDER_NOTIFICATION_INTERVAL, DIET_ANNOTATION_REMINDER_INTERVAL);
+        alarmPendingIntent = PendingIntent.getBroadcast( this.getApplicationContext(), PENDING_INTENT_CODE_NOTIFICATION, intent, 0);
+
+
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + DIET_ANNOTATION_REMINDER_INTERVAL,
+                alarmPendingIntent);
+
+    }
+
+    private void cancelReminderAlarmForDietAnnotation(){
+        Log.d(TAG, "cancelRepeatingAlarm: ");
+        //Just for security in case something goes wrong we first verify we have the information before using it
+        if(alarmManager == null){
+            alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        }
+        if(alarmPendingIntent == null){
+            Intent intent = new Intent(this.getApplicationContext(), NotificationReceiver.class);
+            intent.setAction(ACTION_REMINDER_NOTIFICATION);
+            intent.putExtra(ACTION_REMINDER_NOTIFICATION_INTERVAL, DIET_ANNOTATION_REMINDER_INTERVAL);
+            alarmPendingIntent = PendingIntent.getBroadcast( this.getApplicationContext(), PENDING_INTENT_CODE_NOTIFICATION, intent, 0);
+        }
+        if(alarmPendingIntent != null) {
+            alarmManager.cancel(alarmPendingIntent);
+        }
     }
 
     /*Audio
@@ -562,6 +617,8 @@ public class HomeActivity extends WearableActivity {
         Log.d(TAG, "startBgService::");
         startSensorService();
         startBLEService();
+        //cancelReminderAlarmForDietAnnotation();
+        setReminderAlarmForDietAnnotation();
     }
 
     /**
@@ -571,6 +628,8 @@ public class HomeActivity extends WearableActivity {
 
         stopService(new Intent(this, SensorService.class));
         stopService(new Intent(this, LeBLEService.class));
+        cancelReminderAlarmForDietAnnotation();
+//        unregisterReceiver(notificationReceiver);
         btnStartStop.setText("START");
         btnStartStop.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_circle) );
         setLoading(false);
@@ -615,6 +674,8 @@ public class HomeActivity extends WearableActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy: called");
+        cancelReminderAlarmForDietAnnotation();
+//        unregisterReceiver(notificationReceiver);
     }
 
     public void setLoading(boolean b){
@@ -722,5 +783,7 @@ public class HomeActivity extends WearableActivity {
             }
         }
     }*/
+
+
 
 }

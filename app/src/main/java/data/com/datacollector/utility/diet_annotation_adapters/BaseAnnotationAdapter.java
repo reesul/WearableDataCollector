@@ -42,7 +42,7 @@ public class BaseAnnotationAdapter extends WearableRecyclerView.Adapter<BaseAnno
 
         //Used for dinamically get dimensions in DP rather than plain pixels
         DisplayMetrics dm = parent.getContext().getResources().getDisplayMetrics();
-        float myTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 17F, dm);
+        float myTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 18F, dm);
         int paddLeftRight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 2F, dm);
         int paddTopBottom = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 4F, dm);
         v.setTextSize(myTextSize);

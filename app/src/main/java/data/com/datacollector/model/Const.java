@@ -132,7 +132,7 @@ public class Const {
             "Did you get full?",
             "Did you order any extra?",
             "Did you like it?",
-            "Where you in a rush?",
+            "Were you in a rush?",
             "Would you have eaten something else if you had opportunity?",
             "Did you like your meal?",
             "What you ate was a snack?"
@@ -159,7 +159,8 @@ public class Const {
     public static final Map<String, String[]> REMAINING_ACTIVITIES_ANSWERS = new HashMap<String, String[]>() {{
         put("a1", new String[]{"To work", "To eat", "Just walking"});
         put("a2", new String[]{"Cardio", "Lifting", "Sports"});
-        put("a3", new String[]{"Working", "Watching TV", "Studying", "In-class"});
+        put("a3", new String[]{"Working", "Watching TV", "Studying", "In-class", "Other"});
     }};
 
+    public static final int DIET_ANNOTATION_REMINDER_INTERVAL = 15*60*1000; //In millis, 15 minutes
 }

@@ -5,7 +5,9 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.activity.WearableActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -45,6 +47,9 @@ public class RadioButtonsActivity extends WearableActivity {
             rdbtn.setText(answers[i]);
             RadioGroup.LayoutParams lp = new RadioGroup.LayoutParams(RadioGroup.LayoutParams.MATCH_PARENT,RadioGroup.LayoutParams.WRAP_CONTENT);
             rdbtn.setLayoutParams(lp);
+            DisplayMetrics dm = RadioButtonsActivity.this.getResources().getDisplayMetrics();
+            float rdbtnSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16F, dm);
+            rdbtn.setTextSize(rdbtnSize);
             rdbtn.setTextColor(Color.WHITE);
             rdbtn.setOnClickListener(new View.OnClickListener() {
                 @Override

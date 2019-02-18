@@ -35,9 +35,10 @@ public class NotificationReceiver extends BroadcastReceiver {
                 //We create the next alarm for notification
                 setAlarm(context, interval);
 
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                //Commented for diet annotation project
+                //NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
                 Notifications.vibrate(context);
-                notificationManager.notify(Notifications.NOTIFICATION_ID_REMINDER, Notifications.getReminderNotification(context));
+                //notificationManager.notify(Notifications.NOTIFICATION_ID_REMINDER, Notifications.getReminderNotification(context));
             }
         }
     }
