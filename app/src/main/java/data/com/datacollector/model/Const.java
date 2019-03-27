@@ -29,8 +29,8 @@ public class Const {
             "Lab Seminar", "Class", "Lab Course", "Eating", "Break","Phone Call",
             "Traveling", "Restroom", "Gym", "Outdoor Exercise", "Meeting"}; //The default list of activities if not obtained from a server
     */
-    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Car", "Bus", "Walking", "Biking", "Exercising",
-            "Research", "In Class", "Schoolwork", "Eating", "Cooking", "Social Event", "Meeting", "Relaxing", "NULL"};
+    public static final String DEFAULT_ACTIVITIES_LIST_TEXT[] = {"Car", "Walking",  "Research-office", "Research-lab", "In Class", "Meeting", "Eating", "Relaxing", "Getting Ready" , "Phone Call", "Drinking", "Cleaning", "Shopping",
+            "Cooking", "Biking", "Exercising", "Schoolwork",  "NULL"};
 
     //Bluetooth file transfer
     //This is the SPP UUIS which is also set up on the server
@@ -46,7 +46,7 @@ public class Const {
     public static final String FILE_NAME_ACTIVITY = "activity_data.txt";
 
     /* Take the last 8 digits of the device's serial number as a unique identifier  */
-    //TODO: use Build.getSerial() to get serial, as this method is deprecated
+    //TODO: Build.SERIAL may become deprecated; use another method for device identification if it becomes unavailable. However, that is non-essential
         //BUT, that function call requires permission to access phone state, so this would have to be initialized after the permissions check in HomeActivity.onCreate
     public static final String DEVICE_ID = (Build.SERIAL).substring(Build.SERIAL.length() - 8);
 
