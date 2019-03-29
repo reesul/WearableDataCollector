@@ -38,18 +38,22 @@ import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_ST
 public class HomeActivity extends Activity   {
     private final String TAG = "DC_HomeActivity";
     private Button btnStartStop;
-    private WearableRecyclerView recActivitiesList;
+    private WearableRecyclerView recActivitiesList;     //shows list of activities for labeling
 
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_BODY_SENSOR = 2;
-    private static final int PERMISSION_READ_PHONE_STATE = 3;
+//    private static final int PERMISSION_READ_PHONE_STATE = 3;
     private final int CONFIRMATIONS_EXPECTED = 2; //The numbers of services we are waiting for
     private int confirmationsReceived = 0; //The number of confirmations received so far
 
     private ActivitiesList activities;
-    private ActivitiesAdapter adapterList;
+    private ActivitiesAdapter adapterList;  //controls interaction with list of activity labels
 
+    /**
+     * Use intents from BLE and sensor services to detect that data has been properly saved, and the
+     *   background service handling data collection can be stopped since their buffers are written to file
+     */
     private BroadcastReceiver mStopServicesReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -154,7 +158,6 @@ public class HomeActivity extends Activity   {
      * for data collection
      */
     private void handleStartStopBtnClick(){
-        //TODO: reenable check for sensor service (IMU) once BLE working
 
         if(!LeBLEService.isServiceRunning || !SensorService.isServiceRunning){
             startBgService();
@@ -180,7 +183,8 @@ public class HomeActivity extends Activity   {
     }
 
     /**
-     * Request permission for COARSE_LOCATION
+     * Request permission for COARSE_LOCATION i.e. BLE permissions
+     * Request permission for body sensors i.e. heart rate
      */
     private void requestPermission(){
         if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -212,6 +216,7 @@ public class HomeActivity extends Activity   {
         }
 
         //TODO if DEVICE_ID stops working due to updates, add permission for READ_PHONE_STATE here so we can get hardware serial number
+            //note: having strict DEVICE ID is only necessary if data from different devices is aggreggated and needs to be separated
 
     }
 

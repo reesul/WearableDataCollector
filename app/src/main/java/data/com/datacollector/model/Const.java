@@ -18,7 +18,8 @@ public class Const {
     public static final int TM_BT = 2; //Bluetooth transfer files
     public static final int SELECTED_TRANSFER_METHOD = TM_HTTP;
 
-    //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold
+    //Used by Gyroscope Sensor data save procedure to ensure sensor data is above a threshold.
+        //Useful or detecting periods of activity from the user
     public static final float EPSILON_GYRO = 3.0f;
     /* Used by Accelerometer data save procedure to ensure sensor data is above a threshold (in g = ~9.8 m/s^2)*/
     public static final float EPSILON_ACC = 1.4f;
@@ -51,10 +52,11 @@ public class Const {
     public static final String BROADCAST_DATA_SAVE_ALARM_RECEIVED = "BROADCAST_DATA_SAVE_ALARM_RECEIVED";
     public static final String BROADCAST_DATA_SAVE_DATA_AND_STOP = "BROADCAST_DATA_SAVE_DATA_AND_STOP";
 
+    /*Following are used if data is to be retrieved wirelessly. Alternatively, user Device File Explorer in Android studio
+        data->data.com.datacollector->files->DEVICEID->date->all files*/
     /*Server data, need to use "ifconfig" in ubuntu environment to find this
     , or "ipconfig" in windows on the server machine to find local network ip address */
-    //TODO set up an online server so this can remain static, or even use url
-    public static final String SERVER_ADDRESS  = "192.168.1.100";//"192.168.1.104";
+    public static final String SERVER_ADDRESS  = "192.168.1.100";
     public static final String SERVER_PORT = "9000";
     //This address may need to change based on where the server is setup (use command "ifconfig" in terminal to find current IP/inet address)
     public static final String BASE_SERVER_URL = "http://" + SERVER_ADDRESS + ":" + SERVER_PORT + "/file/";
@@ -72,7 +74,7 @@ public class Const {
      *  and Acceleremoter and Heart Rate sensors throw a lot of data within a sec when sensor detects corr. action.
      *  This limit would ensure at the same time limited data is being stored.
      *  Value in milliseconds*/
-    public static final long SENSOR_DATA_MIN_INTERVAL = 40; //25Hz
+    public static final long SENSOR_DATA_MIN_INTERVAL = 40; //25Hz; may be approximate (cannot be arbitrarily high sampling rate
     /* Conversion from nanoseconds to milliseconds (SensorEvents have timestamp in ns that is used for downsampling) */
     public static final long NANOS_TO_MILLIS = 1000000;
     /* Min interval between sensor (Acc, Gyro, and heart rate) samples that are saved in ns*/
@@ -82,7 +84,7 @@ public class Const {
     /* Sensor event latency in microseconds: events are kept in a FIFO queue to save battery  */
     public static final int SENSOR_QUEUE_LATENCY = 5000000;
 
-    //BLE Scan constants
+    //BLE Scan constants, not wholly necessary
     /* Time after which BLE Scan would stop itself after being started*/
     public static final long BLE_SCAN_STOP_TIME = 12 * 1000;
     /* Time after which BLE Scan will start itself after being stopped; created for duty cycle fo 25% */

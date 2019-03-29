@@ -51,7 +51,7 @@ public class FileUtil {
     public static boolean lastUploadResult = true;
 
     /**
-     * called by SensorService to store data of Accelerometer and Gyroscope Sensors to File in device memory
+     * called by SensorService to store data of Accelerometer and Gyroscope Sensors to File in device storage
      * @param context : context of the caller
      * @param listAccelData : list of Accelerometer Data
      * @param listGyroData: list of Gyroscopre Data
@@ -121,6 +121,7 @@ public class FileUtil {
             }
         }
 
+        //Next, write Gyro data to file
         if(listGyroData.size() == 0){
             Log.d(TAG, "saveDataToFile:: No Gyro data to save");
             //check if file is empty: if so, delete it
@@ -350,29 +351,6 @@ public class FileUtil {
 
     }
 
-    /*
-    public static void clearFileContentBLE(File file) {
-        try {
-            PrintWriter writer = new PrintWriter(file);
-            writer.print("");
-            writer.close();
-        }catch(FileNotFoundException e){
-            Log.e(TAG, "clearFileContent:: file not found");
-        }
-    }*/
-
-    /*
-    No idea what this function is supposed to be for..
-     */
-    public static String getMimeType(File file) {
-
-        String extension = "txt";
-
-        if (extension.length() > 0)
-            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.substring(1));
-
-        return "application/octet-stream";
-    }
 
     public static byte[] getFileByteArray(File file){
         byte[] b = new byte[(int) file.length()];

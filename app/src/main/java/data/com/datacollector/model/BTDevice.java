@@ -36,6 +36,11 @@ public class BTDevice implements Serializable {
     private List<String> timeStamp = new ArrayList<>();
 
 
+    /**
+     *  Decompose scan result from BLE radio into distinct terms
+     * @param result
+     * @param scanTime
+     */
     public BTDevice(ScanResult result, long scanTime) {
         scanRecord = result.getScanRecord();
 
@@ -54,7 +59,7 @@ public class BTDevice implements Serializable {
     }
 
 
-    /* Parses the raw data file and removes data past the end of the scan
+    /** Parses the raw data file and removes data past the end of the scan
         Technically, advertisement packets should be no longer than 31 bytes,
             but some devices do no follow this specification
 
@@ -88,7 +93,10 @@ public class BTDevice implements Serializable {
         If the device showed previously in the same 500ms BLE scan window, it is ignored
         not ignored if it has been 4500 ms since the last scan of this device
 
+        Purpose of this function is to reduce memory usage in case user is in public area w/ many beacons
+
     @param: ScanResult is the object returned by the scan of this device
+
     */
     public void addRepeatDevice(ScanResult scanResult, long newScanTime) {
 
@@ -106,8 +114,10 @@ public class BTDevice implements Serializable {
         } //else Log.d(TAG, "addRepeatDevice:: new instance of device too recent to save");
     }
 
-    /*
-    toString method for BTDevice. This is used to write the device's data to file
+    /**
+     Modify this function to change how the BLE file is formatted!
+
+     toString method for BTDevice. This is used to write the device's data to file
         may contain multiple entries for rssi and timestamp
         format in single line: time:{[Date1], Date2], ...} mac:{[xx:xx:xx:xx:xx:xx]}
             name:{[name or null]} rssi:{[RSSI1],[RSSI2], ...} raw_data:{[0 to ~31 bytes in hex]}
@@ -141,7 +151,6 @@ public class BTDevice implements Serializable {
 
     }
 
-    // TODO add GSON for this class
 
     public ScanRecord getScanRecord() {
         return scanRecord;
@@ -174,28 +183,6 @@ public class BTDevice implements Serializable {
     public void setTime(long time) {
         this.time = time;
     }
-
-
-/*  timestamp and rssi as single values, deprecated
-
-    //private String timeStamp;   //time of first scan within the interval
-    //private int rssi;           //relative signal strength
-//    public String getTimeStamp() {
-//        return timeStamp;
-//    }
-//
-//    public void setTimeStamp(String timeStamp) {
-//        this.timeStamp = timeStamp;
-//    }
-//
-//    public int getRssi() {
-//        return rssi;
-//    }
-//
-//    public void setRssi(int rssi) {
-//        this.rssi = rssi;
-//    }
-*/
 
     public String getName() {
         return name;

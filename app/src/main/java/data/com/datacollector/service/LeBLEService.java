@@ -64,6 +64,8 @@ public class LeBLEService extends Service {
 
     //used for the alarm, so that data from the scanner is written to files every few seconds
     private AlarmManager alarmManagerData;
+
+    //intent and receiver for detecting when we need to save data to file (intent by alarm)
     private PendingIntent pendingIntentData;
     private DataCollectReceiver mReceiver;
 
@@ -84,7 +86,9 @@ public class LeBLEService extends Service {
      */
     private Handler mHandler;
 
-    //Service worker thread variables based on android guidelines
+    /*Service worker thread variables based on android guidelines.
+    Required when Wear OS updated to Android 8.0, which removed some support for background operations
+    */
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
 
@@ -107,9 +111,10 @@ public class LeBLEService extends Service {
             //TODO: This along with the alarm logic can be moved to its own service to have a cleaner implementation
             registerFileTransferAction();
 
-            //remove the alarm if it exists
+            //remove the alarm if it exists, then set it again
             cancelAlarm();
             setRepeatingAlarm();
+
             initBlParams();
             scanLeDevice(true);
             isServiceRunning = true;
@@ -270,6 +275,8 @@ public class LeBLEService extends Service {
             Log.d(TAG, "scanLeDevice:: for some reason mLeScan is null");
             return;
         }
+        // known issue:
+        //
         // It looks like sometimes, the bluetooth is turned off and the state is not updated.
         // Maybe it has to do to some instability in the timers
         // Before starting a scan or stopping it, make sure the Bluetooth is ON
@@ -300,14 +307,8 @@ public class LeBLEService extends Service {
     private ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-            //interval between two data entry should be min SENSOR_DATA_MIN_INTERVAL
-            /*  No plans to use this; may have lots of devices coming in at a time, don't want to miss them
-                    since there would be no way to differentiate low frequency from high frequency advertisements
-            if ((System.currentTimeMillis() - lastUpdateBLE) < SENSOR_DATA_MIN_INTERVAL) {
-                return;
-            }       */
 
-            long scanTime = System.currentTimeMillis(); //time of scan, not exact, but close enough
+            long scanTime = System.currentTimeMillis(); //time of scan, not exact, but close enough for BLE
             String curMac = result.getDevice().getAddress();
 
             //If the device scanned has a MAC hasn't already been scanned in this data save period, add to list
@@ -322,7 +323,6 @@ public class LeBLEService extends Service {
             else {
 
                 /*This code is only needed if some changes need to be made to the device already in the array list
-                    //sometimes causes IndexOutOfBounds exception, though index is based on macList, which should match the device list
                 int index = macList.indexOf(curMac);   //macs and btDevices are added to list at same time, so index corresponds between the two
                 BTDevice devInList = btDeviceList.get(index);
                 devInList.setAccessCount((devInList.getAccessCount()+1));
@@ -343,11 +343,6 @@ public class LeBLEService extends Service {
 
             }
 
-            /*      previous implementation; saved less information
-            BluetoothDevice device = result.getDevice();
-            Log.d(TAG, "onScanResult:: device name: " + device.getName() + " mac: " + device.getAddress() + " rssi: " + result.getRssi());
-            btDeviceList.add(makeBtDeviceObj(device, result.getRssi()));
-            */
         }
 
         @Override
@@ -451,6 +446,9 @@ public class LeBLEService extends Service {
 
     }
 
+    /**
+     * Save data to file in a background thread. Passes the list of devices to save
+     */
     private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
 
         boolean stopServiceAfterFinish;

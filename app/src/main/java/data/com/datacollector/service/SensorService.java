@@ -54,7 +54,7 @@ public class SensorService extends Service implements SensorEventListener{
     /** Android SensorManager, to access data for Accelerometer, Gyroscope and Heart rate sensors*/
     private SensorManager sensorManager;
 
-    /** vars to store time when last the concerned sensor data was stored(locally). This helps
+    /** var to store time when last the concerned sensor data was stored(locally). This helps
      * in keeping data collection frequency in check.*/
     private long lastUpdateAccel = 0, lastUpdateGyro = 0, lastUpdatePPG = 0;
 
@@ -120,7 +120,7 @@ public class SensorService extends Service implements SensorEventListener{
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
-        //initialize the timestamp reference so that sensor events have accurate timestamps
+        //initialize the timestamp reference so that sensor events have accurate (absolute) timestamps
         Util.initTimeStamps(this);
 
     }
@@ -187,8 +187,6 @@ public class SensorService extends Service implements SensorEventListener{
     private void initSensor(){
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
-        //unneccessary, we will always want to save the first data
-        //lastUpdateAccel = lastUpdateGyro = lastUpdatePPG = System.currentTimeMillis();
         registerListeners();
     }
 
@@ -199,6 +197,7 @@ public class SensorService extends Service implements SensorEventListener{
 
         //!!!Sensor delay can also be expressed as an int in microseconds, and can use an extra int to give max queue time
         //sampling period is considered a suggestion, and must be in microseconds
+        //IMPORTANT TO USE QUEUE. drastically reduced battery consumption
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
@@ -252,7 +251,7 @@ public class SensorService extends Service implements SensorEventListener{
                 processHeartRateData(event);
                 break;
 
-            /*
+            /* Supposedly, this is the sensor type number to use if raw PPG is allowed (for Polar watches??)
             case 65545:
                 Log.d(TAG, "onSensorChanged:: PPG: "+event.values[0]);
                 break;
@@ -382,7 +381,7 @@ public class SensorService extends Service implements SensorEventListener{
     }
 
     /**
-     * called every minute to save data initially stored in local object to File in memory.
+     * called every minute or so (based on Alarm) to save data initially stored in local object to File.
      */
     private void saveDataToFile(boolean stop){
         Log.d(TAG, "saveDataToFile");
@@ -409,6 +408,9 @@ public class SensorService extends Service implements SensorEventListener{
         //alarmManager.cancel(pendingIntent);   //alarm manager now in BLE service
     }
 
+    /**
+     * Save data in background to prevent UI thread from freezing
+     */
     private class SaveDataInBackground extends AsyncTask<List, Integer, Void> {
 
         boolean stopServiceAfterFinish;

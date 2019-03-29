@@ -18,7 +18,7 @@ import static data.com.datacollector.model.Const.SELECTED_TRANSFER_METHOD;
 
 /**
  * BroadcastReceiver of the applciation.
- * Other than lcoal broadcasts, all broadcasts should be received in this class.
+ * Other than local broadcasts, all broadcasts should be received in this class.
  * Created by ritu on 10/29/17.
  */
 
@@ -46,8 +46,6 @@ public class DataCollectReceiver extends BroadcastReceiver {
             }
 
 
-            //TODO reenable sensor service once BLE works
-
             //This intents are not restarting the service itself but its a way to communicate to the
             //service something. In our case, we ask the service to save the data. We handle in the
             //onStart method what the service should do depending on the extra values from the intent
@@ -65,11 +63,12 @@ public class DataCollectReceiver extends BroadcastReceiver {
 
         }
 
-        // device connected to power source, lets upload saved data to server.
+        // device connected to power source, upload saved data to server.
         if(action!=null) {
             if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
                 Log.d(TAG, "onReceive:: ACTION_POWER_CONNECTED");
 
+                //send file wirelessly via HTTP POST message.
                 if(SELECTED_TRANSFER_METHOD == TM_HTTP){
                     Log.d(TAG, "onReceive:: sending files through HTTP");
                     //Uploads the data to the HTTP server
@@ -77,6 +76,7 @@ public class DataCollectReceiver extends BroadcastReceiver {
                     uploadThread.start();
                 }
 
+                //send file wirelessly via bluetooth
                 if(SELECTED_TRANSFER_METHOD == TM_BT){
                     Log.d(TAG, "onReceive:: sending files through Bluetooth");
                     if(DataCollectReceiver.uploadBTThread == null) {
@@ -95,7 +95,6 @@ public class DataCollectReceiver extends BroadcastReceiver {
                 //uploadData(context);
             }else if (action.equals(Intent.ACTION_POWER_DISCONNECTED)){
                 Log.d(TAG, "onReceive:: ACTION_POWER_DISCONNECTED");
-                //TODO: Properly close any possible data sending thread
                 //Sometimes, the watch can be connected multiple times in a few seconds creating multiple threads and possible
                 //causing conflicts
             }
@@ -119,6 +118,10 @@ public class DataCollectReceiver extends BroadcastReceiver {
         btio.sendData(context.getApplicationContext());
     }
 
+    /**
+     * Run this data upload in a background thread
+     *  otherwise the app will become unresponsive and crash due to volume of data
+     */
     private class uploadRunnable implements Runnable {
         Context currentContext;
         uploadRunnable(Context context) {currentContext = context;}

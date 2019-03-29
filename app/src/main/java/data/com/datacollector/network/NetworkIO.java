@@ -106,8 +106,8 @@ public class NetworkIO {
 
     /*
         upload file to a server
-            compresses files into a .zip archive, then transfers a single file
-            compression used to maintain file structure
+            compresses files for a single day into a .zip archive, then transfers to server
+            compression used to maintain file structure easily
 
             files from past days are removed after successful transfer, file from current day is kept
 
@@ -125,15 +125,14 @@ public class NetworkIO {
             dir.mkdirs();
 
 
-
+        //setup HTTP client
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-        int timeVal = 1;
+        int timeVal = 1; //minute long timeout
 
         OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).writeTimeout(timeVal, TimeUnit.MINUTES)
                 .readTimeout(timeVal, TimeUnit.MINUTES).connectTimeout(timeVal, TimeUnit.MINUTES).build();
 
-        /* todo: see if I need to use retrofit or not here..*/
         Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(BASE_SERVER_URL)
                 .client(client)
@@ -143,7 +142,6 @@ public class NetworkIO {
         UserClient service = retrofit.create(UserClient.class);
 
 
-        //todo test different multipart creation
         MultipartBody.Builder multipartBodyBuild = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM);
 
@@ -151,15 +149,6 @@ public class NetworkIO {
         Log.d(TAG, "Number of files to send: "+dateDirs.length);
 
         for (final File date : dateDirs) {
-            /*the current day's file will have incomplete information, so do this only for previous days
-            TODO comment out this condition to control if today's data is sent or not!! depends on the application
-                If this is not commented our, transfers will send data from today, which is incomplete, but useful for testing
-
-            if(date.getPath().contains(Util.getDateForDir())) {
-                Log.d(TAG, "skipping current day's data; most likely incomplete");
-                continue;
-            }
-    */
             //Only folders should be in this directory (1 per day of data), delete anything else
             if(!date.isDirectory()) {
                 date.delete();
@@ -183,7 +172,6 @@ public class NetworkIO {
             RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), zipFile);
             MultipartBody.Part fileMultiPartBody = MultipartBody.Part.createFormData("file", zipFile.getName(), filePart);
 
-            //todo remove? only need if not using retrofit
             multipartBodyBuild.addPart(fileMultiPartBody);
 
             Call<ResponseBody> call = service.uploadfile(fileMultiPartBody);

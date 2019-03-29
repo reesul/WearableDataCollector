@@ -47,7 +47,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
         // create a new view
         TextView v = new TextView(parent.getContext());
 
-        //Used for dinamically get dimensions in DP rather than plain pixels
+        //Used for dynamically get dimensions in DP rather than plain pixels
         DisplayMetrics dm = parent.getContext().getResources().getDisplayMetrics();
         float myTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 18F, dm);
         int paddLeftRight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 2F, dm);
@@ -83,6 +83,9 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
 
     }
 
+    /**
+     * Saves label to file for current day w/ timestamp. Processing done in a background thread
+     */
     private class SaveDataInBackground extends AsyncTask<String, Integer, Void> {
 
         Context context;
@@ -103,6 +106,7 @@ public class ActivitiesAdapter extends WearableRecyclerView.Adapter<ActivitiesAd
             return null;
         }
 
+        //Inform user that label was recorded successfully
         protected void onPostExecute(Void v) {
             Log.d(TAG, "onPostExecute: Saved the files asynchronously");
 

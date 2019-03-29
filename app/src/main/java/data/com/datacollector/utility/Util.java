@@ -53,6 +53,11 @@ public class Util {
         return dateFormatted;
     }
 
+    /**
+     * Gets an absolute timestamp to use for calculating date
+     * @param time
+     * @return
+     */
     public static String getTimeMillis(long time) {
         Date date = new Date(time);
         DateFormat formatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
@@ -60,6 +65,11 @@ public class Util {
         return dateFormatted;
     }
 
+    /**
+     * Converts a string timestamp back into the number date
+     * @param timeStamp
+     * @return
+     */
     public static long getMillisFromDate(String timeStamp) {
         String expectedPattern = "MM/dd/yy HH:mm:ss";
         SimpleDateFormat format = new SimpleDateFormat(expectedPattern);
@@ -123,8 +133,11 @@ public class Util {
         return newArray;
     }
 
+    /**
+     * Use sensorManager and event listener to correlate the timestamp the IMU reports with the date timestamp
+     *  These two differ; IMU (sensor) reports timestamp in ns since device was powered on.
+     */
     private static SensorManager manager;
-
     private static SensorEventListener listener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -148,7 +161,7 @@ public class Util {
     };
 
     //This function sets a value for startTime, used as a reference for timestamps in the future
-    //Take a single value from a sensor, and use
+    //Take a single value from a sensor, and use its timestampf ro synchronizing
     public static void initTimeStamps(Context context) {
         manager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         Sensor acc = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
