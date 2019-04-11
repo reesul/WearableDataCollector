@@ -17,14 +17,21 @@ Running the app through Android studio will not load the data collection app ont
 ## Usage
 This application features a simple interface for selecting an activity label and starting/stopping data collection. The three images below show the watch face with data service off (left) and data service on (middle) and just after a label entry has been pressed (right)
 
-![alt text](images/watch-app-basic.png), ![alt text](images/watch-app-running.png)
+![alt text](images/watch-app-basic.png), ![alt text](images/watch-app-running.png), ![alt text](images/watch-app-labelled.png)
 
-Data is sent to a server (IP address hardcoded, viewable in data.com.datacollector.model.Const) whenever the watch is plugged in. The watch must be connected to the same WiFi network as the server. If a phone is paired to the watch, then the connection to the server may timeout. Turning off Bluetooth on the connected phone for a moment will fix this issue.
+The Polar M600 model is capable of data collection for 8-12 hours, depending on how much the user uses the watch otherwise (including a pairing to their phone). 
 
-Send me a message if you would like the server code
+The watch will store at least 10 days' data before it starts showing a message that storage is filling up. To retrieve data, there are several options, although the easiest is directly pulling data using ADB debugging. 
+- ADB Debugging: Connect the watch to Android studio as if the app were being installed. Open the Device File Explorer (View -> Tool Windows -> Device File Explorer.
+    - Navigate to data/data/data/com.datacollector/files/DC/{WATCH SERIAL NO} and save the desired folders containing all files for individual days of data
+- HTTP: When installing, the member of model.Const, SELECTED_TRANSFER_METHOD should be TM_HTTP, and the server IP in the SERVER_ADDRESS string variable 
+    - When the watch is plugged in, it will attempt to POST each day's data as a .zip file to an HTTP server at the provided address on port 9000
+    - This will attempt to upload via Wi-Fi; ensure the watch is properly connected
+    - If the paired phone is nearby, it may prevent successful transmission of data. It is recommended to temporarily turn off Bluetooth on the phone during transfers
 
 
 
+###
 TODO items:
     Setup persistent server so watches can transfer files from any Wi-Fi network
     Add file streaming through OkHttp to lessen memory requirements of the app
