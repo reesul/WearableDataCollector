@@ -29,9 +29,3 @@ The watch will store at least 10 days' data before it starts showing a message t
     - This will attempt to upload via Wi-Fi; ensure the watch is properly connected
     - If the paired phone is nearby, it may prevent successful transmission of data. It is recommended to temporarily turn off Bluetooth on the phone during transfers
 
-
-
-###
-TODO items:
-    Setup persistent server so watches can transfer files from any Wi-Fi network
-    Add file streaming through OkHttp to lessen memory requirements of the app
