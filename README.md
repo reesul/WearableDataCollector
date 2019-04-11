@@ -1,7 +1,7 @@
 # WearableDataCollector
 Wear OS (Android) app for collecting BLE device scans and watch sensor data (e.g. IMU, PPG, Bluetooth Low Energy)
 
-This application has been built for the Polar M600 Android Smart watch, specifically Wear OS 2.0 (Android 8.0). Older versions of Android handle background services (which are necessary for long-term data collection) differently, so it is unlikely the application will function properly on anything newer than Android 8.0, regardless of the brand and model.
+This application has been built for the Polar M600 Android Smart watch, specifically Wear OS 2.0 (Android 8.0). Older versions of Android handle background services (which are necessary for long-term data collection) differently, so it is unlikely the application will function properly on versions older than Android 8.0, regardless of the brand and model.
 
 ## Installation
 To run this app, download Android Studio as is. Once installed, you will likely need to install Android SDK Build-Tools 28.0.3 to build the app for Android 8.0 systems. 
