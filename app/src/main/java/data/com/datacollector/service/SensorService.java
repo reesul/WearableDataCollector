@@ -9,6 +9,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -18,20 +19,26 @@ import android.os.PowerManager;
 import android.os.Process;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import data.com.datacollector.model.Const;
 import data.com.datacollector.model.PPGData;
 import data.com.datacollector.model.SensorData;
+import data.com.datacollector.model.classifiers.NN;
 import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 import data.com.datacollector.view.HomeActivity;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.DIET_MODEL_LABELS;
+import static data.com.datacollector.model.Const.PREDICTION_INTERVAL;
+import static data.com.datacollector.model.Const.SAMPLES_PER_SENSOR;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
 
@@ -69,8 +76,56 @@ public class SensorService extends Service implements SensorEventListener{
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
 
+    //Handler that periodically runs code for predictions
+    private Handler predictionHandler = new Handler();
+
     //We force the app to stay up so we can get sensor data
     private PowerManager.WakeLock mWakeLock = null;
+
+    //Prediction variables
+    private NN nnClassifier = null;
+    private double features[];
+    private double prob[];
+    private double sortedArray[];
+    private double highestProb = 0;
+    private int predictedLblId = 0;
+    public static double previousFeedbackRequestTimestamp = 0;
+
+    /*
+     * This runs the given classifier every X seconds to issue predictions
+     */
+    private final Runnable predictionRunnable = new Runnable(){//Thread that will run the prediction
+        public void run(){
+            Log.d(TAG, "run: predictionRunnable called");
+            if(nnClassifier == null){
+                Log.d(TAG, "run: There was an error and the logistic regression model is not set, cancelling further predictions");
+                Toast.makeText(SensorService.this,"There was an unexpected error with the model prediction. Please, contact the researcher",Toast.LENGTH_LONG).show();
+            } else {
+                //Make the prediction and determine if we need feedback
+                try {
+                    //Get snapshot of data (Previous window)
+                    int samplesToUse = SAMPLES_PER_SENSOR;
+                    if(listAccelData.size() > samplesToUse) {
+                        //If we have enough data, then we start the predictions
+
+                        List<SensorData> accWindowData = listAccelData.subList(listAccelData.size()-samplesToUse, listAccelData.size());
+                        List<SensorData> gyroWindowData = listGyroData.subList(listGyroData.size()-samplesToUse, listGyroData.size());
+                        makePrediction(accWindowData, gyroWindowData);
+
+                    }else{
+                        Log.d(TAG, "run: Not enough data so prediction is not made");
+                    }
+                } catch (Exception e) {
+                    Log.d(TAG, "run: There was an exception so the prediction could not be made: "+e.getMessage());
+                    e.printStackTrace();
+                }
+
+                //This issues another prediction task within the interval
+                predictionHandler.postDelayed(predictionRunnable, PREDICTION_INTERVAL);
+            }
+        }
+    };
+
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -94,6 +149,61 @@ public class SensorService extends Service implements SensorEventListener{
             mWakeLock.acquire();
             Log.d(TAG, "handleMessage: called from ServiceHandler, worker thread finished setup");
         }
+    }
+
+    /**
+     * Obtains the raw data from the sensors and computes the model's output
+     * @param accWindowData The data that will be fed into the NN
+     * @param gyroWindowData The data that will be fed into the NN
+     * @throws Exception
+     */
+    private void makePrediction(List<SensorData> accWindowData, List<SensorData> gyroWindowData) throws Exception{
+
+        //TODO: Make sure the data is in the expected format
+        //features = logisticRegression.getFeatures(windowData);//Obtain the features that will be used for the training of our models
+        String timestamp = accWindowData.get(accWindowData.size()-1).getTimestamp();
+        prob = nnClassifier.predict(accWindowData, gyroWindowData); //We get the probabilities of this features belonging to each label
+
+
+        sortedArray = new double[prob.length];
+
+        //We have sorted the labels according to their probabilities
+        Util.ArrayIndexComparator comparator = new Util.ArrayIndexComparator(prob);
+        Integer[] orderedIndexes = comparator.createIndexArray();
+        Arrays.sort(orderedIndexes, comparator);
+        int[] orderedIndexesPrim= new int[orderedIndexes.length];
+        for (int i=0;i<orderedIndexes.length;i++){
+            orderedIndexesPrim[i] = orderedIndexes[i];
+        }
+        //Creating the ordered array
+        for (int i=0; i<prob.length; i++){
+            sortedArray[i] = prob[orderedIndexes[i]];
+        }
+
+        highestProb = sortedArray[0];
+        predictedLblId = orderedIndexes[0];
+
+        Log.d(TAG, "makePrediction: PROBABILITY: " + highestProb);
+        Log.d(TAG, "makePrediction: PREDICTED:   " + DIET_MODEL_LABELS[predictedLblId]);
+
+        //If the label is "None" the question structure should change
+        String question = predictedLblId == 0 ? "No posture?":"Are you " + DIET_MODEL_LABELS[predictedLblId] + "?";
+
+        //Adding prediction to save afterwards
+        String prediction = timestamp + ",";
+        for (int i = 0; i < prob.length; i++) {
+            prediction += String.valueOf(prob[i]);
+            if (i + 1 < prob.length) {
+                prediction += ",";
+            }
+        }
+
+        //TODO: Finish this prediction add
+        //predictions.add(prediction);
+        //SavePredictionDataInBackground backgroundSave = new SavePredictionDataInBackground(SensorService.this, timestamp, prob);
+        //backgroundSave.execute();
+        //requestFeedback(highestProb < MODEL_PROB_THRESHOLD_FOR_FEEDBACK, question, timestamp, orderedIndexesPrim);
+
     }
 
     public SensorService() {
@@ -169,6 +279,10 @@ public class SensorService extends Service implements SensorEventListener{
     public void startService(int startId) {
         startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
         sendMessageToWorkerThread(startId);
+        startPredictionTask();
+        if(nnClassifier == null){
+            initNNClassifier();
+        }
     }
 
     /**
@@ -194,6 +308,27 @@ public class SensorService extends Service implements SensorEventListener{
         //unneccessary, we will always want to save the first data
         //lastUpdateAccel = lastUpdateGyro = lastUpdatePPG = System.currentTimeMillis();
         registerListeners();
+    }
+
+    public void startPredictionTask() {
+        predictionRunnable.run();
+    }
+
+    public void stopPredictionTask() {
+        predictionHandler.removeCallbacks(predictionRunnable);
+    }
+
+    public void initNNClassifier(){
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/models";
+        nnClassifier = new NN();
+        try {
+            nnClassifier.setModel(path, "nn.txt");
+            nnClassifier.setClassLabels(DIET_MODEL_LABELS);
+        } catch (Exception e) {
+            Log.d(TAG, "onCreate: There was an error setting up the logisticRegression model: " + e.getMessage());
+            nnClassifier = null;
+            e.printStackTrace();
+        }
     }
 
     /**

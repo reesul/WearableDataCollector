@@ -163,4 +163,18 @@ public class Const {
     }};
 
     public static final int DIET_ANNOTATION_REMINDER_INTERVAL = 15*60*1000; //In millis, 15 minutes
+
+    public static final String DIET_MODEL_LABELS [] = {"Eating", "Walking", "Exercising", "Sitting", "Other"};
+
+    //Prediction constants
+    public static final boolean REQUEST_FEEDBACK = true; //This should be set to false if no feedback will be asked
+    public static int PREDICTION_INTERVAL = 5000; //Milliseconds between each prediction
+    public static int FEATURES = 3; //The number of features to be computed
+    public static int LABELS = 10; //Labels to be predicted
+    public static int SAMPLES_PER_SENSOR = 120; //The number of raw data points used in the NN
+    public static double MODEL_PROB_THRESHOLD_FOR_FEEDBACK = 0.65; //The minimum probability that the model has to get in a prediction
+    public static int MIN_TIME_INTERVAL_BETWEEN_REQUESTS = 30; //In minutes
+    public static int MAX_TIME_INTERVAL_WITH_NO_REQUESTS = 120; //In minutes
+    public static int FEEDBACK_NOTIFICATION_EXPIRATION_TIME = 2*60*1000; //In millis
+    public static int RANDOM_REQUEST_PROBABILITY = 10; //When the prediction is above the threshold, with what probability will we request f
 }
