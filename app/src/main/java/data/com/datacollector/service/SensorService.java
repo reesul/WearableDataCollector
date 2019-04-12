@@ -320,12 +320,12 @@ public class SensorService extends Service implements SensorEventListener{
 
     public void initNNClassifier(){
         String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/models";
-        nnClassifier = new NN();
+        nnClassifier = new NN(path + "/nn.tflite");
         try {
-            nnClassifier.setModel(path, "nn.txt");
-            nnClassifier.setClassLabels(DIET_MODEL_LABELS);
+            nnClassifier.setLabels(DIET_MODEL_LABELS);
+            nnClassifier.setModel();
         } catch (Exception e) {
-            Log.d(TAG, "onCreate: There was an error setting up the logisticRegression model: " + e.getMessage());
+            Log.d(TAG, "onCreate: There was an error setting up the NN model: " + e.getMessage());
             nnClassifier = null;
             e.printStackTrace();
         }
@@ -545,6 +545,7 @@ public class SensorService extends Service implements SensorEventListener{
         sensorManager.unregisterListener(this);
         isServiceRunning = false;
         mWakeLock.release();
+        stopPredictionTask();
         //alarmManager.cancel(pendingIntent);   //alarm manager now in BLE service
     }
 
