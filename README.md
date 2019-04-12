@@ -22,7 +22,7 @@ This application features a simple interface for selecting an activity label and
 The Polar M600 model is capable of data collection for 8-12 hours, depending on how much the user uses the watch otherwise (including a pairing to their phone). 
 
 #### Data Retrieval
-The watch will store at least 10 days' data before it starts showing a message that storage is filling up. To retrieve data, there are several options, although the easiest is directly pulling data using ADB debugging. 
+The watch will store at least two weeks' data before it starts showing a message that storage is filling up. To retrieve data, there are several options; the first option, ADB debugging is the simplest and most straightforward.
 - ADB Debugging: Connect the watch to Android studio as if the app were being installed. Open the Device File Explorer (View -> Tool Windows -> Device File Explorer.
     - Navigate to data/data/data/com.datacollector/files/DC/{WATCH SERIAL NO} and save the desired folders containing all files for individual days of data
 - HTTP: When installing, the member of model.Const, SELECTED_TRANSFER_METHOD should be TM_HTTP, and the server IP in the SERVER_ADDRESS string variable 
