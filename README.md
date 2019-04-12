@@ -30,3 +30,7 @@ The watch will store at least two weeks' data before it starts showing a message
     - This will attempt to upload via Wi-Fi; ensure the watch is properly connected
     - If the paired phone is nearby, it may prevent successful transmission of data. It is recommended to temporarily turn off Bluetooth on the phone during transfers
 
+## Contribution
+To contribute to this repo, contact the current repo owner to be granted access. A separate README exists under WearableDataCollector/app/src/main/java/data/com/datacollector/ to explain some of the basic functionalities from a more software oriented standpoint. 
+
+In addition, several branches (roger-thesis, temple-projeect) of this repo have additional features for data extraction, annotation, collection, etc. Roger Solis is the main contributer to these branches; his adviser, Dr. Bobak Mortazavi, should be able to initiate contact with Roger if necessary
