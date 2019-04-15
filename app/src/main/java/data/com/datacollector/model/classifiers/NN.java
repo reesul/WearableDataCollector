@@ -5,6 +5,7 @@ import org.tensorflow.lite.Interpreter;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
@@ -37,9 +38,14 @@ public class NN extends Classifier {
         labelList = Arrays.asList(labels);
     }
 
+    //TODO. Make sure this works
     public double[] predict(List<SensorData> accWindowData, List<SensorData> gyroWindowData){
-        double [] prob = {};
-        return prob;
+        double [][] prob = null;
+        ByteBuffer data = null;
+
+        tflite.run(data, prob);
+
+        return prob[0];
     }
 
     //TODO: Make sure this is called when stopping the predictions
