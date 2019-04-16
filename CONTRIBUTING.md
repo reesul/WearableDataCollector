@@ -26,3 +26,4 @@ More concretely, the basic flow of the app is as follows:
 - The rate at which Android samples sensors is not as consistent as would be desired. The OS views the sampling period (set when registering sensor listeners) as a 'guideline'. The Const. file sets the sampling period to allow 25Hz sampling, but the real rate is between 18 and 23 Hz, depending on the watch's power state
 - Sampling is done over a short period before data is released. Getting samples in real time is power-hungry
 - The sample time reported by the OS is not real-time, so we normalize this based on an initialization timestamp that is set up when starting sensor service (Util.initTimeStamps)
+- The heart rate sensor does not report PPG, only the heart rate. This sensor does not report values consistently, and does not appear to be very accurate in general. Previous observations have shown that a heartrate around 75 will be reported during periods when the watch is not worn.
