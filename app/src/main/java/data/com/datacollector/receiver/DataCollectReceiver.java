@@ -46,7 +46,6 @@ public class DataCollectReceiver extends BroadcastReceiver {
             }
 
 
-            //TODO reenable sensor service once BLE works
 
             //This intents are not restarting the service itself but its a way to communicate to the
             //service something. In our case, we ask the service to save the data. We handle in the
