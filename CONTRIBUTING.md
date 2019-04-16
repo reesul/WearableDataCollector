@@ -8,7 +8,7 @@ More concretely, the basic flow of the app is as follows:
 1. HomeActivity initializes the interface and a few error handling objects
    - If the user has not granted the necessary permissions yet, those will be requested
    - Initializing the interface includes setting up the list of activities that the user can scroll through to label their data. These labels can be changed in model.Const.DEFAULT_ACTIVITIES_LIST_TEXT
-         - Tapping one of these entries simply adds the timestamp and activity to a file, 'activities.txt' under the folder of today's date
+      - Tapping one of these entries simply adds the timestamp and activity to a file, 'activities.txt' under the folder of today's date
 2. The user will start the service by tapping the button, which starts the BLE scanning Service and Sensor (accelerometer, gyroscope, heart rate sensors) Services
    - Services run on a background thread with a power state which allows the service to continue running with the screen off
    - A service handler is set up to take messages from another thread. This is used to restart the data collection services in case the OS kills the processes
