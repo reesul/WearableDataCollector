@@ -35,10 +35,17 @@ import data.com.datacollector.utility.FileUtil;
 import data.com.datacollector.utility.Notifications;
 import data.com.datacollector.utility.Util;
 import data.com.datacollector.view.HomeActivity;
+import data.com.datacollector.view.feedback_ui.UserFeedbackQuestion;
 
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
 import static data.com.datacollector.model.Const.DIET_MODEL_LABELS;
+import static data.com.datacollector.model.Const.MAX_TIME_INTERVAL_WITH_NO_REQUESTS;
+import static data.com.datacollector.model.Const.MAX_TIME_TIME_WINDOW_TO_ASK_FOR_QUESTIONS;
+import static data.com.datacollector.model.Const.MIN_TIME_INTERVAL_BETWEEN_REQUESTS;
+import static data.com.datacollector.model.Const.MODEL_PROB_THRESHOLD_MAX_FOR_FEEDBACK;
+import static data.com.datacollector.model.Const.MODEL_PROB_THRESHOLD_MIN_FOR_FEEDBACK;
 import static data.com.datacollector.model.Const.PREDICTION_INTERVAL;
+import static data.com.datacollector.model.Const.RANDOM_REQUEST_PROBABILITY;
 import static data.com.datacollector.model.Const.SAMPLES_PER_SENSOR;
 import static data.com.datacollector.model.Const.SENSOR_DATA_MIN_INTERVAL_NANOS;
 import static data.com.datacollector.model.Const.SENSOR_QUEUE_LATENCY;
@@ -87,8 +94,8 @@ public class SensorService extends Service implements SensorEventListener{
     private NN nnClassifier = null;
     private double features[];
     private float prob[];
-    private double sortedArray[];
-    private double highestProb = 0;
+    private float sortedArray[];
+    private float highestProb = 0;
     private int predictedLblId = 0;
     public static double previousFeedbackRequestTimestamp = 0;
     private ArrayList<String> predictions = new ArrayList<>();
@@ -168,7 +175,7 @@ public class SensorService extends Service implements SensorEventListener{
         prob = nnClassifier.predict(accWindowData, gyroWindowData); //We get the probabilities of this features belonging to each label
 
 
-        sortedArray = new double[prob.length];
+        sortedArray = new float[prob.length];
 
         //We have sorted the labels according to their probabilities
         Util.ArrayIndexComparator comparator = new Util.ArrayIndexComparator(prob);
@@ -190,7 +197,7 @@ public class SensorService extends Service implements SensorEventListener{
         Log.d(TAG, "makePrediction: PREDICTED:   " + DIET_MODEL_LABELS[predictedLblId]);
 
         //If the label is "None" the question structure should change
-        String question = predictedLblId == 0 ? "No posture?":"Are you " + DIET_MODEL_LABELS[predictedLblId] + "?";
+        String question = "Please, annotate your activity";
 
         //Adding prediction to save afterwards
         String prediction = timestamp + ",";
@@ -203,8 +210,53 @@ public class SensorService extends Service implements SensorEventListener{
 
         //TODO: Finish this prediction add
         predictions.add(prediction);
-        //requestFeedback(highestProb < MODEL_PROB_THRESHOLD_FOR_FEEDBACK, question, timestamp, orderedIndexesPrim);
+        requestFeedback(highestProb, question, timestamp, orderedIndexesPrim);
 
+    }
+
+    /**
+     * This method manages the feedback requests following our rules
+     */
+    private void requestFeedback(float highestProb, String question, String timestamp, int[] orderedIndexesPrim){
+        boolean shouldWeAsk = false;
+        double minutesElapsed = ((System.currentTimeMillis()-previousFeedbackRequestTimestamp)/1000)/60;
+        Log.d(TAG, "requestFeedback: MinutesElapsed: " + String.valueOf(minutesElapsed));
+        Log.d(TAG, "requestFeedback: MIN_TIME_INTERVAL_BETWEEN_REQUESTS: " + String.valueOf(MIN_TIME_INTERVAL_BETWEEN_REQUESTS));
+
+        if(minutesElapsed>MIN_TIME_INTERVAL_BETWEEN_REQUESTS){
+            Log.d(TAG, "requestFeedback: The minimum time between feedback has passed");
+
+            if (minutesElapsed < MIN_TIME_INTERVAL_BETWEEN_REQUESTS + MAX_TIME_TIME_WINDOW_TO_ASK_FOR_QUESTIONS){
+                Log.d(TAG, "requestFeedback: We are still in the time frame");
+                if(highestProb  < MODEL_PROB_THRESHOLD_MIN_FOR_FEEDBACK
+                        || highestProb  > MODEL_PROB_THRESHOLD_MAX_FOR_FEEDBACK) {
+                    Log.d(TAG, "requestFeedback: We are exceding the thresholds");
+                    shouldWeAsk = true;
+                }
+            }else{
+                Log.d(TAG, "requestFeedback: We are no longer in the time frame");
+                previousFeedbackRequestTimestamp = System.currentTimeMillis();
+                
+            }
+
+        }
+        //Make sure that, if MAX_TIME_INTERVAL_WITH_NO_REQUESTS minutes with no feedback have passed, we force a request
+        if(minutesElapsed>MAX_TIME_INTERVAL_WITH_NO_REQUESTS){
+            Log.d(TAG, "requestFeedback: A lot of time passed without feedback. Forcing request");
+            shouldWeAsk = true;
+        }
+
+        //If the notification is not already active, we request it. Remember the notification expires so its safe to do this
+        if (shouldWeAsk){//&&
+                //!Notifications.isNoficiationActive(SensorService.this,Notifications.NOTIFICATION_ID_FEEDBACK) &&
+                //!UserFeedbackQuestion.isFeedbackInProgress){
+            Log.d(TAG, "requestFeedback: Feedback is needed");
+            //Notifications.requestFeedback(SensorService.this, question, DEFAULT_ACTIVITIES_LIST_TEXT[predictedLblId], features, timestamp);
+            Log.d(TAG, "requestFeedback: REQUESTED!" + DIET_MODEL_LABELS[predictedLblId]);
+            Notifications.requestFeedback(SensorService.this, question, DIET_MODEL_LABELS[predictedLblId], features, timestamp, orderedIndexesPrim);
+
+            previousFeedbackRequestTimestamp = System.currentTimeMillis();
+        }
     }
 
     public SensorService() {
@@ -312,6 +364,7 @@ public class SensorService extends Service implements SensorEventListener{
     }
 
     public void startPredictionTask() {
+        previousFeedbackRequestTimestamp = System.currentTimeMillis();
         predictionRunnable.run();
     }
 

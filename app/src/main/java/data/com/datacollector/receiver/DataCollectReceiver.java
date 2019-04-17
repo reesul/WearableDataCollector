@@ -1,6 +1,7 @@
 package data.com.datacollector.receiver;
 
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -14,11 +15,13 @@ import data.com.datacollector.network.NetworkIO;
 import data.com.datacollector.service.LeBLEService;
 import data.com.datacollector.service.SensorService;
 import data.com.datacollector.utility.FileUtil;
+import data.com.datacollector.utility.Notifications;
 
 import static android.content.Context.ALARM_SERVICE;
 import static data.com.datacollector.model.Const.ALARM_SENSOR_DATA_SAVE_INTERVAL;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_ALARM_RECEIVED;
 import static data.com.datacollector.model.Const.BROADCAST_DATA_SAVE_DATA_AND_STOP;
+import static data.com.datacollector.model.Const.EXTRA_FEEDBACK_NOTIFICATION_TIMEOUT;
 import static data.com.datacollector.model.Const.START_SERVICES;
 import static data.com.datacollector.model.Const.STOP_SERVICES;
 import static data.com.datacollector.model.Const.TM_HTTP;
@@ -92,6 +95,14 @@ public class DataCollectReceiver extends BroadcastReceiver {
             leBleServiceIntent.putExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, intent.getBooleanExtra(BROADCAST_DATA_SAVE_DATA_AND_STOP, false));
             context.startService(leBleServiceIntent);
 
+        }else if(intent.getBooleanExtra(EXTRA_FEEDBACK_NOTIFICATION_TIMEOUT,false)){
+            Log.d(TAG, "onReceive: notification feedback timeout");
+
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if(notificationManager!=null){
+                Log.d(TAG, "onReceive: Canceling");
+                notificationManager.cancel(Notifications.NOTIFICATION_ID_FEEDBACK);
+            }
         }
 
         // device connected to power source, lets upload saved data to server.

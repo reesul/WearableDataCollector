@@ -46,12 +46,15 @@ public class Const {
     //Feedback activity
     public static final String EXTRA_FEEDBACK_QUESTION = "EXTRA_FEEDBACK_QUESTION";
     public static final String EXTRA_FEEDBACK_PREDICTED_LABEL = "EXTRA_FEEDBACK_PREDICTED_LABEL";
-    public static final String EXTRA_FEEDBACK_PREDICTION_START_LBL = "EXTRA_FEEDBACK_PREDICTION_START_LBL";
-    public static final String EXTRA_FEEDBACK_PREDICTION_END_LBL = "EXTRA_FEEDBACK_PREDICTION_END_LBL";
+    public static final String EXTRA_FEEDBACK_FEATURES = "EXTRA_FEEDBACK_FEATURES";
     public static final String EXTRA_FEEDBACK_VIBRATE = "EXTRA_FEEDBACK_VIBRATE";
+    public static final String EXTRA_FEEDBACK_TIMESTAMP = "EXTRA_FEEDBACK_TIMESTAMP";
+    public static final String EXTRA_FEEDBACK_LBLS_ORDER = "EXTRA_FEEDBACK_LBLS_ORDER";
+    public static final String EXTRA_FEEDBACK_NOTIFICATION_TIMEOUT = "EXTRA_FEEDBACK_NOTIFICATION_TIME_OUT";
 
     //Pending intent IDs
     public static final int PENDING_INTENT_CODE_NOTIFICATION = 123323098;
+    public static final int PENDING_INTENT_CODE_FEEDBACK_NOTIFICATION_TIMEOUT = 293513798;
 
     //File names
     public static final String FILE_NAME_ACCELEROMETER = "accelerometer_data.txt";
@@ -173,9 +176,13 @@ public class Const {
     public static int FEATURES = 3; //The number of features to be computed
     public static int LABELS = 10; //Labels to be predicted
     public static int SAMPLES_PER_SENSOR = 120; //The number of raw data points used in the NN
-    public static double MODEL_PROB_THRESHOLD_FOR_FEEDBACK = 0.65; //The minimum probability that the model has to get in a prediction
-    public static int MIN_TIME_INTERVAL_BETWEEN_REQUESTS = 30; //In minutes
+    public static double MODEL_PROB_THRESHOLD_MIN_FOR_FEEDBACK = 0.65; //The minimum probability that the model has to get in a prediction
+    public static double MODEL_PROB_THRESHOLD_MAX_FOR_FEEDBACK = 0.90; //The minimum probability that the model has to get in a prediction
+
+    public static int MIN_TIME_INTERVAL_BETWEEN_REQUESTS = 20; //In minutes
     public static int MAX_TIME_INTERVAL_WITH_NO_REQUESTS = 120; //In minutes
+    //In minutes, the time window we are allowed to ask for questions, after that we will have to wait for other 15 minutes to have a chance
+    public static int MAX_TIME_TIME_WINDOW_TO_ASK_FOR_QUESTIONS = 4;
     public static int FEEDBACK_NOTIFICATION_EXPIRATION_TIME = 2*60*1000; //In millis
     public static int RANDOM_REQUEST_PROBABILITY = 10; //When the prediction is above the threshold, with what probability will we request f
 }

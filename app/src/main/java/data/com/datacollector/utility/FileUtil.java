@@ -337,6 +337,60 @@ public class FileUtil {
 
     /**
      * Stores the feedback information provided by the user
+     * @param timeStamp The time stamp belonging to the features
+     * @param predictedLabel The label that was predicted by the model
+     * @param correctLabel The actual label provided by the user
+     */
+    public static synchronized void saveFeedbackDataToFile(Context context, String timeStamp, String predictedLabel, String correctLabel, double features[]) throws IOException{
+        if(fileUploadInProgress){
+            //TODO: Verify how could this affect our collection process if the data is being transfered and the user disconnects the watch and uses it within the nuc range
+            //TODO: Should we add a loading screen when the data is being transferred?
+            Log.d(TAG, "saveFeedbackDataToFile:: fileUploadInProgress, will save data in the next call");
+            return;
+        }
+
+        final File fileFeedback = getFeedbackFile(context);
+
+        Log.d(TAG, "saveFeedbackDataToFile:  absolute path: fileFeedback: " + fileFeedback.getAbsolutePath());
+
+        boolean fileFeedbackExists = fileFeedback.exists();
+        try {
+            if(!fileFeedbackExists) {
+                fileFeedback.getParentFile().mkdirs();
+                fileFeedback.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(fileFeedback, true);
+
+            if(!feedbackFileAlreadyExists) {
+                fos.write(DEVICE_ID.getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            String feat = "";
+            if(features!= null) {
+                for (int i = 0; i < features.length; i++) {
+                    feat += String.valueOf(features[i]);
+                    if (i + 1 < features.length) {
+                        feat += ",";
+                    }
+                }
+            }else{
+                Log.d(TAG, "saveFeedbackDataToFile: Features were null for some reason");
+            }
+            //TODO: If the model is with context, the features changes. So, it is good to add a column indicating the type of model
+            fos.write((timeStamp + "," + predictedLabel + "," + correctLabel + "," + feat).getBytes());
+            fos.close();
+            Log.d(TAG, "saveFeedbackDataToFile:: Feedback data saved successfully");
+        } catch (IOException e) {
+            throw e;
+        }
+
+    }
+
+    /**
+     * Stores the feedback information provided by the user
      * @param timeStamp The time stamp created when the user submits the answer
      * @param predictedLabel The label that was predicted by the model
      * @param correctLabel The actual label provided by the user
