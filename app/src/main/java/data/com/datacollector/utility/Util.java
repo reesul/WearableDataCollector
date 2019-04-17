@@ -79,9 +79,9 @@ public class Util {
     }
 
     public static class ArrayIndexComparator implements Comparator<Integer> {
-        private final double[] array;
+        private final float[] array;
 
-        public ArrayIndexComparator(double[] array) {
+        public ArrayIndexComparator(float[] array) {
             this.array = array;
         }
 

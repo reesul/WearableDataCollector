@@ -21,6 +21,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,11 +86,13 @@ public class SensorService extends Service implements SensorEventListener{
     //Prediction variables
     private NN nnClassifier = null;
     private double features[];
-    private double prob[];
+    private float prob[];
     private double sortedArray[];
     private double highestProb = 0;
     private int predictedLblId = 0;
     public static double previousFeedbackRequestTimestamp = 0;
+    private ArrayList<String> predictions = new ArrayList<>();
+
 
     /*
      * This runs the given classifier every X seconds to issue predictions
@@ -143,7 +146,7 @@ public class SensorService extends Service implements SensorEventListener{
 
             if(mWakeLock == null){
                 PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-                mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"SensorWakeLock");
+                mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"Sensor:WakeLock");
             }
 
             mWakeLock.acquire();
@@ -199,9 +202,7 @@ public class SensorService extends Service implements SensorEventListener{
         }
 
         //TODO: Finish this prediction add
-        //predictions.add(prediction);
-        //SavePredictionDataInBackground backgroundSave = new SavePredictionDataInBackground(SensorService.this, timestamp, prob);
-        //backgroundSave.execute();
+        predictions.add(prediction);
         //requestFeedback(highestProb < MODEL_PROB_THRESHOLD_FOR_FEEDBACK, question, timestamp, orderedIndexesPrim);
 
     }
@@ -279,10 +280,10 @@ public class SensorService extends Service implements SensorEventListener{
     public void startService(int startId) {
         startForeground(Notifications.NOTIFICATION_ID_RUNNING_SERVICES, Notifications.getServiceRunningNotification(getApplicationContext(), HomeActivity.class));
         sendMessageToWorkerThread(startId);
-        startPredictionTask();
         if(nnClassifier == null){
             initNNClassifier();
         }
+        startPredictionTask();
     }
 
     /**
@@ -315,17 +316,22 @@ public class SensorService extends Service implements SensorEventListener{
     }
 
     public void stopPredictionTask() {
+        if (nnClassifier != null)
+            nnClassifier.close();
         predictionHandler.removeCallbacks(predictionRunnable);
+
     }
 
     public void initNNClassifier(){
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/models";
+        Log.d(TAG, "initNNClassifier: Initializing model");
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/models";
         nnClassifier = new NN(path + "/nn.tflite");
         try {
             nnClassifier.setLabels(DIET_MODEL_LABELS);
             nnClassifier.setModel();
+            Log.d(TAG, "initNNClassifier: Done setting the model");
         } catch (Exception e) {
-            Log.d(TAG, "onCreate: There was an error setting up the NN model: " + e.getMessage());
+            Log.d(TAG, "initNNClassifier: There was an error setting up the NN model: " + e.getMessage());
             nnClassifier = null;
             e.printStackTrace();
         }
@@ -529,12 +535,13 @@ public class SensorService extends Service implements SensorEventListener{
         List<SensorData> tempGyroList = new ArrayList<>(listGyroData);
         List<SensorData> tempAccelerList = new ArrayList<>(listAccelData);
         List<PPGData> tempPPGList = new ArrayList<>(listPPGData);
+        List<String> tempPredictions = new ArrayList<>(predictions);
 
-        //Should create right away since we already have a copy to allow for new samples to come
-        listGyroData.clear(); listAccelData.clear(); listPPGData.clear();
+        //Should clear right away since we already have a copy to allow for new samples to come
+        listGyroData.clear(); listAccelData.clear(); listPPGData.clear(); predictions.clear();
 
         SaveDataInBackground backgroundSave = new SaveDataInBackground(SensorService.this, stop);
-        backgroundSave.execute(tempAccelerList, tempGyroList, tempPPGList);
+        backgroundSave.execute(tempAccelerList, tempGyroList, tempPPGList, tempPredictions);
         Log.d(TAG, "saveDataToFile: Saving files asynchronously");
     }
 
@@ -567,9 +574,15 @@ public class SensorService extends Service implements SensorEventListener{
                 FileUtil.saveGyroNAcceleroDataToFile(service, (List<SensorData>)lists[0], (List<SensorData>)lists[1]);
                 FileUtil.savePPGDataToFile(service, (List<PPGData>)lists[2]);
 
-                ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<SensorData>)lists[2]).clear();
-            }
+                try {
+                    FileUtil.savePredictionsToFile(service, (List<String>)lists[3]);
+                } catch (IOException e) {
+                    Log.d(service.TAG, "doInBackground: Error saving predictions to file");
+                    e.printStackTrace();
+                }
 
+                ((List<SensorData>)lists[0]).clear(); ((List<SensorData>)lists[1]).clear(); ((List<SensorData>)lists[2]).clear(); ((List<SensorData>)lists[3]).clear();
+            }
 
             return null;
         }

@@ -618,7 +618,7 @@ public class HomeActivity extends WearableActivity {
         startSensorService();
         startBLEService();
         //cancelReminderAlarmForDietAnnotation();
-        setReminderAlarmForDietAnnotation();
+        //setReminderAlarmForDietAnnotation();
     }
 
     /**

@@ -37,6 +37,7 @@ import static data.com.datacollector.model.Const.FILE_NAME_GPS;
 import static data.com.datacollector.model.Const.FILE_NAME_GYROSCOPE;
 import static data.com.datacollector.model.Const.FILE_NAME_PPG;
 import static data.com.datacollector.model.Const.FILE_NAME_ACTIVITY;
+import static data.com.datacollector.model.Const.FILE_NAME_PREDICTIONS;
 import static data.com.datacollector.model.Const.MAX_PER_MIN_SENSOR_DATA_ALLOWED;
 
 /**
@@ -55,6 +56,7 @@ public class FileUtil {
     private static boolean feedbackFileAlreadyExists;
     private static boolean gpsFileAlreadyExists;
     private static boolean annotationFileAlreadyExists;
+    private static boolean predictionsFileAlreadyExists;
 
     //Used to be in NetworkIO. Now here since it can be set by any of the transfer methods
     //Set by either NetworkIO or BluetoothFileTransfer
@@ -409,6 +411,56 @@ public class FileUtil {
     }
 
     /**
+     * Stores the predictions information in a file
+     * @param predictions The strings that will be saved
+     */
+    public static synchronized void savePredictionsToFile(Context context, List<String> predictions) throws IOException{
+        if(fileUploadInProgress){
+            //TODO: Verify how could this affect our collection process if the data is being transfered and the user disconnects the watch and uses it within the nuc range
+            //TODO: Should we add a loading screen when the data is being transferred?
+            Log.d(TAG, "savePredictionsToFile:: fileUploadInProgress, will save data in the next call");
+            return;
+        }
+
+        if(predictions.size()==0){
+            return;
+        }
+
+        final File filePredictions = getPredictionsFile(context);
+
+        Log.d(TAG, "savePredictionsToFile:  absolute path: filePredictions: " + filePredictions.getAbsolutePath());
+
+        boolean filePredictionsExists = filePredictions.exists();
+        try {
+            if(!filePredictionsExists) {
+                filePredictions.getParentFile().mkdirs();
+                filePredictions.createNewFile();
+            }
+        }catch(Exception e){}
+
+        try {
+            FileOutputStream fos = new FileOutputStream(filePredictions, true);
+
+            if(!predictionsFileAlreadyExists) {
+                fos.write(DEVICE_ID.getBytes());
+            }
+            fos.write("\r\n".getBytes());
+            for (int i=0; i<predictions.size(); i++){
+                fos.write((predictions.get(i)).getBytes());
+                if (i != predictions.size() - 1)
+                    fos.write("\r\n".getBytes());
+            }
+            //TODO: If the model is with context, the features changes. So, it is good to add a column indicating the type of model
+
+            fos.close();
+            Log.d(TAG, "savePredictionsToFile:: Predictions data saved successfully");
+        } catch (IOException e) {
+            throw e;
+        }
+
+    }
+
+    /**
      * Clears data from one file
      * @param file: file from which data is to be cleared
      */
@@ -616,6 +668,22 @@ public class FileUtil {
         }
         else feedbackFileAlreadyExists = true;
         return fileFeedback;
+    }
+
+    public static File getPredictionsFile(Context context){
+        //format is /{app_files}/DC/{DEVICE_ID}/{DATE}/actTag_data.txt
+        final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DC/" + DEVICE_ID + "/" + Util.getDateForDir());
+        final File filePredictions = new File(dir, FILE_NAME_PREDICTIONS);
+
+        if(!filePredictions.exists()) {
+            try {
+                filePredictions.getParentFile().mkdirs();
+                filePredictions.createNewFile();
+                predictionsFileAlreadyExists = false;
+            }catch(IOException e){}
+        }
+        else predictionsFileAlreadyExists = true;
+        return filePredictions;
     }
 
 
