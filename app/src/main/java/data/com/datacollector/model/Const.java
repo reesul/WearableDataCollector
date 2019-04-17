@@ -182,7 +182,7 @@ public class Const {
     public static int MIN_TIME_INTERVAL_BETWEEN_REQUESTS = 20; //In minutes
     public static int MAX_TIME_INTERVAL_WITH_NO_REQUESTS = 120; //In minutes
     //In minutes, the time window we are allowed to ask for questions, after that we will have to wait for other 15 minutes to have a chance
-    public static int MAX_TIME_TIME_WINDOW_TO_ASK_FOR_QUESTIONS = 4;
+    public static int MAX_TIME_TIME_WINDOW_TO_ASK_FOR_QUESTIONS = 1;
     public static int FEEDBACK_NOTIFICATION_EXPIRATION_TIME = 2*60*1000; //In millis
     public static int RANDOM_REQUEST_PROBABILITY = 10; //When the prediction is above the threshold, with what probability will we request f
 }
