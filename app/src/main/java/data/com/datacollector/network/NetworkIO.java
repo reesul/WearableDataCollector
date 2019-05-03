@@ -47,7 +47,9 @@ public class NetworkIO {
     /**
      * To be called by an initiator who wants to upload data saved in memory to the server
      * @param context: context of the caller
-     *//*   deprecated, does transfer with 4 separate files
+     */
+
+    /*   deprecated, does transfer with 4 separate files, not multiple days of data
     public static void uploadData(final Context context){
         Log.d(TAG, "uploadData");
         fileUploadInProgress = true;
@@ -149,6 +151,7 @@ public class NetworkIO {
         Log.d(TAG, "Number of files to send: "+dateDirs.length);
 
         for (final File date : dateDirs) {
+
             //Only folders should be in this directory (1 per day of data), delete anything else
             if(!date.isDirectory()) {
                 date.delete();
